@@ -1,0 +1,1 @@
+sphinx-build -v -n -b html . docs\_build

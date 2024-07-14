@@ -1,0 +1,6 @@
+Taco trail format:
+
+bytes 1-4: TRAILFILEVERSION (0x00000000)
+bytes 5-8: MapID
+
+bytes 9-n: trail coordinates (3 floats for each point, 32bits per axis (x,y,z) or 96bits per point)

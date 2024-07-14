@@ -1,0 +1,20 @@
+builddir/
+
+docs/_build
+
+# ignore everything in subprojects except the wrap files
+subprojects/*
+!subprojects/curl.wrap
+!subprojects/freetype2.wrap
+!subprojects/glfw.wrap
+!subprojects/libxml2.wrap
+!subprojects/zlib.wrap
+!subprojects/lua-5.4.6/
+!subprojects/jansson-2.14/
+
+__pycache__/
+
+.venv/
+.vscode/
+
+release/

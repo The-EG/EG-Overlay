@@ -1,0 +1,4 @@
+#include "icons.h"
+
+IDI_EGOVERLAY_16x16 ICON "eg-overlay-16x16.ico"
+IDI_EGOVERLAY_32x32 ICON "eg-overlay-32x32.ico"

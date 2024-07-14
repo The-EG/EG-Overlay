@@ -1,0 +1,32 @@
+#include <winver.h>
+
+#define EGOVERLAY_VERSION  0,0,1,0
+#define EGOVERLAY_VERSTR   "0.0.1"
+
+VS_VERSION_INFO VERSIONINFO
+    FILEVERSION    EGOVERLAY_VERSION
+    PRODUCTVERSION EGOVERLAY_VERSION
+    FILEFLAGSMASK  VS_FFI_FILEFLAGSMASK
+    FILEFLAGS      VS_FF_DEBUG | VS_FF_PRERELEASE
+    FILEOS         VOS__WINDOWS32
+    FILETYPE       VFT_APP
+    FILESUBTYPE    VFT2_UNKNOWN
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904B0"
+        BEGIN
+            VALUE "FileDescription",  "EG-Overlay: A GW2 Overlay"
+            VALUE "CompanyName",      "Taylor Talkington (The-EG)"
+            VALUE "LegalCopyright",   "(C) 2024 Taylor Talkington (The-EG)"
+            VALUE "FileVersion",      EGOVERLAY_VERSTR
+            VALUE "OriginalFileName", "eg-overlay.exe"
+            VALUE "ProductName",      "EG-Overlay"
+            VALUE "Productversion",   EGOVERLAY_VERSTR
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0409, 0x04B0
+    END
+END
