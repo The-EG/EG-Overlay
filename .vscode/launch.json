@@ -15,7 +15,8 @@
             "environment": [],
             "envFile": "${workspaceFolder}/${config:mesonbuild.buildFolder}/meson-vscode.env",
             "console": "internalConsole",
-            "preLaunchTask": "Meson: Build all targets"
+            "preLaunchTask": "Meson: Build all targets",
+            "internalConsoleOptions": "openOnSessionStart"
         },
         {
             "name": "EG-Overlay: Debug (Terminal Window)",
@@ -28,7 +29,8 @@
             "environment": [],
             "envFile": "${workspaceFolder}/${config:mesonbuild.buildFolder}/meson-vscode.env",
             "console": "internalConsole",
-            "preLaunchTask": "Meson: Build all targets"
+            "preLaunchTask": "Meson: Build all targets",
+            "internalConsoleOptions": "openOnSessionStart"
         }
     ]
 }
