@@ -72,7 +72,7 @@ class DBTableIndex(Index):
             lis.append((
                 dispname, 0, docname,
                 anchor,
-                docname, '', typ
+                docname, name.split('.')[-2], typ
             ))
         re = [(k,v) for k,v in sorted(content.items())]
         return (re, True)
@@ -158,9 +158,18 @@ class OverlayDomain(Domain):
         for obj in self.data['objects']: yield(obj)
 
     def resolve_xref(self, env, fromdocname, builder, typ, target, node, contnode):
-        matches = [(docname, anchor) 
-                   for name, sig, otyp, docname, anchor, prio
-                   in self.get_objects() if sig == target and otyp == typ]
+        if typ == 'dbtable':
+            targparts = target.split('.')
+            targname = targparts[-1]
+            dbname = '.'.join(targparts[:-1])
+
+            matches = [(docname, anchor)
+                       for name, sig, otyp, docname, anchor, prio
+                       in self.get_objects() if otyp==typ and name.split('.')[-2]==dbname and name.split('.')[-1]==targname]
+        else:
+            matches = [(docname, anchor) 
+                        for name, sig, otyp, docname, anchor, prio
+                        in self.get_objects() if sig == target and otyp == typ]
         
         if len(matches) > 0:
             todocname = matches[0][0]
