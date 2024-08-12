@@ -384,6 +384,11 @@ static int mumble_link_lua_character_profession(lua_State *L) {
 
     The specialization ID of the currently logged in character. See `the GW2 API <https://wiki.guildwars2.com/wiki/API:2/specializations>`_.
 
+    .. note::
+        Module authors can use the :lua:mod:`gw2.static` module instead of querying the GW2 API.
+
+        See :overlay:dbtable:`gw2static.specializations` and :lua:func:`gw2.static.specialization`.
+
     .. warning::
         |identity warning|
 
@@ -410,11 +415,11 @@ static int mumble_link_lua_character_specialization(lua_State *L) {
 
     The race of the currently logged in character. One of:
 
-    * asura
-    * charr
-    * human
-    * norn
-    * sylvari
+    * Asura
+    * Charr
+    * Human
+    * Norn
+    * Sylvari
 
     .. warning::
         |identity warning|
@@ -433,11 +438,11 @@ static int mumble_link_lua_character_race(lua_State *L) {
 
     int race = json_integer_value(race_json);
     switch (race) {
-    case 0:  lua_pushliteral(L, "asura"  ); break;
-    case 1:  lua_pushliteral(L, "charr"  ); break;
-    case 2:  lua_pushliteral(L, "human"  ); break;
-    case 3:  lua_pushliteral(L, "norn"   ); break;
-    case 4:  lua_pushliteral(L, "sylvari"); break;
+    case 0:  lua_pushliteral(L, "Asura"  ); break;
+    case 1:  lua_pushliteral(L, "Charr"  ); break;
+    case 2:  lua_pushliteral(L, "Human"  ); break;
+    case 3:  lua_pushliteral(L, "Norn"   ); break;
+    case 4:  lua_pushliteral(L, "Sylvari"); break;
     default: lua_pushliteral(L, "unknown"); break;
     }
 
