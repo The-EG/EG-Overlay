@@ -45,6 +45,236 @@ Database Tables
 .. overlay:database:: gw2static
 ]]--
 
+--[[ RST
+.. overlay:dbtable:: achievements
+
+    Achievements
+
+    **Columns**
+
+    =========== ======= ================================================
+    Name        Type    Description
+    =========== ======= ================================================
+    id          INTEGER Achievement ID, matches the GW2 API ID
+    icon        TEXT    Render service URL
+    name        TEXT    Achievement name
+    description TEXT    
+    requirement TEXT    Requirement as listed in game
+    locked_text TEXT    Description prior to unlocking
+    type        TEXT    Either 'Default' or 'ItemSet'
+    point_cap   INTEGER Maximum number of AP for repeatable achievements
+    =========== ======= ================================================
+
+    .. versionhistory::
+        :0.0.1: Added
+]]--
+local create_achievements_table_sql = [[
+CREATE TABLE IF NOT EXISTS achievements (
+    id INTEGER PRIMARY KEY NOT NULL,
+    icon TEXT,
+    name TEXT NOT NULL,
+    description TEXT,
+    requirement TEXT,
+    locked_text TEXT,
+    type TEXT,
+    point_cap INTEGER
+)
+]]
+
+local achievements_insert_sql = [[
+INSERT INTO
+achievements (id, icon, name, description, requirement, locked_text, type, point_cap)
+VALUES (:id, :icon, :name, :description, :requirement, :locked_text, :type, :point_cap)
+]]
+
+--[[ RST
+.. overlay:dbtable:: achievement_flags
+
+    Achievement Flags
+
+    Possible values:
+
+    ==================== ===========================================
+    Value                Description
+    ==================== ===========================================
+    Pvp                  Can only progress achievement in PvP or WvW
+    CategoryDisplay      Meta achievement
+    MoveToTop
+    IgnoreNearlyComplete Not shown in game 'nearly complete' list
+    Repeatable           Can be repeated multiple times
+    Hidden
+    RequiresUnlock
+    RepairOnLogin
+    Daily
+    Weekly
+    Monthly
+    Permanent
+    ==================== ===========================================
+
+    **Columns**
+
+    =========== ======= ======================
+    Name        Type    Description
+    =========== ======= ======================
+    achievement INTEGER Achievement ID
+    flag        TEXT    One of the flags above
+    =========== ======= ======================
+
+    .. versionhistory::
+        :0.0.1: Added
+]]--
+local create_achievement_flags_table_sql = [[
+CREATE TABLE IF NOT EXISTS achievement_flags (
+    achievement INTEGER NOT NULL REFERENCES achievements (id) ON DELETE CASCADE,
+    flag TEXT NOT NULL,
+    PRIMARY KEY (achievement, flag)
+)
+]]
+
+local achievement_flags_insert_sql = [[
+INSERT INTO
+achievement_flags (achievement, flag)
+VALUES (:achievement, :flag)
+]]
+
+--[[ RST
+.. overlay:dbtable:: achievement_tiers
+
+    Achievement Tiers
+
+    **Columns**
+
+    =========== ======= ===================================================
+    Name        Type    Description
+    =========== ======= ===================================================
+    achievement INTEGER Achievement ID
+    count       INTEGER Number of items that must be completed in this tier
+    points      INTEGER AP awarded for this tier
+    sequence    INTEGER Sequence order of this tier
+    =========== ======= ===================================================
+
+    .. versionhistory::
+        :0.0.1: Added
+]]--
+local create_achievement_tiers_table_sql = [[
+CREATE TABLE IF NOT EXISTS achievement_tiers (
+    achievement INTEGER NOT NULL REFERENCES achievements (id) ON DELETE CASCADE,
+    count INTEGER NOT NULL,
+    points INTEGER,
+    sequence INTEGER NOT NULL,
+    PRIMARY KEY (achievement, sequence)
+)
+]]
+
+local achievement_tiers_insert_sql = [[
+INSERT INTO
+achievement_tiers (achievement, count, points, sequence)
+VALUES (:achievement, :count, :points, :sequence)
+]]
+
+--[[ RST
+.. overlay:dbtable:: achievement_prerequisites
+
+    Achievement Prerequisites
+
+    **Columns**
+
+    ============ ======= ======================================================================================
+    Name         Type    Description
+    ============ ======= ======================================================================================
+    achievement  INTEGER Achievement ID
+    prerequisite INTEGER A different achievement ID that must be completed before this achievement is available
+    ============ ======= ======================================================================================
+
+    .. versionhistory::
+        :0.0.1: Added
+]]--
+local create_achievement_prerequisites_table_sql = [[
+CREATE TABLE IF NOT EXISTS achievement_prerequisites (
+    achievement INTEGER NOT NULL REFERENCES achievements (id) ON DELETE CASCADE,
+    prerequisite INTEGER NOT NULL,
+    PRIMARY KEY (achievement, prerequisite)
+)
+]]
+
+local achievement_prerequisites_insert_sql = [[
+INSERT INTO
+achievement_prerequisites (achievement, prerequisite)
+VALUES (:achievement, :prerequisite)
+]]
+
+--[[ RST
+.. overlay:dbtable:: achievement_rewards
+
+    Achievement Rewards
+
+    **Columns**
+
+    =========== ======= ===============================================================
+    Name        Type    Description
+    =========== ======= ===============================================================
+    achievement INTEGER Achievement ID
+    type        TEXT    ``'Coins'``, ``'Item'``, ``'Mastery'``, or ``'Title'``
+    count       INTEGER The number of ``'Coins'`` or ``'Item'`` rewarded
+    id          INTEGER The ``'Title'``, ``'Mastery'`` Point, or ``'Item'`` id rewarded
+    region      TEXT    The ``'Mastery'`` Point region
+    =========== ======= ===============================================================
+
+    .. versionhistory::
+        :0.0.1: Added
+]]--
+local create_achievement_rewards_table_sql = [[
+CREATE TABLE IF NOT EXISTS achievement_rewards (
+    achievement INTEGER NOT NULL REFERENCES achievements (id) ON DELETE CASCADE,
+    type TEXT NOT NULL,
+    count INTEGER,
+    id INTEGER,
+    region TEXT
+)
+]]
+
+local achievement_rewards_insert_sql = [[
+INSERT INTO
+achievement_rewards (achievement, type, count, id, region)
+VALUES (:achievement, :type, :count, :id, :region)
+]]
+
+--[[ RST
+.. overlay:dbtable:: achievement_bits
+
+    Achievement Bits
+
+    **Columns**
+
+    =========== ======= ====================================================
+    Name        Type    Description
+    =========== ======= ====================================================
+    achievement INTEGER Achievement ID
+    sequence    INTEGER
+    type        TEXT    ``'Text'``, ``'Item'``, ``'Minipet'``, or ``'Skin'``
+    id          INTEGER ID of the ``'Item'``, ``'Minipet'``, or ``'Skin'``
+    text        TEXT    Text description if type = ``'Text'``
+    =========== ======= ====================================================
+
+    .. versionhistory::
+        :0.0.1: Added
+]]--
+local create_achievement_bits_table_sql = [[
+CREATE TABLE IF NOT EXISTS achievement_bits (
+    achievement INTEGER NOT NULL REFERENCES achievements (id) ON DELETE CASCADE,
+    sequence INTEGER NOT NULL,
+    type TEXT,
+    id INTEGER,
+    "text" TEXT,
+    PRIMARY KEY (achievement, sequence)
+)
+]]
+
+local achievement_bits_insert_sql = [[
+INSERT INTO
+achievement_bits (achievement, sequence, type, id, "text")
+VALUES (:achievement, :sequence, :type, :id, :text)
+]]
 
 --[[ RST
 .. overlay:dbtable:: specializations
@@ -574,6 +804,13 @@ masterypoints (id, x, y, region, map)
 VALUES (:id, :x, :y, :region, :map)
 ]]
 
+static.db:execute(create_achievements_table_sql)
+static.db:execute(create_achievement_tiers_table_sql)
+static.db:execute(create_achievement_rewards_table_sql)
+static.db:execute(create_achievement_prerequisites_table_sql)
+static.db:execute(create_achievement_flags_table_sql)
+static.db:execute(create_achievement_bits_table_sql)
+
 static.db:execute(create_specializations_table_sql)
 static.db:execute(create_spec_traits_table_sql)
 
@@ -588,6 +825,133 @@ static.db:execute(create_sector_table_sql)
 static.db:execute(create_sectorbounds_table_sql)
 static.db:execute(create_adventures_table_sql)
 static.db:execute(create_masterypoints_table_sql)
+
+local function runupdateachievements()
+    static.log:info('Updating achievement data...')
+
+    local r,achievement_ids = api.get('achievements', nil, nil, nil, nil, false)
+
+    if not r then
+        error("Couldn't fetch achievement ids")
+    end
+
+    local idbuckets = {}
+    local curbucket = {}
+
+    for i, id in ipairs(achievement_ids) do
+        if #curbucket >= 100 then
+            table.insert(idbuckets, curbucket)
+            curbucket = {}
+        end
+
+        table.insert(curbucket, id)
+    end
+
+    static.log:info('%d achievements, fetching in %d groups of 100', #achievement_ids, #idbuckets)
+
+    static.db:execute('DELETE FROM achievements')
+    static.db:execute('DELETE FROM achievement_flags')
+    static.db:execute('DELETE FROM achievement_tiers')
+    static.db:execute('DELETE FROM achievement_prerequisites')
+    static.db:execute('DELETE FROM achievement_rewards')
+    static.db:execute('DELETE FROM achievement_bits')
+
+    local achievementins = static.db:prepare(achievements_insert_sql)
+    local flagsins = static.db:prepare(achievement_flags_insert_sql)
+    local tiersins = static.db:prepare(achievement_tiers_insert_sql)
+    local prereqsins = static.db:prepare(achievement_prerequisites_insert_sql)
+    local rewardsins = static.db:prepare(achievement_rewards_insert_sql)
+    local bitsins = static.db:prepare(achievement_bits_insert_sql)
+
+    local requests = 0
+    local lastreqbucket = overlay.time()
+
+    for i, bucket in ipairs(idbuckets) do
+        local idsstr = table.concat(bucket, ',')
+        local r,achievements = api.get('achievements', {ids = idsstr}, nil, nil, nil, false)
+
+        if not r then
+            error("Couldn't fetch achievement details")
+        end
+
+        for i, achievement in ipairs(achievements) do
+            achievementins:bind(':id', achievement.id)
+            achievementins:bind(':icon', achievement.icon)
+            achievementins:bind(':name', achievement.name)
+            achievementins:bind(':description', achievement.description)
+            achievementins:bind(':requirement', achievement.requirement)
+            achievementins:bind(':locked_text', achievement.locked_text)
+            achievementins:bind(':type', achievement.type)
+            achievementins:bind(':point_cap', achievement.point_cap)
+            achievementins:step()
+            achievementins:reset()
+            
+            if achievement.flags then
+                for i,flag in ipairs(achievement.flags) do
+                    flagsins:bind(':achievement', achievement.id)
+                    flagsins:bind(':flag', flag)
+                    flagsins:step()
+                    flagsins:reset()
+                end
+            end
+
+            if achievement.tiers then
+                for i,tier in ipairs(achievement.tiers) do
+                    tiersins:bind(':achievement', achievement.id)
+                    tiersins:bind(':count', tier.count)
+                    tiersins:bind(':points', tier.points)
+                    tiersins:bind(':sequence', i)
+                    tiersins:step()
+                    tiersins:reset()
+                end
+            end
+
+            if achievement.prerequisites then
+                for i,prereq in ipairs(achievement.prerequisites) do
+                    prereqsins:bind(':achievement', achievement.id)
+                    prereqsins:bind(':prerequisite', prereq)
+                    prereqsins:step()
+                    prereqsins:reset()
+                end
+            end
+
+            if achievement.rewards then
+                for i,reward in ipairs(achievement.rewards) do
+                    rewardsins:bind(':achievement', achievement.id)
+                    rewardsins:bind(':type', reward.type)
+                    rewardsins:bind(':count', reward.count)
+                    rewardsins:bind(':id', reward.id)
+                    rewardsins:bind(':region', reward.region)
+                    rewardsins:step()
+                    rewardsins:reset()
+                end
+            end
+
+            if achievement.bits then
+                for i,bit in ipairs(achievement.bits) do
+                    bitsins:bind(':achievement', achievement.id)
+                    bitsins:bind(':sequence', i)
+                    bitsins:bind(':type', bit.type)
+                    bitsins:bind(':id', bit.id)
+                    bitsins:bind(':text', bit.text)
+                    bitsins:step()
+                    bitsins:reset()
+                end
+            end
+        end
+
+        requests = requests + 1
+        if requests > 5 then
+            while overlay.time() - lastreqbucket < 1 do
+                coroutine.yield()
+            end
+            lastreqbucket = overlay.time()
+            requests = 0
+        end
+    end
+
+    static.log:info('Achievement data update complete.')
+end
 
 local function runupdatespecs()
     static.log:info("Updating specializations data...")
@@ -839,6 +1203,33 @@ Functions
 ]]--
 
 --[[ RST
+.. lua:function:: updateachievements()
+
+    Update the following tables from the GW2 API.
+
+    - achievements
+    - achievement_flags
+    - achievement_tiers
+    - achievement_prerequisites
+    - achievement_rewards
+    - achievement_bits
+
+    .. versionhistory::
+        :0.0.1: Added
+]]--
+function static.updateachievements()
+    static.db:execute('BEGIN')
+
+    local r,msg = xpcall(runupdateachievements, function(msg) return debug.traceback(msg, 2) end)
+    if not r then
+        static.log:error('Error during updating achievement data, rolling back database:\n%s', msg)
+        static.db:execute('ROLLBACK')
+    else
+        static.db:execute('COMMIT')
+    end
+end
+
+--[[ RST
 .. lua:function:: updatespecializations()
 
     Update the following tables from the GW2 API.
@@ -948,7 +1339,7 @@ end
 
     :param mapid: The Map ID
     :type mapid: integer
-    :returns: A table of waypoints. See :overlay:dbtable:`pois`.
+    :returns: A table of waypoints. See :overlay:dbtable:`gw2static.pois`.
     :rtype: table
 
     .. versionhistory::
