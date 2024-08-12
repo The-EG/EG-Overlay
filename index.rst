@@ -10,8 +10,10 @@ User Guide
     :caption: User Guide
     :hidden:
 
-    docs/configuration.rst
+    docs/running
+    docs/configuration
 
+- :doc:`docs/running`
 - :doc:`docs/configuration`
 
 .. toctree::
