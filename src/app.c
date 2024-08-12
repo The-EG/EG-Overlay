@@ -300,6 +300,8 @@ void app_init(HINSTANCE hinst, int argc, char **argv) {
     app->settings = settings_new("eg-overlay");
     settings_set_default_double(app->settings, "overlay.frameTargetTime", 32.0);
 
+    glfwInit();
+
     if (app->runscript) {
         return;
     }
@@ -313,8 +315,7 @@ void app_init(HINSTANCE hinst, int argc, char **argv) {
         "EG-Overlay Message Window Class",
         "EG-Overlay Message Window", 0, 0, 0, 0, 0, HWND_MESSAGE, NULL, NULL, NULL);   
 
-    glfwInit();
-
+    
     #ifndef NDEBUG
     glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
     #endif
@@ -405,11 +406,10 @@ void app_cleanup() {
     if (!app->runscript) {
         DestroyWindow(app->message_win);
         glfwDestroyWindow(app->win);
-
-        glfwTerminate();
         
         DestroyMenu(app->sys_tray_menu);
     }
+    glfwTerminate();
     
     settings_unref(app->settings);
 
