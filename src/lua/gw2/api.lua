@@ -212,7 +212,7 @@ function api.get(endpoint, params, done, err, sd, cache)
 
     if params then
         for p,v in pairs(params) do
-            req:add_query_parameters(p, v)
+            req:add_query_parameter(p, v)
         end
     end
 
