@@ -2,7 +2,8 @@ name: Build & Deploy EG-Overlay Documentation
 
 on:
   push:
-    branches: [$default-branch]
+    branches:
+      - main
     
   workflow_dispatch:
 
