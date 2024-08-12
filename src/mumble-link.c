@@ -349,14 +349,14 @@ static int mumble_link_lua_character_name(lua_State *L) {
 
     The profession of the currently logged in character. One of:
 
-    * elementalist
-    * engineer
-    * guardian
-    * mesmer
-    * necromancer
-    * ranger
-    * thief
-    * warrior
+    * Elementalist
+    * Engineer
+    * Guardian
+    * Mesmer
+    * Necromancer
+    * Ranger
+    * Thief
+    * Warrior
 
     .. versionhistory::
         :0.0.1: Added
@@ -364,14 +364,14 @@ static int mumble_link_lua_character_name(lua_State *L) {
 static int mumble_link_lua_character_profession(lua_State *L) {
     switch (mumble_link_character_profression()) {
         case MUMBLE_LINK_PROFESSION_ERROR:        lua_pushstring(L, "error");        break;
-        case MUMBLE_LINK_PROFESSION_ELEMENTALIST: lua_pushstring(L, "elementalist"); break;
-        case MUMBLE_LINK_PROFESSION_ENGINEER:     lua_pushstring(L, "engineer");     break;
-        case MUMBLE_LINK_PROFESSION_GUARDIAN:     lua_pushstring(L, "guardian");     break;
-        case MUMBLE_LINK_PROFESSION_MESMER:       lua_pushstring(L, "mesmer");       break;
-        case MUMBLE_LINK_PROFESSION_NECROMANCER:  lua_pushstring(L, "necromancer");  break;
-        case MUMBLE_LINK_PROFESSION_RANGER:       lua_pushstring(L, "ranger");       break;
-        case MUMBLE_LINK_PROFESSION_THIEF:        lua_pushstring(L, "thief");        break;
-        case MUMBLE_LINK_PROFESSION_WARRIOR:      lua_pushstring(L, "warrior");      break;
+        case MUMBLE_LINK_PROFESSION_ELEMENTALIST: lua_pushstring(L, "Elementalist"); break;
+        case MUMBLE_LINK_PROFESSION_ENGINEER:     lua_pushstring(L, "Engineer");     break;
+        case MUMBLE_LINK_PROFESSION_GUARDIAN:     lua_pushstring(L, "Guardian");     break;
+        case MUMBLE_LINK_PROFESSION_MESMER:       lua_pushstring(L, "Mesmer");       break;
+        case MUMBLE_LINK_PROFESSION_NECROMANCER:  lua_pushstring(L, "Necromancer");  break;
+        case MUMBLE_LINK_PROFESSION_RANGER:       lua_pushstring(L, "Ranger");       break;
+        case MUMBLE_LINK_PROFESSION_THIEF:        lua_pushstring(L, "Thief");        break;
+        case MUMBLE_LINK_PROFESSION_WARRIOR:      lua_pushstring(L, "Warrior");      break;
         default:                                  lua_pushstring(L, "error");        break;
     }
     return 1;
