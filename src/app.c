@@ -53,9 +53,13 @@ typedef struct {
     settings_t *settings;
 
     const char *target_win_class;
+
+    const char *runscript;
 } app_t;
 
 static app_t *app = NULL;
+
+static void app_run_script();
 
 static LRESULT CALLBACK winproc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     switch (uMsg) {
@@ -282,11 +286,23 @@ void app_init(HINSTANCE hinst, int argc, char **argv) {
         } else if (strcmp(argv[a], "--no-input-hooks")==0) {
             logger_warn(app->log, "Input hooks DISABLED.");
             no_input_hooks = 1;
+        } else if (strcmp(argv[a], "--lua-script")==0) {
+            if (a + 1 == argc) {
+                MessageBox(NULL, "--lua-script argument requires a path.", "Command Line Argument Error", MB_OK |MB_ICONERROR);
+                exit(-1);
+            } else {
+                app->runscript = argv[++a];
+                logger_warn(app->log, "--lua-script mode, running %s", app->runscript);
+            }
         }
     }
 
     app->settings = settings_new("eg-overlay");
     settings_set_default_double(app->settings, "overlay.frameTargetTime", 32.0);
+
+    if (app->runscript) {
+        return;
+    }
 
     app->inst = hinst;
 
@@ -386,12 +402,15 @@ void app_init(HINSTANCE hinst, int argc, char **argv) {
 void app_cleanup() {
     logger_debug(app->log, "cleanup");
 
-    DestroyWindow(app->message_win);
-    glfwDestroyWindow(app->win);
+    if (!app->runscript) {
+        DestroyWindow(app->message_win);
+        glfwDestroyWindow(app->win);
 
-    glfwTerminate();
+        glfwTerminate();
+        
+        DestroyMenu(app->sys_tray_menu);
+    }
     
-    DestroyMenu(app->sys_tray_menu);
     settings_unref(app->settings);
 
     logger_info(app->log, "----------------------------------------------------");
@@ -506,6 +525,11 @@ static DWORD WINAPI app_render_thread(LPVOID lpParam) {
 }
 
 int app_run() {
+    if (app->runscript) {
+        app_run_script();
+        return 0;
+    }
+
     NOTIFYICONDATA nid;
     memset(&nid, 0, sizeof(NOTIFYICONDATA));
     nid.cbSize = sizeof(nid);
@@ -688,4 +712,19 @@ char *app_getclipboard_text() {
 
 void app_exit() {
     glfwSetWindowShouldClose(app->win, GLFW_TRUE);
+}
+
+static void app_run_script() {
+
+    // everything but UI
+    lua_manager_init();
+    settings_lua_init();
+    zip_lua_init();
+    xml_lua_init();
+    json_lua_init();
+    web_request_init();
+    mumble_link_init();
+    lua_sqlite_init();
+
+    lua_manager_run_file(app->runscript);
 }

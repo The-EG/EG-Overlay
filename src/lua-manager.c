@@ -198,19 +198,32 @@ void lua_manager_add_module_opener(const char *name, lua_manager_module_opener_f
 }
 
 void lua_manager_run_file(const char *path) {
-    int r = luaL_loadfile(lua->lua, path);
+
+    lua_State *thread = lua_newthread(lua->lua);
+
+    int r = luaL_loadfile(thread, path);
 
     if (r != LUA_OK) {
-        const char *err_msg = lua_tolstring(lua->lua, -1, NULL);
+        const char *err_msg = lua_tolstring(thread, -1, NULL);
         logger_error(lua->log, "Couldn't load %s: %s", path, err_msg);
         error_and_exit("EG-Overlay: Lua", "Couldn't load %s:\n%s", path, err_msg);
     }
 
-    r = lua_pcall(lua->lua, 0, 0, 0);
+    int nres = 0;
+
+    while ((r=lua_resume(thread, NULL, 0, &nres))==LUA_YIELD) {
+        lua_manager_run_events();
+        while(lua_manager_resume_coroutines()) {}
+        lua_manager_run_event_queue();        
+    }
+
     if (r!=LUA_OK) {
-        const char *err_msg = lua_tolstring(lua->lua, -1, NULL);
-        logger_error(lua->log, "Error while running %s: %s", path, err_msg);
-        error_and_exit("EG-Overlay: Lua", "Error while running %s:\n%s", path, err_msg);
+        // error occurred
+        const char *errmsg = luaL_checkstring(thread, -1);
+        logger_error(lua->log, "Error occurred during lua run file: %s", errmsg);
+        lua_pop(thread, 1);
+        // pop the thread
+        lua_closethread(thread, NULL);
     }
 }
 
