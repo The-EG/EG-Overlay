@@ -43,7 +43,84 @@ Database Tables
 ---------------
 
 .. overlay:database:: gw2static
+]]--
 
+
+--[[ RST
+.. overlay:dbtable:: specializations
+
+    Specializations
+
+    **Columns**
+
+    ============ ======= ==========================================================================
+    Name         Type    Description
+    ============ ======= ==========================================================================
+    id           INTEGER Specialization ID, matches the ID returned by mumble-link and the GW2 API.
+    name         TEXT    Specialization name.
+    profession   TEXT
+    elite        BOOL    Indicates if this is an elite specialization or not.
+    weapon_trait INTEGER 
+    icon         TEXT    Render service URL.
+    background   TEXT    Render service URL.
+    ============ ======= ==========================================================================
+
+    .. versionhistory::
+        :0.0.1: Added
+]]--
+local create_specializations_table_sql = [[
+CREATE TABLE IF NOT EXISTS specializations (
+    id INTEGER PRIMARY KEY NOT NULL,
+    name TEXT NOT NULL,
+    profession TEXT NOT NULL,
+    elite BOOL NOT NULL,
+    weapon_trait INTEGER,
+    icon TEXT NOT NULL,
+    background TEXT NOT NULL
+)
+]]
+
+local specializations_insert_sql = [[
+INSERT INTO
+specializations (id, name, profession, elite, weapon_trait, icon, background)
+VALUES (:id, :name, :profession, :elite, :weapon_trait, :icon, :background)
+]]
+
+--[[ RST
+.. overlay:dbtable:: specialization_traits
+
+    Specialization Traits
+
+    **Columns**
+
+    ============== ======= =============================
+    Name           Type    Description
+    ============== ======= =============================
+    id             INTEGER Trait ID
+    specialization INTEGER Specialization ID
+    major          BOOL    TRUE if this is a major trait
+    ============== ======= =============================
+
+    .. versionhistory::
+        :0.0.1: Added
+]]--
+local create_spec_traits_table_sql = [[
+CREATE TABLE IF NOT EXISTS specialization_traits (
+    id INTEGER NOT NULL,
+    specialization INTEGER NOT NULL REFERENCES specializations (id) ON DELETE CASCADE,
+    major BOOL,
+    PRIMARY KEY (id, specialization)
+)
+]]
+
+local spec_traits_insert_sql = [[
+INSERT INTO
+specialization_traits (id, specialization, major)
+VALUES (:id, :specialization, :major)
+]]
+
+
+--[[ RST
 .. overlay:dbtable:: continents
 
     GW2 Continents
@@ -497,6 +574,8 @@ masterypoints (id, x, y, region, map)
 VALUES (:id, :x, :y, :region, :map)
 ]]
 
+static.db:execute(create_specializations_table_sql)
+static.db:execute(create_spec_traits_table_sql)
 
 static.db:execute(create_continent_table_sql)
 static.db:execute(create_region_table_sql)
@@ -509,6 +588,52 @@ static.db:execute(create_sector_table_sql)
 static.db:execute(create_sectorbounds_table_sql)
 static.db:execute(create_adventures_table_sql)
 static.db:execute(create_masterypoints_table_sql)
+
+local function runupdatespecs()
+    static.log:info("Updating specializations data...")
+
+    local r,specs = api.get('specializations', {ids="all"}, nil, nil, nil, false)
+
+    if not r then
+        error("Couldn't fetch specializations.")
+    end
+
+    local specins = static.db:prepare(specializations_insert_sql)
+    local spectraitins = static.db:prepare(spec_traits_insert_sql)
+
+    static.db:execute('DELETE FROM specializations')
+    static.db:execute('DELETE FROM specialization_traits')
+
+    for i, spec in ipairs(specs) do
+        specins:bind(':id'          , spec.id)
+        specins:bind(':name'        , spec.name)
+        specins:bind(':profession'  , spec.profession)
+        specins:bind(':elite'       , spec.elite)
+        specins:bind(':weapon_trait', spec.weapon_trait)
+        specins:bind(':icon'        , spec.icon)
+        specins:bind(':background'  , spec.background)
+        specins:step()
+        specins:reset()
+
+        for i,trait in ipairs(spec.minor_traits) do
+            spectraitins:bind(':id'            , trait)
+            spectraitins:bind(':specialization', spec.id)
+            spectraitins:bind(':major'         , false)
+            spectraitins:step()
+            spectraitins:reset()
+        end
+
+        for i,trait in ipairs(spec.major_traits) do
+            spectraitins:bind(':id'            , trait)
+            spectraitins:bind(':specialization', spec.id)
+            spectraitins:bind(':major'         , true)
+            spectraitins:step()
+            spectraitins:reset()
+        end
+    end
+
+    static.log:info("Specializations data update complete.")
+end
 
 local function runupdatecontinents()
     static.log:info("Updating continents data...")
@@ -713,6 +838,28 @@ Functions
 ---------
 ]]--
 
+--[[ RST
+.. lua:function:: updatespecializations()
+
+    Update the following tables from the GW2 API.
+
+    - specializations
+    - specialization_traits
+
+    .. versionhistory::
+        :0.0.1: Added
+]]--
+function static.updatespecializations()
+    static.db:execute('BEGIN')
+
+    local r,msg = xpcall(runupdatespecs, function(msg) return debug.traceback(msg, 2) end)
+    if not r then
+        static.log:error('Error during updating specialization data, rolling back database:\n%s', msg)
+        static.db:execute('ROLLBACK')
+    else
+        static.db:execute('COMMIT')
+    end
+end
 
 --[[ RST
 .. lua:function:: updatecontinents()
@@ -743,6 +890,54 @@ function static.updatecontinents()
         static.db:execute('ROLLBACK')
     else
         static.db:execute('COMMIT')
+    end
+end
+
+--[[ RST
+.. lua:function:: specialization(specid)
+
+    Return the specializtion given by ``specid``.
+
+    The returned value is a Lua table with the following fields.
+
+    .. luatablefields::
+        :id: Specialization ID
+        :name: Specialization Name
+        :profession: Profession Name
+        :elite: Indicates if this is an elite specialization
+        :icon: Icon URL
+        :background: Background URL
+        :minor_traits: A sequence of minor trait IDs
+        :major_traits: A sequence of major trait IDs
+
+    .. versionhistory::
+        :0.0.1: Added
+]]--
+function static.specialization(specid)
+    local s = static.db:prepare("SELECT * FROM specializations WHERE id = ?")
+    s:bind(1, specid)
+
+    local spec = s:step()
+
+    s:finalize()
+
+    if spec then
+        spec.major_traits = {}
+        spec.minor_traits = {}
+        s = static.db:prepare("SELECT id, major FROM specialization_traits WHERE specialization = ?")
+        local function rows()
+            return s:step()
+        end
+
+        for row in rows do
+            if row.major > 0 then
+                table.insert(spec.major_traits, row.id)
+            else
+                table.insert(spec.minor_traits, row.id)
+            end
+        end
+
+        return spec
     end
 end
 
