@@ -422,7 +422,7 @@ int ui_button_lua_del(lua_State *L) {
 
 /*** RST
 Classes
-=======
+-------
 
 .. lua:class:: uibutton
 
