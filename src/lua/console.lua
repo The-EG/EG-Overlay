@@ -2,6 +2,8 @@
 Lua Console/Log
 ===============
 
+.. overlay:module:: console
+
 The Lua Console can be used to run Lua commands interactively and also displays
 log messages. Lua commands are run as coroutines, long running commands that
 yield properly will not cause the UI to freeze.
@@ -29,7 +31,8 @@ The settings for the Lua Console are stored in ``settings/console.lua.json``.
 local console_settings = settings.new("console.lua")
 
 --[[ RST
-.. confval:: window.x
+
+.. overlay:modsetting:: window.x
     :type: integer
     :default: 200
 
@@ -41,7 +44,7 @@ local console_settings = settings.new("console.lua")
 console_settings:set_default("window.x", 200)
 
 --[[ RST
-.. confval:: window.y
+.. overlay:modsetting:: window.y
     :type: integer
     :default: 30
 
@@ -53,7 +56,7 @@ console_settings:set_default("window.x", 200)
 console_settings:set_default("window.y", 30)
 
 --[[ RST
-.. confval:: window.width
+.. overlay:modsetting:: window.width
     :type: integer
     :default: 600
 
@@ -65,7 +68,7 @@ console_settings:set_default("window.y", 30)
 console_settings:set_default("window.width", 600)
 
 --[[ RST
-.. confval:: window.width
+.. overlay:modsetting:: window.height
     :type: integer
     :default: 300
 
@@ -77,7 +80,7 @@ console_settings:set_default("window.width", 600)
 console_settings:set_default("window.height", 300)
 
 --[[ RST
-.. confval:: window.show
+.. overlay:modsetting:: window.show
     :type: boolean
     :default: false
 
@@ -89,7 +92,7 @@ console_settings:set_default("window.height", 300)
 console_settings:set_default("window.show", false)
 
 --[[ RST
-.. confval:: maxLines
+.. overlay:modsetting:: maxLines
     :type: integer
     :default: 1000
 
@@ -102,7 +105,7 @@ console_settings:set_default("window.show", false)
 console_settings:set_default("maxLines", 1000)
 
 --[[ RST
-.. confval:: colors.ERROR
+.. overlay:modsetting:: colors.ERROR
     :type: integer
     :default: 0x911717FF
 
@@ -114,7 +117,7 @@ console_settings:set_default("maxLines", 1000)
 console_settings:set_default("colors.ERROR"  , 0x911717FF)
 
 --[[ RST
-.. confval:: colors.WARNING
+.. overlay:modsetting:: colors.WARNING
     :type: integer
     :default: 0xb58326FF
 
@@ -126,7 +129,7 @@ console_settings:set_default("colors.ERROR"  , 0x911717FF)
 console_settings:set_default("colors.WARNING", 0xb58326FF)
 
 --[[ RST
-.. confval:: colors.DEBUG
+.. overlay:modsetting:: colors.DEBUG
     :type: integer
     :default: 0x676F80FF
 
@@ -138,7 +141,7 @@ console_settings:set_default("colors.WARNING", 0xb58326FF)
 console_settings:set_default("colors.DEBUG"  , 0x676F80FF)
 
 --[[ RST
-.. confval:: colors.INFO
+.. overlay:modsetting:: colors.INFO
     :type: integer
     :default: 0xFFFFFFFF
 

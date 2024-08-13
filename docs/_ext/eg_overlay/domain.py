@@ -6,13 +6,82 @@ from sphinx import addnodes
 #from sphinx.builders import Builder
 from sphinx.directives import ObjectDescription
 from sphinx.domains import Domain, Index, IndexEntry, ObjType
+from sphinx.domains.std import ConfigurationValue
 #from sphinx.environment import BuildEnvironment
 from sphinx.util.nodes import make_refnode
 from sphinx.roles import XRefRole
 
+class ModuleDirective(Directive):
+    """
+    Directive to mark a new overlay module. This doesn't output anything itself,
+    but it does organize things like settings values.
+    """
+
+    has_content = False
+    required_arguments = 1
+    optional_arguments = 0
+    final_argument_whitespace = False
+    option_spec = {}
+
+    def run(self):
+        env = self.state.document.settings.env
+        modname = self.arguments[0].strip()
+        if modname == 'None':
+            env.ref_context.pop('overlay:module', None)
+        else:
+            env.ref_context['overlay:module'] = modname
+        return []
+
+class ModuleSettingDirective(ConfigurationValue):
+    has_content = True
+    required_arguments = 1
+
+    def handle_signature(self, sig, signode):
+        signode += addnodes.desc_name(text=sig)
+        signode['settingname'] = sig
+        modname = self.options.get(
+            'module', self.env.ref_context.get('overlay:module'))
+        signode['modname'] = modname
+        return sig
+    
+    def add_target_and_index(self, name, sig, signode):
+        modname = signode.get('modname', 'none')
+        anchor = f'overlay-modsetting-{modname}-{sig}'
+        signode['ids'].append(anchor)
+        _name = f'overlay.modsetting.{modname}.{sig}'
+        objs = self.env.domaindata['overlay']['objects']
+        objs.append((_name, sig, 'modsetting', self.env.docname, anchor, 0))
+
+    def _object_hierarchy_parts(self, sig_node):
+        return (sig_node['modname'], sig_node['settingname'])
+    
+    def _toc_entry_name(self, sig_node):
+        return sig_node['settingname']
+    
+class ModuleSettingIndex(Index):
+    name = 'modsettingindex'
+    localname = 'Module Settings Index'
+    shortname = 'module settings'
+
+    def generate(self, docnames=None):
+        content = {}
+        items = ((name, dispname, typ, docname, anchor)
+                 for name, dispname, typ, docname, anchor, prio
+                 in self.domain.get_objects() if typ=='modsetting')
+        items = sorted(items, key=lambda item: item[0])
+        for name, dispname, typ, docname, anchor in items:
+            lis = content.setdefault(dispname[0].lower(), [])
+            lis.append((
+                dispname, 0, docname,
+                anchor,
+                docname, '', typ
+            ))
+        re = [(k,v) for k,v in sorted(content.items())]
+        return (re, True)
+
 class DBDirective(Directive):
     """
-    Directive to mark description of a new module.
+    Directive to mark description of a new Database.
     """
 
     has_content = False
@@ -129,22 +198,27 @@ class OverlayDomain(Domain):
         'event': ObjType('event', 'event', 'obj'),
         'dbtable': ObjType('dbtable','dbtable','obj'),
         'database': ObjType('database', 'database', 'obj'),
+        'module': ObjType('module', 'module', 'obj'),
     }
 
     roles = {
         'event': XRefRole(),
         'dbtable': XRefRole(),
+        'modsetting': XRefRole(),
     }
 
     indices = {
         EventIndex,
         DBTableIndex,
+        ModuleSettingIndex,
     }
 
     directives = {
         'event': EventDirective,
         'dbtable': DBTableDirective,
         'database': DBDirective,
+        'module': ModuleDirective,
+        'modsetting': ModuleSettingDirective,
     }
 
     initial_data = {
