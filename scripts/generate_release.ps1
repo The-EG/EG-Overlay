@@ -29,6 +29,4 @@ Copy-Item -Path "builddir\subprojects\libpng-1.6.40\png16-16.dll" -Destination "
 
 Copy-Item -Path "builddir\subprojects\freetype-2.13.2\freetype-6.dll" -Destination "EG-Overlay" -Force
 
-Compress-Archive -Path "EG-Overlay" -DestinationPath "EG-Overlay-0.0.1.zip" -Force
-
 Pop-Location
