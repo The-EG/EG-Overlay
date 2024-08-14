@@ -410,7 +410,7 @@ static int ui_box_lua_pack_end(lua_State *L) {
         child elements to the right most portion.
 
         :param alignment: Alignment value. Must be one of: ``'start'``,
-        ``'middle'``, ``'end'``.
+            ``'middle'``, ``'end'``.
 
         .. versionhistory::
             :0.0.1: Added
