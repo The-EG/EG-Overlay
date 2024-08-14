@@ -1,0 +1,35 @@
+name: Build EG-Overlay Release Binaries
+
+on:
+  push:
+    branches:
+      - main
+    
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup MSVC Dev Env
+        uses: TheMrMilchmann/setup-msvc-dev@v3
+        with:
+            arch: x64
+      - name: Setup Python
+        uses: actions/setup-python@v5
+      - name: Install Meson
+        run: |
+            pip install meson
+      - name: Build Release
+        run: |
+          .\scripts\generate_release.ps1
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+            name: EG-Overlay
+            path: 'release/EG-Overlay/*'
