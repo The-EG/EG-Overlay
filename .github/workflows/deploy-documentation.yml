@@ -21,7 +21,7 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -34,8 +34,8 @@ jobs:
           pip install -r docs/requirements.txt
       - name: Build Documentation
         run: |
-          sphinx-build -v -n -b html . docs/_build
-          touch docs/_build/.nojekyll
+          .\scripts\build_docs.ps1
+          "" > docs/_build/.nojekyll
       - name: Upload Artifact
         uses: actions/upload-pages-artifact@v3
         with:
