@@ -20,3 +20,8 @@ __pycache__/
 !.vscode/launch.json
 
 release/
+
+# documentation index
+genindex.rst
+lua-modindex.rst
+overlay-eventindex.rst
