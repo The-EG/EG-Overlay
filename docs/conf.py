@@ -18,7 +18,7 @@ release = '0.0.1'
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-sys.path.append(os.path.abspath('./docs/_ext'))
+sys.path.append(os.path.abspath('./_ext'))
 
 extensions = [
     'sphinxcontrib.mermaid',
