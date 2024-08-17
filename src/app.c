@@ -335,7 +335,7 @@ void app_init(HINSTANCE hinst, int argc, char **argv) {
 
     // don't show the window on the task bar
     DWORD ws_ex_style = (DWORD)GetWindowLongPtr(app->win_hwnd, GWL_EXSTYLE);
-    ws_ex_style = (ws_ex_style & ~WS_EX_APPWINDOW) | WS_EX_NOACTIVATE;
+    ws_ex_style = (ws_ex_style & ~WS_EX_APPWINDOW) | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW;
     SetWindowLongPtr(app->win_hwnd, GWL_EXSTYLE, ws_ex_style);
 
     glfwMakeContextCurrent(app->win);
