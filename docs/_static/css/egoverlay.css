@@ -1,0 +1,8 @@
+html[data-theme="dark"] {
+    --pst-color-background: #202020;
+}
+
+/* Fix Index letter headers having a light background on dark themes. */
+table.indextable tr.cap {
+    background-color: var(--pst-color-surface);
+}

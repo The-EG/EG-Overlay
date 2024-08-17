@@ -22,7 +22,6 @@ sys.path.append(os.path.abspath('./_ext'))
 
 extensions = [
     'sphinxcontrib.mermaid',
-    #'sphinxcontrib.luadomain',
     'eg_overlay'
 ]
 
@@ -34,17 +33,31 @@ include_patterns = ['docs/**', 'src/**', '*.rst']
 
 nitpicky = True
 
-html_title = f'{project} {release}'
+
 
 #toc_object_entries_show_parents = 'all'
 
 toc_object_entries = True
 
+github_repo = "https://github.com/The-EG/EG-Overlay"
+
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 
+html_title = f'{project} {release}'
 html_theme = 'sphinx_book_theme'
 html_theme_options = {
-    "show_toc_level": 3
+    "show_toc_level": 3,
+    "repository_url": github_repo,
+    "use_download_button": False,
+    "use_source_button": True,
+    "icon_links": [
+        {"name": "GitHub", "url": github_repo, "icon": "fa-brands fa-github", "type": "fontawesome"}
+    ]
 }
+html_copy_source = False
+html_static_path = ['_static']
+html_css_files = [
+    'css/egoverlay.css'
+]
