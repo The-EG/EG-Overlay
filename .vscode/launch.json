@@ -31,6 +31,20 @@
             "console": "internalConsole",
             "preLaunchTask": "Meson: Build all targets",
             "internalConsoleOptions": "openOnSessionStart"
+        },
+        {
+            "name": "EG-Overlay: Update static database",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceRoot}/builddir/src/eg-overlay.exe",
+            "args": ["--lua-script", "${workspaceFolder}/scripts/updatestaticdb.lua"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/builddir/src/",
+            "environment": [],
+            "envFile": "${workspaceFolder}/${config:mesonbuild.buildFolder}/meson-vscode.env",
+            "console": "internalConsole",
+            "preLaunchTask": "Meson: Build all targets",
+            "internalConsoleOptions": "openOnSessionStart"
         }
     ]
 }
