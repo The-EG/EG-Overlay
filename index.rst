@@ -14,6 +14,7 @@ User Guide
     docs/running
     docs/configuration
 
+- :doc:`docs/install`
 - :doc:`docs/running`
 - :doc:`docs/configuration`
 
