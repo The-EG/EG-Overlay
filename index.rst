@@ -46,39 +46,3 @@ EG-Overlay provides a Lua environment for customization and extension. Modules a
     General <genindex>
     Events <overlay-eventindex>
     Lua Modules <lua-modindex>
-
-
-Development TODOs
------------------
-
-- [X] Settings/Configuration Store
-- [ ] UI Styling System
-- [ ] UI Widgets
-    - [ ] Text
-        - [x] Fonts and basic text
-        - [ ] Rich text
-        - [ ] Markdown text
-        - [x] Solid/filled rectangle
-    - [ ] Arbitrary lines
-        - [ ] Straight lines with square corners
-        - [ ] More corner/end options
-    - [ ] Windows
-        - [x] Basic functionality
-        - [x] Auto sizing
-        - [x] Resizing
-        - [x] Moving
-        - [ ] Minimizing
-        - [ ] Closing
-        - [X] Link to settings store (size/position)
-    - [ ] Layout containers
-        - [x] Box
-        - [ ] Grid
-        - [ ] Fixed (arbitrary placement)
-        - [X] Scroll view
-    - [X] Buttons
-    - [X] Menus
-    - [X] Input text box
-    - [ ] Radio buttons
-    - [X] Check box
-    - [ ] Combo box
-    - [ ] Collapsing group/header
