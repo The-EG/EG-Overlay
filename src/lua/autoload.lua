@@ -32,5 +32,3 @@ require 'map-buddy'
 require 'markers'
 
 require 'psna-tracker'
-
-require 'gw2.static'
