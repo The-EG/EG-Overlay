@@ -26,7 +26,19 @@ extensions = [
 ]
 
 templates_path = ['_templates']
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', '_ext']
+exclude_patterns = [
+    '_build',
+    'Thumbs.db',
+    '.DS_Store',
+    '_ext',
+    'src/app.c',
+    'src/gl.c',
+    'src/hashstr.c',
+    'src/main.c',
+    'src/utils.c',
+    'src/ui/font.c',
+    'src/logging/**',
+]
 include_patterns = ['docs/**', 'src/**', '*.rst']
 
 #root_doc = 'docs/index'
