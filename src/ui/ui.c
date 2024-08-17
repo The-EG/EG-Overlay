@@ -446,6 +446,10 @@ overlay-ui
 
     text
     button
+    scrollview
+    separator
+    text-entry
+    menu
 */
 
 static const struct luaL_Reg ui_funcs[] = {
@@ -476,6 +480,17 @@ int ui_lua_open_module(lua_State *L) {
 }
 
 /*** RST
+.. _colors:
+
+Colors
+------
+
+All colors in EG-Overlay are represented by 32bit integers in RGBA format. This
+may sound complicated, but it is actually incredibly convenient for module
+authors as colors can be specified in hex format, similar to CSS. For example,
+red at 100% opacity is ``0xFF0000FF``, green is ``0x00FF00FF``,
+and blue is ``0x0000FFFF``.
+
 .. _fonts:
 
 Fonts
@@ -497,10 +512,43 @@ Instead, all UI elements that use fonts take the following arguments on creation
 The font path is the path to the actual font file. This can be a static/single
 font file or a variable font containing multiple styles. If a font does not
 support the given style parameters (weight, slant, width) they will be ignored.
-If style parameters are omitted, defaults will be used. 
+If style parameters are omitted, defaults will be used.
 
-Core UI Functions
-------------------
+.. admonition:: Implementation Detail
+
+    Fonts are rendered using a textured quad for each glyph. To attain useable
+    performance, glyphs are pre-rendered to a texture that is then used to
+    render glyphs each frame.
+
+    Unlike many other UI frameworks, this pre-rendering is not static. Each font
+    face, size, weight, slant, and width combination has a set of 512x512
+    texture 'pages' where glyphs are pre-rendered. When a unique font combination
+    is requested a new page is created and pre-rendered with the standard ASCII
+    glyphs. 
+
+    Additional glyphs are pre-rendered the first time they are requested. This
+    means that the UI may suffer a performance hit on the first frame a new
+    glyph is rendered, but all subsequent frames should be unaffected.
+
+    Due to the fact that the texture pages are a fixed size (512x512), larger
+    font sizes will require more pages. Additional pages will have a small
+    negative impact on render performance since each time a glyph is rendered,
+    each page must be searched for it in sequence. Since all ASCII glyphs are
+    pre-rendered first, this should put the most common glyphs on the first page
+    and most commonly used font sizes should have extra room on the first page
+    after that. In reality, this should only be a concern for huge font sizes
+    (> 40).
+
+Core UI
+-------
+
+.. lua:class:: uielement
+
+    This is not an actual class accessible from Lua, but represents any UI
+    Element.
+
+    .. versionhistory::
+        :0.0.1: Added
 
 .. lua:function:: add_top_level_element(uielement)
 

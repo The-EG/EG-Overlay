@@ -94,6 +94,27 @@ void lua_push_ui_separator(lua_State *L, ui_separator_t *sep) {
     ui_element_ref(sep);
 }
 
+/*** RST
+Separator Element
+=================
+
+.. lua:currentmodule:: overlay-ui
+
+Functions
+---------
+
+.. lua:function:: separator(orientation)
+
+    Create a new :lua:class:`uiseparator`.
+
+    :param orientation: Either ``'horizontal'`` or ``'vertical'``.
+    :type orientation: string
+    :rtype: uiseparator
+
+    .. versionhistory::
+        :0.0.1: Added
+*/
+
 int ui_separator_lua_new(lua_State *L) {
     const char *orientation_str = luaL_checkstring(L, 1);
 
@@ -109,6 +130,18 @@ int ui_separator_lua_new(lua_State *L) {
     return 1;
 }
 
+/*** RST
+Classes 
+-------
+
+.. lua:class:: uiseparator
+
+    A separator element. This element draws either a horizontal or vertical line,
+    that serves as a separator between other elements. It is typically used in a
+    box layout element to separate items.
+
+*/
+
 #define LUA_CHECK_SEP(L, ind) *(ui_separator_t**)luaL_checkudata(L, ind, "UISeparatorMetaTable")
 
 int ui_separator_lua_del(lua_State *L) {
@@ -117,6 +150,17 @@ int ui_separator_lua_del(lua_State *L) {
     return 0;
 }
 
+/*** RST
+    .. lua:method:: thickness(value)
+
+        Set how thick the separator line is drawn, in pixels.
+
+        :param value:
+        :type value: integer
+
+        .. versionhistory::
+            :0.0.1: Added
+*/
 int ui_separator_lua_thickness(lua_State *L) {
     ui_separator_t *sep = LUA_CHECK_SEP(L, 1);
     int thickness = (int)luaL_checkinteger(L, 2);
@@ -126,6 +170,17 @@ int ui_separator_lua_thickness(lua_State *L) {
     return 0;
 }
 
+/*** RST
+    .. lua:method:: color(value)
+
+        Set the color of the separator.
+
+        :param value: The new color. See :ref:`colors`.
+        :type value: integer
+
+        .. versionhistory::
+            :0.0.1: Added
+*/
 int ui_separator_lua_color(lua_State *L) {
     ui_separator_t *sep = LUA_CHECK_SEP(L, 1);
     ui_color_t color = (ui_color_t)luaL_checkinteger(L, 2);

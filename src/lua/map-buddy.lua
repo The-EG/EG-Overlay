@@ -1,3 +1,16 @@
+--[[ RST
+Map Buddy
+=========
+
+.. image:: /images/modules/map-buddy.png
+
+.. warning::
+    This module is a work in progress. Things will change!
+
+Map Buddy displays the player's current position in *continent* coordinates and
+the name of the nearest waypoint.
+]]--
+
 local ui          = require 'eg-overlay-ui'
 local uih         = require 'ui-helpers'
 local overlay     = require 'eg-overlay'

@@ -1,3 +1,19 @@
+/*** RST
+sqlite
+======
+
+.. lua:module:: sqlite
+
+.. code-block:: lua
+
+    local sqlite = require 'sqlite'
+
+The :lua:mod:`sqlite` module is a Lua binding for `SQLite3 <https://sqlite.org>`_.
+
+Functions
+---------
+*/
+
 #include <windows.h>
 #include <sqlite3.h>
 #include <stdlib.h>
@@ -74,19 +90,17 @@ luaL_Reg statment_funcs[] = {
     NULL   ,  NULL
 };
 
-int sqlite_lua_memory_used(lua_State *L) {
-    lua_pushinteger(L, sqlite3_memory_used());
-    return 1;
-}
+/*** RST
+.. lua:function:: open(db)
 
-int sqlite_lua_memory_highwater(lua_State *L) {
-    int reset = 0;
-    if (lua_gettop(L)==1) reset = lua_toboolean(L, 1);
+    Open the sqlite databse given by the string ``db``. This will usually be a
+    path to a sqlite database, but it can be any valid SQLite database string.
 
-    lua_pushinteger(L, sqlite3_memory_highwater(reset));
-    return 1;
-}
+    :rtype: sqlitedb
 
+    .. versionhistory::
+        :0.0.1: Added
+*/
 int db_lua_open(lua_State *L) {
     const char *name = luaL_checkstring(L, 1);
 
@@ -111,6 +125,40 @@ int db_lua_open(lua_State *L) {
     return 1;
 }
 
+/*** RST
+.. lua:function:: memory_used()
+
+    Return memory the SQLite has allocated in bytes.
+
+    :rtype: integer
+
+    .. versionhistory::
+        :0.0.1: Added
+*/
+int sqlite_lua_memory_used(lua_State *L) {
+    lua_pushinteger(L, sqlite3_memory_used());
+    return 1;
+}
+
+/*** RST
+.. lua:function:: memory_used()
+
+    Return the maximum amount of memory SQLite has used since the overlay has
+    started.
+
+    :rtype: integer
+
+    .. versionhistory::
+        :0.0.1: Added
+*/
+int sqlite_lua_memory_highwater(lua_State *L) {
+    int reset = 0;
+    if (lua_gettop(L)==1) reset = lua_toboolean(L, 1);
+
+    lua_pushinteger(L, sqlite3_memory_highwater(reset));
+    return 1;
+}
+
 int db_lua_del(lua_State *L) {
     db_t *db = luaL_checkdb(L, 1);
 
@@ -119,7 +167,27 @@ int db_lua_del(lua_State *L) {
     return 0;
 }
 
+/*** RST
+Classes
+-------
 
+.. lua:class:: sqlitedb
+
+    A SQLite database connection.
+*/
+
+/*** RST
+    .. lua:method:: prepare(sql)
+
+        Prepare the given ``sql`` statement. An error will be raised if an error
+        occurs during the prepare, otherwise this method returns a new
+        :lua:class:`sqlitestatement`.
+
+        :rtype: sqlitestatement
+
+        .. versionhistory::
+            :0.0.1: Added
+*/
 int db_lua_prepare(lua_State *L) {
     db_t *db = luaL_checkdb(L, 1);
     const char *sql = luaL_checkstring(L, 2);
@@ -147,6 +215,21 @@ int db_lua_prepare(lua_State *L) {
     return 1;
 }
 
+/*** RST
+    .. lua:method:: execute(sql)
+    
+        Execute the given ``sql`` statement and return the results, if any.
+
+        This is a convenience method that calls :lua:meth:`prepare` then 
+        :lua:meth:`sqlitestatement.step` to get all results and then
+        :lua:meth:`sqlitestatement.finalize` before returning the
+        results.
+
+        :rtype: table
+
+        .. versionhistory::
+            :0.0.1: Added
+*/
 int db_lua_execute(lua_State *L) {
     db_t *db = luaL_checkdb(L, 1);
     const char *sql = luaL_checkstring(L, 2);
@@ -200,6 +283,33 @@ int db_lua_execute(lua_State *L) {
     return luaL_error(L, "Error during statement:step : (%d) %s", r, sqlite3_errmsg(db->db));
 }
 
+/*** RST
+.. lua:class:: sqlitestatement
+
+    A SQLite statement. Statements are prepared SQL statements that can be 
+    ran against the database. They can container placeholders that can be set
+    using :lua:meth:`bind`. See `SQLite parameters <https://www.sqlite.org/lang_expr.html#varparam>`_.
+
+*/
+
+/*** RST
+    .. lua:method:: bind(key, value)
+
+        Set the statement parameter to the given value.
+
+        ``key`` can be either an integer or a string and much match the
+        parameters specified when this statement was created.
+        See `SQLite parameters <https://www.sqlite.org/lang_expr.html#varparam>`_.
+
+        .. important::
+            Numbered parameters begin with ``1``
+
+        :param key:
+        :param value:
+
+        .. versionhistory::
+            :0.0.1: Added
+*/
 int statement_lua_bind(lua_State *L) {
     statement_t *stmt = luaL_checkstatement(L, 1);
 
@@ -241,6 +351,45 @@ int statement_lua_bind(lua_State *L) {
     return 0;
 }
 
+/*** RST
+    .. lua:method:: step()
+
+        Step this statement.
+        
+        The first time this function is called it will
+        execute this statement. If the statement returns data, the first row
+        will be returned. Remaining rows can be returned by calling this
+        function until it returns ``nil``.
+
+        If an error occurs during execution a Lua error will be raised.
+
+        :rtype: table
+
+        .. code-block:: lua
+            :caption: Example
+
+            local db = sqlite.open('foo.db')
+
+            local stmt = db:prepare("SELECT * FROM atable WHERE id = ?")
+            stmt:bind(1, 1234) -- bind 1234 to the first parameter (id)
+
+            local results = {}
+
+            -- step can be wrapped in an iterator
+            local function allrows()
+                return stmt:step()
+            end
+
+            -- which can be used with for
+            for row in allrows do
+                table.insert(results, row)
+            end
+
+            stmt:finalize()
+            
+        .. versionhistory::
+            :0.0.1: Added
+*/
 int statement_lua_step(lua_State *L) {
     statement_t *stmt = luaL_checkstatement(L, 1);
 
@@ -282,6 +431,18 @@ int statement_lua_step(lua_State *L) {
     return luaL_error(L, "Error during statement:step : (%d) %s", r, sqlite3_errmsg(stmt->db->db));
 }
 
+/*** RST
+    .. lua:method:: reset()
+
+        Reset the statement so it can executed again.
+
+        .. important::
+            Resetting a statement does not clear out parameter values. Parameter
+            values will remain set to the last value.
+
+        .. versionhistory::
+            :0.0.1: Added
+*/
 int statement_lua_reset(lua_State *L) {
     statement_t *stmt = luaL_checkstatement(L, 1);
 
@@ -291,6 +452,22 @@ int statement_lua_reset(lua_State *L) {
     return 0;
 }
 
+/*** RST
+    .. lua:method:: finalize()
+
+        Finalize this statement.
+
+        .. important::
+            This destroys the underlying SQLite statement and will automatically
+            be called by Lua when the Lua variable holding this statement goes
+            out of scope or is otherwise garbage collected.
+
+            Module authors may wish to call this manually in certain cases, such
+            as when manually using transactions.
+
+        .. versionhistory::
+            :0.0.1: Added
+*/
 int statement_lua_finalize(lua_State *L) {
     statement_t *stmt = luaL_checkstatement(L, 1);
 

@@ -18,7 +18,11 @@ EG-Overlay Modules
     /src/settings
     /src/web-request
     /src/lua/db
+    /src/lua-sqlite
+    /src/xml
+    /src/zip
     /src/ui/ui
+    /src/lua/ui-helpers
 
 
 Lua Types
@@ -55,3 +59,5 @@ Various Lua types are referenced throughout this documentation. Each module docu
 .. lua:data:: table
 
     A Lua object or sequence. Modules may expect specific table structures or fields and many will return data using tables.
+
+.. lua:alias:: sequence = table

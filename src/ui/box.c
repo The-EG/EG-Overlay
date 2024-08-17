@@ -429,7 +429,7 @@ static int ui_box_lua_set_align(lua_State *L) {
         Set the spacing inserted between child elements.
 
         :param value:
-        :type value: integer:
+        :type value: integer
 
         .. versionhistory::
             :0.0.1: Added

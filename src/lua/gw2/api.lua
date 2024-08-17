@@ -161,7 +161,6 @@ Functions
     :type err: function
     :returns: If ``done`` and ``err`` are nil this function returns either a
         parsed JSON object or an error string. Otherwise ``nil``.
-    :rtype: JSON | string | nil
 
     .. code-block:: lua
         :caption: Example

@@ -2,6 +2,8 @@
 Lua Console/Log
 ===============
 
+.. image:: /images/modules/console.png
+
 .. overlay:module:: console
 
 The Lua Console can be used to run Lua commands interactively and also displays

@@ -1,3 +1,14 @@
+--[[ RST
+Mumble-Link Info
+================
+
+.. image:: /images/modules/mumble-link-info.png
+
+.. overlay:module:: mumble-link-info
+
+Mumble-Link Info displays the information available from the GW2 MumbleLink
+shared memory. It is hidden on :overlay:event:`mumble-link-unavailable`.
+]]--
 require 'mumble-link-events'
 
 local ui = require 'eg-overlay-ui'

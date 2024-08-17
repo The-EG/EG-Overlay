@@ -728,8 +728,7 @@ int settings_lua_set_default(lua_State *L) {
 
         :param key: The key to return. This is a path into the JSON object structure separated by ``.``. I.e. ``window.x``.
         :type key: string
-        :return: 
-        :rtype: any
+        :return: The config value at ``key`` or ``nil``
 
         .. versionhistory::
             :0.0.1: Added

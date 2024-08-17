@@ -356,6 +356,38 @@ void lua_push_ui_textentry(lua_State *L, ui_text_entry_t *entry) {
     lua_setmetatable(L, -2);
 }
 
+/*** RST
+Text Entry Elements
+===================
+
+.. lua:currentmodule:: overlay-ui
+
+Functions
+---------
+
+.. lua:function:: text_entry(fontname, fontsize, fontweight, fontslant, fontwidth)
+
+    Create a new :lua:class:`uitextentry`.
+
+    .. note::
+        See :ref:`fonts` for more detail on the font* parameters.
+
+    :param fontpath: The path to the font to use.
+    :type fontpath: string
+    :param fontsize: The font size, expressed as a pixel height.
+    :type fontsize: integer
+    :param fontweight: (Optional) The font weight.
+    :type fontweight: integer
+    :param fontslant: (Optional) The font slant.
+    :type fontslant: integer
+    :param fontwidth: (Optional) the font width.
+    :type fontwidth: integer
+    :rtype: uitextentry
+
+    .. versionhistory::
+        :0.0.1: Added
+*/
+
 int ui_text_entry_lua_new(lua_State *L) {
     const char *font_name = luaL_checkstring(L, 1);
     int font_size = (int)luaL_checkinteger(L, 2);
@@ -378,6 +410,16 @@ int ui_text_entry_lua_new(lua_State *L) {
     return 1;
 }
 
+/*** RST
+Classes
+-------
+
+.. lua:class:: uitextentry
+
+    A text box that accepts a single line of text.
+
+*/
+
 #define LUA_CHECK_TEXT_ENTRY(L, ind) *(ui_text_entry_t**)luaL_checkudata(L, ind, "UITextEntryMetaTable")
 
 int ui_text_entry_lua_del(lua_State *L) {
@@ -388,6 +430,17 @@ int ui_text_entry_lua_del(lua_State *L) {
     return 0;
 }
 
+/*** RST
+    .. lua:method:: hint(text)
+
+        Set a hint that will be shown whenever the text entry is empty.
+
+        :param text:
+        :type text: string
+
+        .. versionhistory::
+            :0.0.1: Added
+*/
 int ui_text_entry_lua_hint(lua_State *L) {
     ui_text_entry_t *entry = LUA_CHECK_TEXT_ENTRY(L, 1);
     const char *hint = luaL_checkstring(L, 2);
@@ -402,6 +455,19 @@ int ui_text_entry_lua_hint(lua_State *L) {
     return 0;
 }
 
+/*** RST
+    .. lua:method:: text(value)
+
+        Get or set the current text.
+
+        :parameter string value:
+        :return: The current text is returned if ``value`` is omitted otherwise
+            ``nil``
+        :rtype: string
+
+        .. versionhistory::
+            :0.0.1: Added
+*/
 int ui_text_entry_lua_text(lua_State *L) {
     ui_text_entry_t *entry = LUA_CHECK_TEXT_ENTRY(L, 1);
 
@@ -423,6 +489,22 @@ int ui_text_entry_lua_text(lua_State *L) {
     return luaL_error(L, "entry_text:text takes either 0 or 1 argument.");
 }
 
+/*** RST
+    .. lua:method:: on_keydown([handler])
+
+        Set or clear an event handler to be called on every key press. Only one
+        handler can be set at a time.
+
+        .. important::
+            ``handler`` is called with a single string argument that is either
+            the ascii value of the key press, ie. ``'a'`` or ``'A'``, or the
+            following special keys: ``'return'``, ``'up'``, ``'down'``.
+
+        :param function handler:
+
+        .. versionhistory::
+            :0.0.1: Added
+*/
 int ui_text_entry_lua_on_keydown(lua_State *L) {
     ui_text_entry_t *entry = LUA_CHECK_TEXT_ENTRY(L, 1);
 

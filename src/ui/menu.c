@@ -336,10 +336,23 @@ void ui_menu_hide(ui_menu_t *menu) {
     }    
 }
 
+/*** RST
+Menus
+=====
+
+.. lua:currentmodule:: overlay-ui
+
+The API used to create and control context/pop-up menus is detailed below.
+
+Functions
+---------
+*/
+
 int ui_menu_lua_new(lua_State *L);
 int ui_menu_lua_del(lua_State *L);
 int ui_menu_lua_add_item(lua_State *L);
 int ui_menu_lua_show(lua_State *L);
+int ui_menu_lua_hide(lua_State *L);
 
 int ui_menu_item_lua_new(lua_State *L);
 int ui_menu_item_lua_del(lua_State *L);
@@ -363,8 +376,10 @@ luaL_Reg menu_funcs[] = {
     "__gc",     &ui_menu_lua_del,
     "add_item", &ui_menu_lua_add_item,
     "show",     &ui_menu_lua_show,
+    "hide",     &ui_menu_lua_hide,
     NULL,    NULL
 };
+
 
 void lua_push_ui_menu(lua_State *L, ui_menu_t *menu) {
     ui_menu_t **pmenu = lua_newuserdata(L, sizeof(ui_menu_t*));
@@ -379,48 +394,6 @@ void lua_push_ui_menu(lua_State *L, ui_menu_t *menu) {
     lua_setmetatable(L, -2);
 
     ui_element_ref(menu);
-}
-
-#define LUA_CHECK_MENU(L, ind) *(ui_menu_t**)luaL_checkudata(L, ind, "UIMenuMetaTable")
-
-int ui_menu_lua_new(lua_State *L) {
-    ui_menu_t *menu = ui_menu_new();
-    lua_push_ui_menu(L, menu);
-    ui_element_unref(menu);
-
-    return 1;
-}
-
-int ui_menu_lua_del(lua_State *L) {
-    ui_menu_t *menu = LUA_CHECK_MENU(L, 1);
-
-    ui_element_unref(menu);
-
-    return 0;
-}
-
-int ui_menu_lua_add_item(lua_State *L) {
-    ui_menu_t *menu = LUA_CHECK_MENU(L, 1);
-
-    if (!lua_isuserdata(L, 2)) return luaL_error(L, "menu:add_item argument #1 must be a UI element.");
-
-    ui_menu_item_t *item = LUA_CHECK_MENUITEM(L, 2);
-    //ui_element_t *item = *(ui_element_t**)lua_touserdata(L, 2);
-
-    ui_menu_add_item(menu, item);
-
-    return 0;
-}
-
-int ui_menu_lua_show(lua_State *L) {
-    ui_menu_t *menu = LUA_CHECK_MENU(L, 1);
-    int x = (int)luaL_checkinteger(L, 2);
-    int y = (int)luaL_checkinteger(L, 3);
-
-    ui_element_set_pos(menu, x, y);
-    ui_menu_show(menu);
-
-    return 0;
 }
 
 luaL_Reg ui_menu_item_funcs[] = {
@@ -447,6 +420,36 @@ void lua_push_ui_menuitem(lua_State *L, ui_menu_item_t *mi) {
     ui_element_ref(mi);
 }
 
+#define LUA_CHECK_MENU(L, ind) *(ui_menu_t**)luaL_checkudata(L, ind, "UIMenuMetaTable")
+
+/*** RST
+.. lua:function:: menu()
+
+    Create a new :lua:class:`uimenu`
+
+    :rtype: uimenu
+
+    .. versionhistory::
+        :0.0.1: Added
+*/
+int ui_menu_lua_new(lua_State *L) {
+    ui_menu_t *menu = ui_menu_new();
+    lua_push_ui_menu(L, menu);
+    ui_element_unref(menu);
+
+    return 1;
+}
+
+/*** RST
+.. lua:function:: menu_item()
+
+    Create a new :lua:class:`uimenuitem`
+
+    :rtype: uimenuitem
+
+    .. versionhistory::
+        :0.0.1: Added
+*/
 int ui_menu_item_lua_new(lua_State *L) {
     ui_menu_item_t *mi = ui_menu_item_new();
     lua_push_ui_menuitem(L, mi);
@@ -455,6 +458,92 @@ int ui_menu_item_lua_new(lua_State *L) {
     return 1;
 }
 
+/*** RST
+Classes
+-------
+
+.. lua:class:: uimenu
+
+    A pop-up menu. The only children a popup menu can have are :lua:class:`uimenuitem`
+*/
+
+int ui_menu_lua_del(lua_State *L) {
+    ui_menu_t *menu = LUA_CHECK_MENU(L, 1);
+
+    ui_element_unref(menu);
+
+    return 0;
+}
+
+/*** RST
+    .. lua:method:: add_item(menuitem)
+
+        Add a :lua:class:`uimenuitem` to this menu.
+
+        :param uimenuitem menuitem:
+
+        .. versionhistory::
+            :0.0.1: Added
+*/
+int ui_menu_lua_add_item(lua_State *L) {
+    ui_menu_t *menu = LUA_CHECK_MENU(L, 1);
+
+    // TODO: shouldn't this only accept menuitems??
+    if (!lua_isuserdata(L, 2)) return luaL_error(L, "menu:add_item argument #1 must be a UI element.");
+
+    ui_menu_item_t *item = LUA_CHECK_MENUITEM(L, 2);
+
+    ui_menu_add_item(menu, item);
+
+    return 0;
+}
+
+/*** RST
+    .. lua:method:: show(x, y)
+
+        Show the menu at the given coordinates. Typically this will be the mouse
+        position. See :lua:func:`overlay-ui.mouse_position`
+
+        :param integer x:
+        :param integer y:
+
+        .. versionhistory::
+            :0.0.1: Added
+*/
+int ui_menu_lua_show(lua_State *L) {
+    ui_menu_t *menu = LUA_CHECK_MENU(L, 1);
+    int x = (int)luaL_checkinteger(L, 2);
+    int y = (int)luaL_checkinteger(L, 3);
+
+    ui_element_set_pos(menu, x, y);
+    ui_menu_show(menu);
+
+    return 0;
+}
+
+/*** RST
+    .. lua:method:: hide()
+
+        Hide this menu. If this menu is a child of another menu that menu will
+        also be hidden.
+
+        .. versionhistory::
+            :0.0.1: Added
+*/
+int ui_menu_lua_hide(lua_State *L) {
+    ui_menu_t *menu = LUA_CHECK_MENU(L, 1);
+
+    ui_menu_hide(menu);
+
+    return 0;
+}
+
+/*** RST
+.. lua:class:: uimenuitem
+
+    A menu item. A menu item can only be added to a :lua:class:`uimenu`
+*/
+
 int ui_menu_item_lua_del(lua_State *L) {
     ui_menu_item_t *mi = LUA_CHECK_MENUITEM(L, 1);
 
@@ -462,6 +551,17 @@ int ui_menu_item_lua_del(lua_State *L) {
     return 0;
 }
 
+/*** RST
+    .. lua:method:: set_child(element)
+
+        Set the child of this menu item. Any UI element can be used. This can
+        also be a layout container to use multiple elements.
+
+        :param uielement element:
+
+        .. versionhistory::
+            :0.0.1: Added
+*/
 int ui_menu_item_lua_set_child(lua_State *L) {
     ui_menu_item_t *mi = LUA_CHECK_MENUITEM(L, 1);
 
@@ -475,6 +575,18 @@ int ui_menu_item_lua_set_child(lua_State *L) {
     return 0;
 }
 
+/*** RST
+    .. lua:method:: set_pre(element)
+    
+        Set the 'pre' element, which is shown to the left of the child element.
+        This should be a single UI element and is intended to add elements such
+        as a checkbox or icon to a menu item.
+
+        :param uielement element:
+
+        .. versionhistory::
+            :0.0.1: Added
+*/
 int ui_menu_item_lua_set_pre(lua_State *L) {
     ui_menu_item_t *mi = LUA_CHECK_MENUITEM(L, 1);
 
@@ -488,6 +600,16 @@ int ui_menu_item_lua_set_pre(lua_State *L) {
     return 0;
 }
 
+/*** RST
+    .. lua:method:: set_submenu(menu)
+
+        Set a menu to be shown when this menu item has the mouse over it.
+
+        :param uimenu menu:
+
+        .. versionhistory::
+            :0.0.1: Added
+*/
 int ui_menu_item_lua_set_submenu(lua_State *L) {
     ui_menu_item_t *mi = LUA_CHECK_MENUITEM(L, 1);
     ui_menu_t *submenu = LUA_CHECK_MENU(L, 2);
@@ -499,6 +621,17 @@ int ui_menu_item_lua_set_submenu(lua_State *L) {
     return 0;    
 }
 
+/*** RST
+    .. lua:method:: on_click(func)
+
+        Set a function to be called when this menu item is clicked. Only one
+        function can bet set at a time.
+
+        :param function func:
+
+        .. versionhistory::
+            :0.0.1: Added
+*/
 int ui_menu_item_lua_on_click(lua_State *L) {
     ui_menu_item_t *mi = LUA_CHECK_MENUITEM(L, 1);
 
@@ -511,6 +644,20 @@ int ui_menu_item_lua_on_click(lua_State *L) {
     return 0;
 }
 
+/*** RST
+    .. lua:method:: enabled([value])
+
+        Get or set wether this menu item is enabled or not. A disabled menu item
+        does not react to mouse hover or click events.
+
+        :param boolean value: (Optional)If present, sets if the menu item is
+            enabled or not. If omitted, returns the current value.
+
+        :rtype: boolean
+
+        .. versionhistory::
+            :0.0.1: Added
+*/
 int ui_menu_item_lua_enabled(lua_State *L) {
     ui_menu_item_t *mi = LUA_CHECK_MENUITEM(L, 1);
 

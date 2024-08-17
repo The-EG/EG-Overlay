@@ -1,3 +1,35 @@
+--[[ RST
+Main Menu
+=========
+
+.. image:: /images/modules/main-menu.png
+
+.. warning::
+    This module is a work in progress. Things will change!
+
+.. overlay: module:: main-menu
+
+The main menu serves as a central location for all modules to put actions that
+users can trigger. This will typically be showing/hiding windows or menus.
+
+Events
+------
+
+.. overlay:event:: register-module-actions
+
+    This module *responds* to this event by creating a button based on the data
+    sent in the event. The data is expected to be a Lua table with the following
+    fields:
+
+    ============== =====================================================================================
+    Field          Description
+    ============== =====================================================================================
+    name           The name of the module.
+    primary_action A function to be called on a primary action, such as when the button is left clicked.
+    ============== =====================================================================================
+
+]]--
+
 local settings = require 'settings'
 local ui = require 'eg-overlay-ui'
 local uih = require 'ui-helpers'

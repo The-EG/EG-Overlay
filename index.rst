@@ -10,6 +10,7 @@ User Guide
     :caption: User Guide
     :hidden:
 
+    docs/install
     docs/running
     docs/configuration
 
@@ -20,7 +21,12 @@ User Guide
     :caption: Bundled Modules
     :hidden:
 
+    /src/lua/main-menu
     /src/lua/console
+    /src/lua/map-buddy
+    /src/lua/overlay-stats
+    /src/lua/psna-tracker
+    /src/lua/mumble-link-info
 
 Development
 -----------

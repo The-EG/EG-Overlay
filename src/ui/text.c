@@ -226,7 +226,7 @@ Functions
 
     :param text: The text string to display.
     :type text: string
-    :param color: Text color. This is an integer value in RGBA format. i.e. `0xFF0000FF` for red.
+    :param color: Text color. This is an integer value in RGBA format. See :ref:`colors`.
     :type color: integer
     :param fontpath: The path to the font to use.
     :type fontpath: string

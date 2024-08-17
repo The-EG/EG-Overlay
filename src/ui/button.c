@@ -371,7 +371,7 @@ Functions
 
 .. lua:function:: button()
 
-    Create a new :lua:class:`uibutton:`.
+    Create a new :lua:class:`uibutton`.
 
     :rtype: uibutton
 

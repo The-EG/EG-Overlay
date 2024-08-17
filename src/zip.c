@@ -1,3 +1,24 @@
+/*** RST
+zip
+===
+
+.. lua:module:: zip
+
+.. code-block:: lua
+
+    local zip = require 'zip'
+
+The :lua:mod:`zip` module provides basic read access to zip files.
+
+.. important::
+    ZIP64 files are not yet supported along with any compression methods other
+    than DEFLATE.
+
+Functions
+---------
+
+*/
+
 #include "zip.h"
 #include "lua-manager.h"
 #include "logging/logger.h"
@@ -148,16 +169,6 @@ int zip_lua_del(lua_State *L);
 int zip_lua_files(lua_State *L);
 int zip_lua_file_content(lua_State *L);
 
-/*
-int zip_lua_files(lua_State *L) {
-    return zip_lua_names(L, 1);
-}
-
-int zip_lua_folders(lua_State *L) {
-    return zip_lua_names(L, 0);
-}
-*/
-
 int zip_lua_open_module(lua_State *L) {
     lua_newtable(L);
     lua_pushcfunction(L, &zip_lua_open);
@@ -267,233 +278,17 @@ int zip_read_central_directory_file_header(FILE *zip, zip_cdfh_t *cdfh) {
     return cd_read_size;
 }
 
-/*
-int zip_lua_names(lua_State *L, int files) {
-    const char *zip_path = luaL_checkstring(L, 1);
+/*** RST
+.. lua:function:: open(path)
 
-    const char *folder = "";
-    int recursive = 0;
+    Load a zip file into a :lua:class:`zip`.
 
-    if (lua_gettop(L)>=2) folder = luaL_checkstring(L, 2);
-    if (lua_gettop(L)==3) recursive = lua_toboolean(L, 3);
+    :param string path:
+    :rtype: zip
 
-    size_t folder_name_len = strlen(folder);
-
-    FILE *zip_file = fopen(zip_path, "rb");
-
-    if (!zip_file) {
-        //return luaL_error(L, "zip: Couldn't open %s: %s", zip_path, _strerror(NULL));
-        return luaL_error(L, "Couldn't open %s.", zip_path);
-    }
-
-    uint32_t cd_offset = 0;
-    uint32_t cd_size = 0;
-    if (zip_find_central_directory(zip_file, &cd_offset, &cd_size)) {
-        fclose(zip_file);
-        return luaL_error(L, "Couldn't locate central directory. Is this a zip file??");
-    }
-
-    lua_newtable(L);
-    int tablei = 1;
-
-    // start reading the central directory file entries
-    if (fseek(zip_file, cd_offset, SEEK_SET)) {
-        fclose(zip_file);
-        return luaL_error(L, "zip: seek error.");
-    }
-    size_t cd_read_size = 0;
-    zip_cdfh_t cdfh = {0};
-    while (cd_read_size < cd_size) {
-        memset(&cdfh, 0, sizeof(zip_cdfh_t));
-        size_t cdfh_size = zip_read_central_directory_file_header(zip_file, &cdfh);
-        if (cdfh_size<0) {
-            fclose(zip_file);
-            return luaL_error(L, "Couldn't read central directory file header.");
-        }
-        cd_read_size += cdfh_size;
-
-        if ((cdfh.ext_attrs & FILE_ATTRIBUTE_DIRECTORY && files) || (!files && !(cdfh.ext_attrs & FILE_ATTRIBUTE_DIRECTORY))) {
-            free(cdfh.file_name);
-            continue;
-        }
-
-        if (!files && cdfh.file_name_len == folder_name_len && strncmp(cdfh.file_name, folder, folder_name_len)==0) {
-            // this is the folder we specified, don't return it
-            free(cdfh.file_name);
-            continue;
-        }
-
-        if (cdfh.file_name_len >= folder_name_len && strncmp(cdfh.file_name, folder, folder_name_len) == 0) {
-            // match, this file in is folder
-
-            if (!recursive) {
-                // it could be in a sub-folder though, so look for another /
-                int subfolder = 0;
-                for (size_t i=folder_name_len;i<cdfh.file_name_len;i++) {
-                    if (cdfh.file_name[i]=='/' && i < cdfh.file_name_len - 1) { // if this has another slash and it's not the last character
-                        // this is in a sub-folder, don't include it
-                        subfolder = 1;
-                        break; // can't continue here because we are in a for
-                    }
-                }
-
-                if (subfolder) {
-                    free(cdfh.file_name);
-                    continue; // so continue out here
-                }
-            }
-
-            // this is a file we want, send it back to Lua
-            lua_pushstring(L, cdfh.file_name);
-            lua_seti(L, -2, tablei++);
-        }
-
-        free(cdfh.file_name);
-        
-    }
-
-    fclose(zip_file);
-
-    return 1;
-}
-
-int zip_lua_file_content(lua_State *L) {
-    const char *zip_path = luaL_checkstring(L, 1);
-    const char *file_path_orig = luaL_checkstring(L, 2);
-
-    char *file_path = calloc(strlen(file_path_orig)+1, sizeof(char));
-    memcpy(file_path, file_path_orig, strlen(file_path_orig));
-    _strlwr_s(file_path, strlen(file_path)+1);
-
-    FILE *zip_file = fopen(zip_path, "rb");
-
-    if (!zip_file) {
-        //return luaL_error(L, "zip: Couldn't open %s: %s", zip_path, _strerror(NULL));
-        free(file_path);
-        return luaL_error(L, "Couldn't open zip");
-    }
-
-    uint32_t cd_offset = 0;
-    uint32_t cd_size = 0;
-    if (zip_find_central_directory(zip_file, &cd_offset, &cd_size)) {
-        return 1;
-    }
-
-    // start reading the central directory file entries
-    if (fseek(zip_file, cd_offset, SEEK_SET)) {
-        fclose(zip_file);
-        free(file_path);
-        return luaL_error(L, "zip: seek error.");
-    }
-    size_t cd_read_size = 0;
-    zip_cdfh_t cdfh = {0};
-    while (cd_read_size < cd_size) {
-        memset(&cdfh, 0, sizeof(zip_cdfh_t));
-        size_t cdfh_size = zip_read_central_directory_file_header(zip_file, &cdfh);
-        if (cdfh_size<0) {
-            fclose(zip_file);
-            free(file_path);
-            free(cdfh.file_name);
-            return luaL_error(L, "Couldn't read central directory file header.");
-        }
-        cd_read_size += cdfh_size;
-
-        // _strlwr is twice as fast as _strlwr_s
-        //_strlwr_s(cdfh.file_name, cdfh.file_name_len + 1);
-        _strlwr(cdfh.file_name);
-
-        if (strcmp(cdfh.file_name, file_path)==0) {
-            _fseek_nolock(zip_file, cdfh.file_offset, SEEK_SET);
-            uint32_t file_hdr_sig = read_uint32(zip_file);
-            if (file_hdr_sig!=0x04034b50) {
-                fclose(zip_file);
-                free(file_path);
-                free(cdfh.file_name);
-                return luaL_error(L, "Error reading local file header.");
-            }
-
-            _fseek_nolock(zip_file, 4, SEEK_CUR); 
-
-            uint16_t compression = read_uint16(zip_file);
-
-            _fseek_nolock(zip_file, 16, SEEK_CUR);
-            uint16_t file_name_len = read_uint16(zip_file);
-            uint16_t extra_len = read_uint16(zip_file);
-            _fseek_nolock(zip_file, file_name_len + extra_len, SEEK_CUR);
-
-            if (compression!=8 && compression!=0) {
-                fclose(zip_file);
-                free(file_path);
-                free(cdfh.file_name);
-                return luaL_error(L, "unsupported compression: %d", compression);
-            }
-
-            if (compression==0) { // no compression, just stored
-                uint8_t *data = calloc(cdfh.file_compressed_size, sizeof(uint8_t));
-                for (size_t ci=0;ci<cdfh.file_compressed_size;ci++) data[ci] = (uint8_t)fgetc(zip_file);
-
-                lua_pushlstring(L, (char*)data, cdfh.file_compressed_size);
-            
-                free(data);
-                free(file_path);
-                free(cdfh.file_name);
-                fclose(zip_file);
-                return 1;
-            }
-
-            z_stream strm;
-            strm.zalloc = Z_NULL;
-            strm.zfree = Z_NULL;
-            strm.opaque = Z_NULL;
-            strm.avail_in = 0;
-            strm.next_in = 0;
-
-            // windowbits -15 = raw compression (no zlib headers)
-            if (inflateInit2(&strm, -15)!=Z_OK) {
-                fclose(zip_file);
-                free(file_path);
-                free(cdfh.file_name);
-                return luaL_error(L, "Couldn't initialize zlib.");
-            }
-
-            uint8_t *compressed_data = calloc(cdfh.file_compressed_size, sizeof(uint8_t));
-            _fread_nolock(compressed_data, sizeof(uint8_t), cdfh.file_compressed_size, zip_file);
-            uint8_t *uncompressed_data = calloc(cdfh.file_uncompressed_size, sizeof(uint8_t));
-
-            strm.avail_out = cdfh.file_uncompressed_size;
-            strm.next_out = uncompressed_data;
-            strm.avail_in = cdfh.file_compressed_size;
-            strm.next_in = compressed_data;
-
-            int ret = inflate(&strm, Z_FINISH); // uncompress in a single run
-            if (ret != Z_STREAM_END) {
-                free(file_path);
-                free(compressed_data);
-                free(uncompressed_data);
-                free(cdfh.file_name);
-                fclose(zip_file);
-                return luaL_error(L, "expected stream end.");
-            }
-
-            // TODO: CRC checking
-            lua_pushlstring(L, (char*)uncompressed_data, cdfh.file_uncompressed_size);
-            inflateEnd(&strm);
-            free(compressed_data);
-            free(uncompressed_data);
-            free(cdfh.file_name);
-            fclose(zip_file);
-            return 1;
-        }        
-
-        free(cdfh.file_name);        
-    }
-
-    free(file_path);
-
-    return 0;
-}
+    .. versionhistory::
+        :0.0.1: Added
 */
-
 int zip_lua_open(lua_State *L) {
     const char *path = luaL_checkstring(L, 1);
     zip_t *zip = zip_open(path);
@@ -506,6 +301,12 @@ int zip_lua_open(lua_State *L) {
     return 1;
 }
 
+/*** RST
+Classes
+-------
+
+.. lua:class:: zip
+*/
 static luaL_Reg zip_funcs[] = {
     "__gc",         &zip_lua_del,
     "files",        &zip_lua_files,
@@ -536,6 +337,17 @@ int zip_lua_del(lua_State *L) {
     return 0;
 }
 
+/*** RST
+    .. lua:method:: files()
+
+        Return a list of files in this zip. Directory names will not be returned
+        as a separate string, but all files inside of directories will.
+
+        :rtype: table
+
+        .. versionhistory::
+            :0.0.1: Added
+*/
 int zip_lua_files(lua_State *L) {
     zip_t *zip = LUA_CHECK_ZIP(L, 1);
 
@@ -552,6 +364,20 @@ int zip_lua_files(lua_State *L) {
     return 1;
 }
 
+/*** RST
+    .. lua:method:: content(path)
+
+        Return the uncompressed content for a file in this zip. ``path`` should
+        be a file path returned by :lua:meth:`files`.
+
+        If ``path`` does not exist in this zip, this function returns ``nil``
+
+        :param string path:
+        :rtype: string
+
+        .. versionhistory::
+            :0.0.1: Added
+*/
 int zip_lua_file_content(lua_State *L) {
     zip_t *zip = LUA_CHECK_ZIP(L, 1);
 

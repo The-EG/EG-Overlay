@@ -1,3 +1,21 @@
+--[[ RST
+Pact Supply Network Agents Tracker
+==================================
+
+.. image:: /images/modules/psna-tracker.png
+
+.. overlay:module:: psna-tracker
+
+.. warning::
+    This module is a work in progress. Things will change!
+
+The Pact Supply Network Agents Tracker shows the current locations of the PSN
+agents as well as a countdown to when they move next.
+
+The nearest waypoint or POI will be copied to the clipboard when the name of a
+location is clicked.
+]]--
+
 local ui = require 'eg-overlay-ui'
 local overlay = require 'eg-overlay'
 local uih = require 'ui-helpers'

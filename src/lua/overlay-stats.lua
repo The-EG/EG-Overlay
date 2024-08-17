@@ -1,3 +1,15 @@
+--[[ RST
+Overlay Stats
+=============
+
+.. image:: /images/modules/overlay-stats.png
+
+.. overlay:module:: overlay-stats
+
+Overlay Stats shows the system stats for the overlay and can be used to monitor
+performance or memory impacts.
+]]--
+
 local ui = require 'eg-overlay-ui'
 local uih = require 'ui-helpers'
 local overlay = require 'eg-overlay'

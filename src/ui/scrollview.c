@@ -306,6 +306,24 @@ void lua_push_ui_scrollview(lua_State *L, ui_scroll_view_t *scroll) {
     lua_setmetatable(L, -2);
 }
 
+/*** RST
+Scrollview Container
+====================
+
+.. lua:currentmodule:: overlay-ui
+
+Functions
+---------
+
+.. lua:function:: scrollview()
+
+    Create a new :lua:class:`uiscrollview`.
+
+    :rtype: uiscrollview
+
+    .. versionhistory::
+        :0.0.1: Added
+*/
 int ui_scroll_view_lua_new(lua_State *L) {
     ui_scroll_view_t *sv = ui_scroll_view_new();
     lua_push_ui_scrollview(L, sv);
@@ -315,6 +333,22 @@ int ui_scroll_view_lua_new(lua_State *L) {
 }
 
 #define LUA_CHECK_SCROLLVIEW(L, ind) *(ui_scroll_view_t**)luaL_checkudata(L, ind, "UIScrollViewMetaTable")
+
+/*** RST
+Classes
+-------
+
+.. lua:class:: uiscrollview
+
+    A scrolling container.
+
+    Unlike other containers, the scrollview does not automatically resize to fit
+    its child element. Instead, it presents a scrollable view based on its size.
+
+    Scrollviews can have a single child, which will be a layout container.
+
+*/
+
 
 int ui_scroll_view_lua_del(lua_State *L) {
     ui_scroll_view_t *sv = LUA_CHECK_SCROLLVIEW(L, 1);
@@ -348,6 +382,16 @@ int ui_scroll_view_lua_pos(lua_State *L) {
     return 0;
 }
 
+/*** RST
+    .. lua:method:: set_child(uielement)
+
+        Set the child element.
+
+        :param uielement: The new child element.
+        
+        .. versionhistory::
+            :0.0.1: Added
+*/
 int ui_scroll_view_lua_set_child(lua_State *L) {
     ui_scroll_view_t *sv = LUA_CHECK_SCROLLVIEW(L, 1);
     if (lua_type(L, 2)!=LUA_TUSERDATA) return luaL_error(L, "ui_scroll:set_child paramter #1 must be a ui-element.");
@@ -359,6 +403,15 @@ int ui_scroll_view_lua_set_child(lua_State *L) {
     return 0;
 }
 
+/*** RST
+    .. lua:method:: scroll_max_y()
+
+        Set the Y scroll position so that the bottom most portion of the child
+        element is visible.
+
+        .. versionhistory::
+            :0.0.1: Added
+*/
 int ui_scroll_view_lua_scroll_max_y(lua_State *L) {
     ui_scroll_view_t *sv = LUA_CHECK_SCROLLVIEW(L, 1);
     ui_scroll_view_scroll_y(sv, INT32_MAX);
@@ -366,6 +419,17 @@ int ui_scroll_view_lua_scroll_max_y(lua_State *L) {
     return 0;
 }
 
+/*** RST
+    .. lua:method:: scroll_amount(value)
+
+        Set the amount the view is scrolled on mouse wheel movements.
+
+        :param value:
+        :type value: integer
+
+        .. versionhistory::
+            :0.0.1: Added
+*/
 int ui_scroll_view_lua_scroll_amount(lua_State *L) {
     ui_scroll_view_t *sv = LUA_CHECK_SCROLLVIEW(L, 1);
     int scroll_amount = (int)luaL_checkinteger(L, 2);

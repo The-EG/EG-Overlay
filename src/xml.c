@@ -1,3 +1,22 @@
+/*** RST
+libxml2
+=======
+
+.. |parse error returns| replace::
+        Parsing errors are printed to the log. In some cases parsing will
+        continue, but in others parsing will fail in which case this function.
+        returns ``nil``.
+
+.. lua:module:: libxml2
+
+.. code-block:: lua
+
+    local xml = require 'libxml2'
+
+The :lua:mod:`libxml2` module is, as its name suggests, a Lua binding to `libxml2 <https://gitlab.gnome.org/GNOME/libxml2>`_.
+
+*/
+
 #include "xml.h"
 #include "utils.h"
 #include "logging/logger.h"
@@ -84,17 +103,46 @@ void xml_error_handler(error_handler_data_t *data, const xmlError *error) {
     }
 }
 
+/*** RST
+Functions
+---------
+
+.. lua:function:: read_file(path)
+
+    Read xml from ``path`` and parse into an XML document.
+
+    .. important:: |parse error returns|
+
+    :param string path:
+    :rtype: XMLDoc
+
+    .. versionhistory::
+        :0.0.1: Added
+*/
 int xml_lua_read_file(lua_State *L) {
     const char *path = luaL_checkstring(L, 1);
 
     xmlDocPtr doc = xmlReadFile(path, NULL, 0);
-    if (doc==NULL) return luaL_error(L, "Couldn't parse %s", path);
-
-    xml_doc_lua_push(L, doc, 1);
+    if (doc) xml_doc_lua_push(L, doc, 1);
+    else lua_pushnil(L);
 
     return 1;
 }
 
+/*** RST
+.. lua:function:: read_string(xml, name)
+
+    Parse xml from ``xml``.
+
+    .. important:: |parse error returns|
+
+    :param string xml: The XML string to parse.
+    :param string name: The document name, typically a path or file name.
+    :rtype: XMLDoc
+
+    .. versionhistory::
+        :0.0.1: Added
+*/
 int xml_lua_read_string(lua_State *L) {
     int data_size = 0;
     const char *data = luaL_checklstring(L, 1, (size_t*)&data_size);
@@ -117,6 +165,15 @@ int xml_lua_read_string(lua_State *L) {
     return 1;
 }
 
+/*** RST
+Classes
+-------
+
+.. lua:class:: XMLDoc
+
+    An XML Document.
+
+*/
 void xml_doc_lua_push(lua_State *L, xmlDocPtr doc, int lua_managed) {
     xmlDocPtr *ppdoc = (xmlDocPtr*)lua_newuserdata(L, sizeof(xmlDocPtr));
     *ppdoc = doc;
@@ -169,6 +226,16 @@ int xml_doc_lua_del(lua_State *L) {
     return 0;
 }
 
+/*** RST
+    .. lua:method:: get_root_element()
+
+        Return the root element for this document.
+
+        :rtype: XMLNode
+
+        .. versionhistory::
+            :0.0.0: Added
+*/
 int xml_doc_lua_get_root_element(lua_State *L) {
     xmlDocPtr doc = LUA_CHECK_XML_DOC(L, 1);
 
@@ -179,6 +246,16 @@ int xml_doc_lua_get_root_element(lua_State *L) {
     return 1;
 }
 
+/*** RST
+    .. lua:method:: name()
+
+        Return the name of this document. This is the name supplied with :lua:func:`read_string`.
+
+        :rtype: string
+
+        .. versionhistory::
+            :0.0.1: Added
+*/
 int xml_doc_lua_name(lua_State *L) {
     xmlDocPtr doc = LUA_CHECK_XML_DOC(L, 1);
 
@@ -187,6 +264,16 @@ int xml_doc_lua_name(lua_State *L) {
     return 1;
 }
 
+/*** RST
+    .. lua:method:: url()
+
+        Return the URL of this document, or the :lua:meth:`name` if it doesn't have one.
+
+        :rtype: string
+
+        .. versionhistory::
+            :0.0.1: Added
+*/
 int xml_doc_lua_url(lua_State *L) {
     xmlDocPtr doc = LUA_CHECK_XML_DOC(L, 1);
 
@@ -194,6 +281,14 @@ int xml_doc_lua_url(lua_State *L) {
 
     return 1;
 }
+
+
+/*** RST
+.. lua:class:: XMLNode
+
+    A node within a :lua:class:`XMLDoc`. This could be an element with children,
+    a text node, whitespace or comment.
+*/
 
 int xml_node_lua_del(lua_State *L);
 int xml_node_lua_copy(lua_State *L);
@@ -261,6 +356,16 @@ int xml_node_lua_del(lua_State *L) {
     return 0;
 }
 
+/*** RST
+    .. lua:method:: copy()
+
+        Clone this node.
+
+        :rtype: XMLNode
+
+        .. versionhistory::
+            :0.0.1: Added
+*/
 int xml_node_lua_copy(lua_State *L) {
     xmlNodePtr node = LUA_CHECK_XML_NODE(L, 1);
 
@@ -271,6 +376,19 @@ int xml_node_lua_copy(lua_State *L) {
     return 1;
 }
 
+/*** RST
+    .. lua:method:: prev()
+
+        Return the previous sibling of this node. In other words, the node that
+        appears before this one in its parent's children.
+
+        This function will return ``nil`` if there is no previous sibling.
+
+        :rtype: XMLNode
+
+        .. versionhistory::
+            :0.0.1: Added
+*/
 int xml_node_lua_prev(lua_State *L) {
     xmlNodePtr node = LUA_CHECK_XML_NODE(L, 1);
 
@@ -280,6 +398,19 @@ int xml_node_lua_prev(lua_State *L) {
     return 1;
 }
 
+/*** RST
+    .. lua:method:: next()
+
+        Return the next sibling of this node. In other words, the node that
+        appears after this one in its parent's children.
+
+        This function will return ``nil`` if there is no next sibling.
+
+        :rtype: XMLNode
+
+        .. versionhistory::
+            :0.0.1: Added
+*/
 int xml_node_lua_next(lua_State *L) {
     xmlNodePtr node = LUA_CHECK_XML_NODE(L, 1);
 
@@ -289,6 +420,20 @@ int xml_node_lua_next(lua_State *L) {
     return 1;
 }
 
+/*** RST
+    .. lua:method:: children()
+
+        Return the *first* child of this node. The :lua:meth:`prev` and
+        :lua:meth:`next` methods of that node can be used to traverse all child
+        nodes.
+
+        This function will return ``nil`` if this node has no children.
+
+        :rtype: XMLNode
+
+        .. versionhistory::
+            :0.0.1: Added
+*/
 int xml_node_lua_children(lua_State *L) {
     xmlNodePtr node = LUA_CHECK_XML_NODE(L, 1);
 
@@ -298,6 +443,37 @@ int xml_node_lua_children(lua_State *L) {
     return 1;
 }
 
+/*** RST
+    .. lua:method:: type()
+
+        Return a string indicating the type of this node. One of:
+
+        * element-node
+        * attribute-node
+        * text-node
+        * cdata-section-node
+        * entity-ref-node
+        * pi-node
+        * comment-node
+        * document-node
+        * document-type-node
+        * document-fragment-node
+        * notation-node
+        * html-document-node
+        * dtd-node
+        * element-declaration
+        * attribute-declaration
+        * entity-declaration
+        * namespace-declaration
+        * xinclude-start
+        * xinclude-end
+        * unknown
+    
+        :rtype: string
+
+        .. versionhistory::
+            :0.0.1: Added
+*/
 int xml_node_lua_type(lua_State *L) {
     xmlNodePtr node = LUA_CHECK_XML_NODE(L, 1);
 
@@ -318,7 +494,7 @@ int xml_node_lua_type(lua_State *L) {
     case XML_DTD_NODE:           lua_pushliteral(L, "dtd-node");               break;
     case XML_ELEMENT_DECL:       lua_pushliteral(L, "element-declaration");    break;
     case XML_ATTRIBUTE_DECL:     lua_pushliteral(L, "attribute-declaration");  break;
-    case XML_ENTITY_DECL:        lua_pushliteral(L, "entity-delcaration");     break;
+    case XML_ENTITY_DECL:        lua_pushliteral(L, "entity-declaration");     break;
     case XML_NAMESPACE_DECL:     lua_pushliteral(L, "namespace-declaration");  break;
     case XML_XINCLUDE_START:     lua_pushliteral(L, "xinclude-start");         break;
     case XML_XINCLUDE_END:       lua_pushliteral(L, "xinclude-end");           break;
@@ -328,6 +504,17 @@ int xml_node_lua_type(lua_State *L) {
     return 1;
 }
 
+/*** RST
+    .. lua:method:: name()
+    
+        Return the name of this node. For element nodes, this will be the
+        tag name. ``nil`` is returned if the node does not have a name.
+
+        :rtype: string
+
+        .. versionhistory::
+            :0.0.1: Added
+*/
 int xml_node_lua_name(lua_State *L) {
     xmlNodePtr node = LUA_CHECK_XML_NODE(L, 1);
 
@@ -337,6 +524,24 @@ int xml_node_lua_name(lua_State *L) {
     return 1;
 }
 
+/*** RST
+    .. lua:method:: prop(name[, value])
+
+        Return or set the value of a property (attribute) on this node.
+
+        If ``value`` is omitted, the value of ``name`` property is returned.
+
+        If ``value`` is omitted and ``name`` does not exist on this node,
+        ``nil`` is returned.
+
+        :param string name: The property (attribute) name.
+        :param string value: (Optional) If present, the property ``name`` is set
+            to this value. If omitted, the value of ``name`` is returned.
+        :rtype: string
+
+        .. versionhistory::
+            :0.0.1: Added
+*/
 int xml_node_lua_prop(lua_State *L) {
     xmlNodePtr node = LUA_CHECK_XML_NODE(L, 1);
     const char *prop_name = luaL_checkstring(L, 2);
@@ -360,6 +565,16 @@ int xml_node_lua_prop(lua_State *L) {
     return luaL_error(L, "node:prop either takes one argument (returns property) or two arguments (sets value).");
 }
 
+/*** RST
+    .. lua:method:: props()
+
+        Return a sequence of property names on this node.
+
+        :rtype: table
+
+        .. versionhistory::
+            :0.0.1: Added
+*/
 int xml_node_lua_props(lua_State *L) {
     xmlNodePtr node = LUA_CHECK_XML_NODE(L, 1);
 
@@ -373,6 +588,17 @@ int xml_node_lua_props(lua_State *L) {
     return 1;
 }
 
+/*** RST
+    .. lua:method:: content([text])
+
+        Return or set the content of this node. If ``text`` is omitted, the
+        content is returned, otherwise the content is set to ``text``
+
+        :rtype: string
+
+        .. versionhistory::
+            :0.0.1: Added
+*/
 int xml_node_lua_content(lua_State *L) {
     xmlNodePtr node = LUA_CHECK_XML_NODE(L, 1);
 
@@ -391,6 +617,16 @@ int xml_node_lua_content(lua_State *L) {
     return luaL_error(L, "node:content either takes no argument (returns content) or 1 string argument (sets content).");
 }
 
+/*** RST
+    .. lua:method:: doc()
+    
+        Return the :lua:class:`XMLDoc` this node belongs to.
+
+        :rtype: XMLDoc
+
+        .. versionhistory::
+            :0.0.1: Added
+*/
 int xml_node_lua_doc(lua_State *L) {
     xmlNodePtr node = LUA_CHECK_XML_NODE(L, 1);
 
@@ -400,6 +636,19 @@ int xml_node_lua_doc(lua_State *L) {
     return 1;
 }
 
+/*** RST
+    .. lua:method:: line()
+
+        Return the line number this node occurs on within the input text.
+
+        This can be used to provide informative error messages about malformed
+        data.
+
+        :rtype: integer
+
+        .. versionhistory::
+            :0.0.1: Added
+*/
 int xml_node_lua_line(lua_State *L) {
     xmlNodePtr node = LUA_CHECK_XML_NODE(L, 1);
 

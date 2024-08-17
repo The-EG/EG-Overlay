@@ -427,7 +427,6 @@ static int overlay_remove_event_handler(lua_State *L) {
     :param event: Event type
     :type event: string
     :param data: Optional event data
-    :type data: any
     :return: none
 
     .. note::
@@ -975,7 +974,7 @@ static int overlay_data_folder(lua_State *L) {
     :param text: (Optional) If present, the text to set the clipboard to.
     :type text: string
     :return: If ``text`` is ``nil``, returns the text currently on the clipboard. Otherwise ``nil``.
-    :rtype: string or nil
+    :rtype: string
 
     .. versionhistory::
         :0.0.1: Added
