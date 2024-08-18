@@ -257,7 +257,7 @@ void app_init(HINSTANCE hinst, int argc, char **argv) {
 
     logger_info(log, "====================================================");
     logger_info(log, "EG Overlay startup");
-    logger_info(log, "Version 0.0.1");
+    logger_info(log, "Version 0.0.2-pre");
     logger_info(log, "----------------------------------------------------");
 
     app = calloc(1, sizeof(app_t));

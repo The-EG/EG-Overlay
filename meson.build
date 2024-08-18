@@ -1,4 +1,4 @@
-project('eg-overlay', 'c', version: '0.0.1', default_options: ['c_std=c17'])
+project('eg-overlay', 'c', version: '0.0.2-pre', default_options: ['c_std=c17'])
 
 cc = meson.get_compiler('c')
 fs = import('fs')
