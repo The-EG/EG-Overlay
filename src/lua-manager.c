@@ -625,9 +625,9 @@ void lua_manager_run_events() {
             lua_pop(lua->lua, 1);
             lua_closethread(cothread, NULL);            
         } else {
-            // error occured
+            // error occurred
             const char *errmsg = luaL_checkstring(cothread, -1);
-            logger_error(lua->log, "Error occured during lua callback event handler: %s", errmsg);
+            logger_error(lua->log, "Error occurred during lua callback event handler: %s", errmsg);
             lua_pop(cothread, 1);
             // pop the thread
             lua_pop(lua->lua, 1);
@@ -714,9 +714,9 @@ void lua_manager_call_event_handlers(const char *event, int data_cbi) {
             lua_pop(lua->lua, 1);
             lua_closethread(cothread, NULL);            
         } else {
-            // error occured
+            // error occurred
             const char *errmsg = luaL_checkstring(cothread, -1);
-            logger_error(lua->log, "Error occured during lua event handler (%s): %s", event, errmsg);
+            logger_error(lua->log, "Error occurred during lua event handler (%s): %s", event, errmsg);
             lua_pop(cothread, 1);
             // pop the thread
             lua_pop(lua->lua, 1);
@@ -1021,7 +1021,7 @@ Events
 
 .. overlay:event:: update
 
-    Sent once per frame before any drawing has occured.
+    Sent once per frame before any drawing has occurred.
 
     .. versionhistory::
         :0.0.1: Added
