@@ -62,6 +62,10 @@ local function update()
 
     local pcx, pcy = gw2.player_continent_coords()
 
+    -- don't update if mumble-link data isn't valid yet
+    -- fixes #2
+    if not pcx then return end
+
     player_pos_cx:update_text(string.format('  X %.2f', pcx))
     player_pos_cy:update_text(string.format('  Y %.2f', pcy))
 
