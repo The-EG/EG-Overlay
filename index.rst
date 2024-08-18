@@ -39,9 +39,11 @@ EG-Overlay provides a Lua environment for customization and extension. Modules a
     :caption: Development
     :hidden:
 
+    docs/development/compiling
     docs/development/lua-api
     docs/development/lua-threads
 
+- :doc:`docs/development/compiling`
 - :doc:`docs/development/lua-api`
 - :doc:`docs/development/lua-threads`
         
