@@ -530,10 +530,11 @@ int app_run() {
     nid.cbSize = sizeof(nid);
     nid.hWnd = app->message_win;
     nid.uID = 0x01;
-    nid.uFlags = NIF_ICON | NIF_MESSAGE;
+    nid.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP | NIF_SHOWTIP;
     nid.uCallbackMessage = WM_SYSTRAYEVENT;
     nid.uVersion = NOTIFYICON_VERSION_4;
     nid.hIcon = LoadIcon(app->inst, MAKEINTRESOURCE(IDI_EGOVERLAY_16x16));
+    memcpy(nid.szTip, "EG-Overlay", strlen("EG-Overlay"));
     
     Shell_NotifyIcon(NIM_ADD, &nid);
     Shell_NotifyIcon(NIM_SETVERSION, &nid);
