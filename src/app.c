@@ -423,11 +423,6 @@ void app_cleanup() {
     free(app);
 }
 
-
-static void test1_click(const char *event) {
-    logger_debug(app->log, "menu item test 1 event: %s", event);
-}
-
 static DWORD WINAPI app_render_thread(LPVOID lpParam) {
     (void)lpParam; // unused
 
