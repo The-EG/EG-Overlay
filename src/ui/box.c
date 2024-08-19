@@ -317,7 +317,7 @@ static int ui_box_lua_del(lua_State *L) {
 
 /*** RST
 Classes
-=======
+-------
 
 .. lua:class:: uibox
 
