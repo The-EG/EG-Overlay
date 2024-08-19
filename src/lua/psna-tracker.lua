@@ -39,37 +39,50 @@ psna.win:settings(psna_settings, 'window')
 local outerbox = ui.box('vertical')
 outerbox:padding(5,5,5,5)
 
+psna.win:set_child(outerbox)
+
 psna.timetomovetxt = uih.text('Agents move in: (calculating)')
-outerbox:pack_end(psna.timetomovetxt, false, 'start')
-outerbox:spacing(5)
+--outerbox:pack_end(psna.timetomovetxt, false, 'start')
+--outerbox:spacing(5)
+
+local grid = ui.grid(8, 3)
+
+
+grid:attach(psna.timetomovetxt, 1, 1, 1, 3, 'middle', 'start')
+grid:attach(ui.separator('horizontal'), 2, 1, 1, 3, 'fill', 'middle')
+
+grid:rowspacing(5)
+grid:colspacing(1, 5)
+grid:colspacing(2, 10)
+outerbox:pack_end(grid, false, 'start')
+
+local agentrow = 3
 
 local function on_button_click(agent)
     overlay.clipboard_text(agent.chatlinks[psna.weekday])
 end
 
-local function pack_agent(agent)
-    agent.box:align('fill')
-    agent.box:spacing(10)
-    agent.box:pack_end(agent.lbl, true, 'middle')
-    agent.box:pack_end(agent.btn, true, 'fill')
-    local btn_box = ui.box('horizontal')
-    btn_box:padding(5,5,2,2)
-    btn_box:align('middle')
-    btn_box:pack_end(agent.btn_txt, false, 'start')
-    agent.btn:set_child(btn_box)
-    outerbox:pack_end(agent.box, false, 'fill')
-end
 
 local function new_agent(name, locations, chatlinks)
     local agent = {
         box = ui.box('horizontal'),
         lbl = uih.text(name .. ':'),
         btn = ui.button(),
-        btn_txt = uih.text('Location'),
+        loc_txt = uih.text('Location'),
         locations = locations,
         chatlinks = chatlinks
     }
-    pack_agent(agent)
+    local btn_box = ui.box('horizontal')
+    local btn_lbl = uih.text('Copy')
+    btn_box:padding(5,5,2,2)
+    btn_box:align('middle')
+    btn_box:pack_end(btn_lbl, false, 'start')
+    agent.btn:set_child(btn_box)
+
+    grid:attach(agent.lbl    , agentrow, 1, 1, 1, 'end'  , 'middle')
+    grid:attach(agent.loc_txt, agentrow, 2, 1, 1, 'start', 'middle')
+    grid:attach(agent.btn    , agentrow, 3, 1, 1, 'fill' , 'fill')
+    agentrow = agentrow + 1
     agent.btn:event_handler(function(event)
         if event == 'click-left' then on_button_click(agent) end
     end)
@@ -109,14 +122,12 @@ psna.agents = {
     )
 }
 
-psna.win:set_child(outerbox)
-
 psna.weekday = 0
 
 psna.lastupdate = os.time()
 
 local function agent_update_txt(agent, weekday)
-    agent.btn_txt:update_text(agent.locations[weekday])
+    agent.loc_txt:update_text(agent.locations[weekday])
 end
 
 local function update()
