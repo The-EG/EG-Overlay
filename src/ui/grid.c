@@ -242,7 +242,7 @@ void lua_pushuigrid(lua_State *L, ui_grid_t *grid) {
     :rtype: uigrid
 
     .. versionhistory::
-        :0.X.0: Added
+        :0.1.0: Added
 */
 int ui_grid_lua_new(lua_State *L) {
     int rows = (int)luaL_checkinteger(L, 1);
@@ -347,7 +347,7 @@ int ui_grid_lua_del(lua_State *L) {
         :param string vertalign: Vertical alignment. ``'start'``, ``'middle'``, ``'end'``, or ``'fill'``.
 
         .. versionhistory::
-            :0.X.0: Added
+            :0.1.0: Added
 */
 int ui_grid_lua_attach(lua_State *L) {
     int args = lua_gettop(L);
@@ -405,7 +405,7 @@ int ui_grid_lua_attach(lua_State *L) {
         :param integer spacing:
 
         .. versionhistory::
-            :0.X.0: Added
+            :0.1.0: Added
 */
 int ui_grid_lua_rowspacing(lua_State *L) {
     ui_grid_t *grid = lua_checkuigrid(L, 1);
@@ -448,7 +448,7 @@ int ui_grid_lua_rowspacing(lua_State *L) {
         :param integer spacing:
 
         .. versionhistory::
-            :0.X.0: Added
+            :0.1.0: Added
 */
 int ui_grid_lua_colspacing(lua_State *L) {
     ui_grid_t *grid = lua_checkuigrid(L, 1);
