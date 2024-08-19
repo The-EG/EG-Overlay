@@ -16,6 +16,7 @@ egoverlay_sources = files(
     'ui/button.c',
     'ui/menu.c',
     'ui/box.c',
+    'ui/grid.c',
     'ui/scrollview.c',
     'ui/text-entry.c',
     'ui/separator.c',

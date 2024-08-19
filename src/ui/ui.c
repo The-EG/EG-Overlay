@@ -17,6 +17,7 @@
 #include "app.h"
 #include "text-entry.h"
 #include "separator.h"
+#include "grid.h"
 
 #include <lauxlib.h>
 
@@ -439,6 +440,7 @@ overlay-ui
     :maxdepth: 1
 
     box
+    grid
 
 .. toctree::
     :caption: UI Elements
@@ -475,6 +477,7 @@ int ui_lua_open_module(lua_State *L) {
     ui_text_entry_lua_register_funcs(L);
     ui_menu_lua_register_ui_funcs(L);
     ui_separator_lua_register_ui_funcs(L);
+    ui_grid_lua_register_ui_funcs(L);
 
     return 1;
 }
