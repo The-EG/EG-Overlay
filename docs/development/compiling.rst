@@ -74,12 +74,6 @@ EG-Overlay can be built from the command line using either CMD or PowerShell.
 3. Run ``meson setup builddir .``
 4. Run ``meson compile -C builddir``
 
-   .. warning::
-        If you are using PowerShell, you will need to prefix meson commands with
-        ``&``.
-        
-        For example, ``& meson setup builddir .``
-
    .. note::
         By default a debug build is configured. You can request a release build
         using the command line argument ``--buildtype release``. For example,
