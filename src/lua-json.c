@@ -139,7 +139,7 @@ int json_lua_mod_loads(lua_State *L) {
 
     int flags = 0;
 
-    if (lua_gettop(L)==2) flags = luaL_checkinteger(L, 2);
+    if (lua_gettop(L)==2) flags = (int)luaL_checkinteger(L, 2);
 
     json_error_t error = {0};
     json_t *json = json_loads(string, flags, &error);
@@ -218,7 +218,7 @@ int json_lua_mod_loads(lua_State *L) {
 int json_lua_mod_dumps(lua_State *L) {
     json_t *json = lua_checkjson(L, 1);
     int flags = 0;
-    if (lua_gettop(L)==2) flags = luaL_checkinteger(L, 2);
+    if (lua_gettop(L)==2) flags = (int)luaL_checkinteger(L, 2);
 
     char *str = json_dumps(json, flags);
     lua_pushstring(L, str);
@@ -228,7 +228,7 @@ int json_lua_mod_dumps(lua_State *L) {
 }
 
 int json_lua_mod_JSON_INDENT(lua_State *L) {
-    int n = luaL_checkinteger(L, 1);
+    int n = (int)luaL_checkinteger(L, 1);
     if (n < 0 || n > 31) {
         return luaL_error(L, "JSON_INDENT(n) - n must be between 0 and 31.");
     }
@@ -239,7 +239,7 @@ int json_lua_mod_JSON_INDENT(lua_State *L) {
 }
 
 int json_lua_mod_JSON_REAL_PRECISION(lua_State *L) {
-    int n = luaL_checkinteger(L, 1);
+    int n = (int)luaL_checkinteger(L, 1);
     if (n < 0 || n > 31) {
         return luaL_error(L, "JSON_REAL_PRECISION(n) - n must be between 0 and 31.");
     }
@@ -482,14 +482,18 @@ int json_lua_next(lua_State *L) {
     } else if (json_is_object(json)) {
         const char *key;
         json_t *val;
-        if (lua_isnil(L, 2)) {
-            json_object_foreach(json, key, val) {
+        if (lua_type(L, 2)==LUA_TNIL) {
+            key = json_object_iter_key(json_object_iter(json));
+
+            if (key) {
+                val = json_object_iter_value(json_object_key_to_iter(key));
                 lua_pushstring(L, key);
                 lua_pushjson(L, val);
                 return 2;
+            } else {
+                lua_pushnil(L);
+                return 1;
             }
-            lua_pushnil(L);
-            return 1;
         }
 
         const char *cur_key = luaL_checkstring(L, 2);

@@ -11,6 +11,7 @@
 #include <lualib.h>
 #include <lauxlib.h>
 #include <string.h>
+#include "lua-json.h"
 
 typedef struct lua_event_callback_list_t {
     lua_manager_event_callback *cb;
@@ -924,7 +925,7 @@ static int overlay_data_folder(lua_State *L) {
     size_t proc_path_len = MAX_PATH;
     char *proc_path = calloc(proc_path_len+1, sizeof(char));
 
-    proc_path_len = GetModuleFileName(NULL, proc_path, proc_path_len);
+    proc_path_len = GetModuleFileName(NULL, proc_path, (DWORD)proc_path_len);
     if (!proc_path_len) {
         return luaL_error(L, "Couldn't get module filename.");
     }
@@ -1003,6 +1004,8 @@ static int overlay_clipboard_text(lua_State *L) {
         :0.0.1: Added
 */
 static int overlay_exit(lua_State *L) {
+    UNUSED_PARAM(L);
+    
     app_exit();
 
     return 0;

@@ -67,7 +67,7 @@ void ui_text_update_size(ui_text_t *text) {
             loffset = c + 1;
         }
     }
-    int width = ui_font_get_text_width(text->font, text->text + loffset, strlen(text->text) - loffset);
+    int width = ui_font_get_text_width(text->font, text->text + loffset, (int)strlen(text->text) - loffset);
     if (width > text->pref_width) text->pref_width = width;
 
     //text->pref_width = ui_font_get_text_width(text->font, text->text, (int)strlen(text->text));

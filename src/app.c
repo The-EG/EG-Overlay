@@ -142,7 +142,7 @@ LRESULT CALLBACK keyboard_hook_proc(int nCode, WPARAM wParam, LPARAM lParam) {
     event.ctrl  = keystate[VK_CONTROL] & 0x80;
     event.caps  = keystate[VK_CAPITAL] & 0x01;
     
-    ToAscii(keydata->vkCode, keydata->scanCode, keystate, event.ascii, 0); 
+    ToAscii(keydata->vkCode, keydata->scanCode, keystate, (LPWORD)event.ascii, 0); 
 
     if (ui_process_keyboard_event(&event)) return 1;
 

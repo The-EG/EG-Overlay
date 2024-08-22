@@ -117,7 +117,6 @@ static void ui_menu_item_draw(ui_menu_item_t *item, int offset_x, int offset_y, 
     if (item->sub_menu) {
         char *font_path;
         int font_size = 0;
-        int font_weight = INT_MIN;
 
         GET_APP_SETTING_STR("overlay.ui.font.path", &font_path);
         GET_APP_SETTING_INT("overlay.ui.font.size", &font_size);
@@ -662,7 +661,7 @@ int ui_menu_item_lua_enabled(lua_State *L) {
     ui_menu_item_t *mi = LUA_CHECK_MENUITEM(L, 1);
 
     if (lua_gettop(L)==2) {
-        uint8_t enabled = lua_toboolean(L, 2);
+        int enabled = lua_toboolean(L, 2);
         mi->enabled = enabled;
         return 0;
     } else {

@@ -149,10 +149,8 @@ static void ui_box_draw(ui_box_t *box, int offset_x, int offset_y, mat4f_t *proj
         }
     } else {
         if      (box->align< 0) x = offset_x + box->element.x + box->padding.left;
-        else if (box->align==0) x = offset_x + box->element.x + box->padding.left + ((float)(box->element.width - box->padding.left - box->padding.right) / 2.f) - ((float)(pref_width - box->padding.left - box->padding.right) / 2.f);
+        else if (box->align==0) x = offset_x + box->element.x + box->padding.left + (int)((float)(box->element.width - box->padding.left - box->padding.right) / 2.f) - (int)((float)(pref_width - box->padding.left - box->padding.right) / 2.f);
         else                    x = offset_x + box->element.x + box->element.width - box->padding.right - pref_width;
-
-        
 
         ui_box_item_t *i = box->items;
         while (i) {

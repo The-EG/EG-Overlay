@@ -266,7 +266,7 @@ int ui_text_entry_process_keyboard_event(ui_text_entry_t *entry, ui_keyboard_eve
     }
 
     if (event->vk_key==VK_END) {
-        ui_text_entry_set_caret_pos(entry, entry->text_len);
+        ui_text_entry_set_caret_pos(entry, (int)entry->text_len);
         return 1;
     }
 
@@ -291,7 +291,7 @@ int ui_text_entry_process_keyboard_event(ui_text_entry_t *entry, ui_keyboard_eve
 
             memcpy(entry->text + entry->caret_pos, clipboard_text, strlen(clipboard_text));
             entry->text_len += strlen(clipboard_text);
-            ui_text_entry_set_caret_pos(entry, entry->caret_pos + strlen(clipboard_text));
+            ui_text_entry_set_caret_pos(entry, entry->caret_pos + (int)strlen(clipboard_text));
         }
         free(clipboard_text);
     }

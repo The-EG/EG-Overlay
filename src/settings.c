@@ -4,6 +4,7 @@
 #include "logging/logger.h"
 #include "utils.h"
 #include "lua-manager.h"
+#include "lua-json.h"
 #include <lua.h>
 #include <lauxlib.h>
 #include <windows.h>
@@ -189,7 +190,7 @@ int settings_get_int(settings_t *settings, const char *key, int *value) {
     settings_get_internal(settings, key, &val);
 
     if (val && json_is_integer(val)) {
-        *value = json_integer_value(val);
+        *value = (int)json_integer_value(val);
         return 1;
     } else if (!val) {
         uint32_t key_ind = settings_get_default_key_ind(settings, key);
@@ -816,7 +817,7 @@ settings_t *lua_checksettings(lua_State *L, int ind) {
 int settings_lua_save_on_set(lua_State *L) {
     settings_t *settings = lua_checksettings(L, 1);
 
-    settings->save_on_set = lua_toboolean(L, 2);
+    settings->save_on_set = (uint8_t)lua_toboolean(L, 2);
 
     return 0;
 }

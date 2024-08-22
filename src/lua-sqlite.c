@@ -261,7 +261,7 @@ int db_lua_execute(lua_State *L) {
                 lua_pushnumber(L, sqlite3_column_double(stmt, c));
                 break;
             case SQLITE_TEXT:
-                lua_pushstring(L, sqlite3_column_text(stmt, c));
+                lua_pushstring(L, (const char *)sqlite3_column_text(stmt, c));
                 break;
             case SQLITE_BLOB:
                 lua_pushlstring(L, sqlite3_column_blob(stmt, c), sqlite3_column_bytes(stmt, c));
@@ -410,7 +410,7 @@ int statement_lua_step(lua_State *L) {
                 lua_pushnumber(L, sqlite3_column_double(stmt->stmt, c));
                 break;
             case SQLITE_TEXT:
-                lua_pushstring(L, sqlite3_column_text(stmt->stmt, c));
+                lua_pushstring(L, (const char *)sqlite3_column_text(stmt->stmt, c));
                 break;
             case SQLITE_BLOB:
                 lua_pushlstring(L, sqlite3_column_blob(stmt->stmt, c), sqlite3_column_bytes(stmt->stmt, c));

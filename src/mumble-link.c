@@ -436,7 +436,7 @@ static int mumble_link_lua_character_race(lua_State *L) {
         return 0;
     }
 
-    int race = json_integer_value(race_json);
+    int race = (int)json_integer_value(race_json);
     switch (race) {
     case 0:  lua_pushliteral(L, "Asura"  ); break;
     case 1:  lua_pushliteral(L, "Charr"  ); break;

@@ -149,7 +149,7 @@ int xml_lua_read_string(lua_State *L) {
     const char *name = luaL_checkstring(L, 2);
 
     error_handler_data_t err_data = {0};
-    err_data.file = data;
+    err_data.file = (char *)data; // data will remain in scope while err_data does, so reference directly
     err_data.file_size = data_size;
 
     xmlParserCtxtPtr ctx = xmlNewParserCtxt();
@@ -178,7 +178,7 @@ void xml_doc_lua_push(lua_State *L, xmlDocPtr doc, int lua_managed) {
     xmlDocPtr *ppdoc = (xmlDocPtr*)lua_newuserdata(L, sizeof(xmlDocPtr));
     *ppdoc = doc;
 
-    logger_t *log = logger_get("xml");
+    //logger_t *log = logger_get("xml");
     // if (lua_managed) logger_debug(log, "Pushing XMLDoc 0x%x (%s) to Lua", doc, doc->URL);
 
     lua_pushboolean(L, lua_managed);

@@ -150,7 +150,7 @@ ui_font_t *ui_font_new(const char *path, int size, int weight, int slant, int wi
         FT_Fixed *coords = calloc(mm_var->num_axis, sizeof(FT_Fixed));
         FT_Get_Var_Design_Coordinates(font->face, mm_var->num_axis, coords);
 
-        for (int a=0;a<mm_var->num_axis;a++) {
+        for (FT_UInt a=0;a<mm_var->num_axis;a++) {
             if (weight!=INT_MIN && strcmp(mm_var->axis[a].name,"Weight")==0) {
                 if (weight < mm_var->axis[a].minimum / 0x10000) {
                     logger_warn(logger, " %s : specified weight (%d) below minimum %d", path, weight, mm_var->axis[a].minimum / 0x10000);
