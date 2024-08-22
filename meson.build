@@ -9,23 +9,18 @@ fs = import('fs')
 
 cmake = import('cmake')
 
+cmake_buildtypes = {
+    'debug': {'CMAKE_BUILD_TYPE':'Debug'},
+    'debugoptimized': {'CMAKE_BUILD_TYPE':'RelWithDebInfo'},
+    'minsize': {'CMAKE_BUILD_TYPE':'MinSizeRel'},
+    'release': {'CMAKE_BUILD_TYPE':'Release'}
+}
+
 generic_cmake_opts = cmake.subproject_options()
 curl_opts = cmake.subproject_options()
 
-
-if get_option('buildtype') == 'debug'
-    generic_cmake_opts.add_cmake_defines({'CMAKE_BUILD_TYPE':'Debug'})
-    curl_opts.add_cmake_defines({'CMAKE_BUILD_TYPE':'Debug'})
-elif get_option('buildtype') == 'debugoptimized'
-    generic_cmake_opts.add_cmake_defines({'CMAKE_BUILD_TYPE':'RelWithDebInfo'})
-    curl_opts.add_cmake_defines({'CMAKE_BUILD_TYPE':'RelWithDebInfo'})
-elif get_option('buildtype') == 'minsize'
-    generic_cmake_opts.add_cmake_defines({'CMAKE_BUILD_TYPE':'MinSizeRel'})
-    curl_opts.add_cmake_defines({'CMAKE_BUILD_TYPE':'MinSizeRel'})
-else
-    generic_cmake_opts.add_cmake_defines({'CMAKE_BUILD_TYPE':'Release'})
-    curl_opts.add_cmake_defines({'CMAKE_BUILD_TYPE':'Release'})
-endif
+generic_cmake_opts.add_cmake_defines(cmake_buildtypes[get_option('buildtype')])
+curl_opts.add_cmake_defines(cmake_buildtypes[get_option('buildtype')])
 
 glfw_proj = cmake.subproject('glfw', options: generic_cmake_opts)
 glfw_lib = glfw_proj.dependency('glfw')
