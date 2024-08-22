@@ -1,5 +1,9 @@
 project('eg-overlay', 'c', version: '0.1.0-pre', default_options: ['c_std=c17'])
 
+version_data = configuration_data()
+version_data.set('version_str', meson.project_version())
+version_data.set('rc_version_num', '0,1,0,0')
+
 cc = meson.get_compiler('c')
 fs = import('fs')
 

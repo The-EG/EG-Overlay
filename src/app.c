@@ -5,6 +5,9 @@
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <glfw/glfw3native.h>
 
+#include "eg-overlay.h"
+#include "githash.h"
+
 #include "app.h"
 #include "logging/logger.h"
 #include "logging/stderr-sink.h"
@@ -257,7 +260,8 @@ void app_init(HINSTANCE hinst, int argc, char **argv) {
 
     logger_info(log, "====================================================");
     logger_info(log, "EG Overlay startup");
-    logger_info(log, "Version 0.1.0-pre");
+    logger_info(log, "Version " VERSION_STR);
+    logger_info(log, "Git Commit: " GITHASHSTR);
     logger_info(log, "----------------------------------------------------");
 
     app = calloc(1, sizeof(app_t));

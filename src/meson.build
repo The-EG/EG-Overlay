@@ -1,3 +1,7 @@
+configure_file(input: 'eg-overlay.h.in', output: 'eg-overlay.h', configuration: version_data)
+
+githash = vcs_tag(input: 'githash.h.in', output: 'githash.h', fallback: 'unknown')
+
 subdir('logging')
 
 egoverlay_sources = files(
@@ -39,7 +43,7 @@ egoverlay_sources = files(
     'lua-json.c',
 
     '../contrib/glad/src/gl.c',
-    '../contrib/sqlite-amalgamation-3460000/sqlite3.c'
+    '../contrib/sqlite-amalgamation-3460000/sqlite3.c',
 ) + logging_sources
 
 subdir('shaders')
@@ -50,7 +54,7 @@ subdir('lua')
 
 executable(
     'eg-overlay',
-    egoverlay_sources + icon_res + shaders + lua_files,    
+    egoverlay_sources + icon_res + shaders + lua_files + githash,
     dependencies: [glfw_lib, winmm_lib, freetype2_dep, curl_dep, curl_link_libs, libxml2_dep, zlib_dep, lua_dep, jansson_dep],
     link_with: [],
     install: true,

@@ -1,0 +1,3 @@
+#pragma once
+#define GITHASHSTR "@VCS_TAG@"
+

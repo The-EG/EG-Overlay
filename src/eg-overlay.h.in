@@ -1,0 +1,4 @@
+#pragma once
+#define VERSION_STR "@version_str@"
+#define RC_VERSION_NUM @rc_version_num@
+
