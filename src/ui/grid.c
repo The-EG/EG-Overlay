@@ -416,7 +416,8 @@ int ui_grid_lua_rowspacing(lua_State *L) {
         // no row, first arg is spacing
         if (row < 0) return luaL_error(L, "spacing must be 0 or greater.");
 
-        for (int r=0;r<grid->rows;r++) {
+        // set all but the last row
+        for (int r=0;r<grid->rows-1;r++) {
             ui_grid_rowspacing(grid, r, row);
         }
 
@@ -459,7 +460,8 @@ int ui_grid_lua_colspacing(lua_State *L) {
         // no col, first arg is spacing
         if (col < 0) return luaL_error(L, "spacing must be 0 or greater.");
 
-        for (int c=0;c<grid->cols;c++) {
+        // set all but the last column
+        for (int c=0;c<grid->cols-1;c++) {
             ui_grid_colspacing(grid, c, col);
         }
 
