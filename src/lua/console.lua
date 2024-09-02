@@ -159,6 +159,8 @@ console.win:min_size(600, 300)
 console.win:resizable(true)
 console.win:settings(console_settings, "window")
 
+local log = logger.logger:new('console')
+
 local outer_box = ui.box('vertical')
 outer_box:spacing(10)
 outer_box:padding(5,5,2,2)
@@ -225,12 +227,24 @@ local function run_text(text)
         return
     end
 
-    local call_status, call_err = pcall(func)
+    -- The code that the user submits may result in a coroutine being run.
+    -- If that coroutine causes an error it won't be displayed through the log,
+    -- so manually run a coroutine here (becoming a coroutine ourselves) and log
+    -- the error if it occurs.
+    local func_thread = coroutine.create(func)
 
-    if not call_status then
-        console.add_line(call_err, console_settings:get('colors.ERROR'))
-        return
+    while coroutine.status(func_thread)~='dead' do
+        local ok, err = coroutine.resume(func_thread)
+
+        if not ok then
+            coroutine.close(func_thread)
+            -- console.add_line(err, console_settings:get('colors.ERROR'))
+            log:error('Error while running console input: %s', err)
+            return
+        end
+        coroutine.yield()
     end
+    coroutine.close(func_thread)
 end
 
 local function on_entry_keydown(key)
