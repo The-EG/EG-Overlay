@@ -19,6 +19,20 @@
             "internalConsoleOptions": "openOnSessionStart"
         },
         {
+            "name": "EG-Overlay: Debug (no input hooks)",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceRoot}/builddir/src/eg-overlay.exe",
+            "args": ["--no-input-hooks"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/builddir/src/",
+            "environment": [],
+            "envFile": "${workspaceFolder}/${config:mesonbuild.buildFolder}/meson-vscode.env",
+            "console": "internalConsole",
+            "preLaunchTask": "Meson: Build all targets",
+            "internalConsoleOptions": "openOnSessionStart"
+        },
+        {
             "name": "EG-Overlay: Debug (Terminal Window)",
             "type": "cppvsdbg",
             "request": "launch",
