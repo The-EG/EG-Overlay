@@ -30,6 +30,11 @@ uint32_t mumble_link_version();
 size_t mumble_link_name(char *name, size_t max_size);
 size_t mumble_link_identity(char *identity, size_t max_size);
 
+void mumble_link_avatar_position(float *x, float *y, float *z);
+void mumble_link_camera_position(float *x, float *y, float *z);
+void mumble_link_camera_front(float *x, float *y, float *z);
+
+float mumble_link_fov();
 
 size_t mumble_link_character_name(char *name, size_t max_size);
 mumble_link_profession_t mumble_link_character_profression();

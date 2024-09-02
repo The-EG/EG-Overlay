@@ -166,7 +166,7 @@ json_t *parse_identity() {
     json_t *ident_json = json_loads(ident_mb, 0, &error);
 
     if (!ident_json) {
-        logger_error(ml->log, "failed to parse identity json: %s", error.text);
+        //logger_error(ml->log, "failed to parse identity json: %s", error.text);
         return NULL;
     }
 
@@ -205,6 +205,32 @@ mumble_link_profession_t mumble_link_character_profression() {
     }
 
     return json_integer_value(prof_json);
+}
+
+void mumble_link_avatar_position(float *x, float *y, float *z) {
+    *x = ml->gw2_ml->avatar_position.x;
+    *y = ml->gw2_ml->avatar_position.y;
+    *z = ml->gw2_ml->avatar_position.z;
+}
+
+void mumble_link_camera_position(float *x, float *y, float *z) {
+    *x = ml->gw2_ml->camera_position.x;
+    *y = ml->gw2_ml->camera_position.y;
+    *z = ml->gw2_ml->camera_position.z;
+}
+
+void mumble_link_camera_front(float *x, float *y, float *z) {
+    *x = ml->gw2_ml->camera_front.x;
+    *y = ml->gw2_ml->camera_front.y;
+    *z = ml->gw2_ml->camera_front.z;
+}
+
+float mumble_link_fov()  {
+    mumble_link_check_identity_cache();
+    if (ml->identity_cache==NULL || !json_is_object(ml->identity_cache)) return 0.f;
+
+    json_t *fov = json_object_get(ml->identity_cache, "fov");
+    return json_number_value(fov);
 }
 
 void mumble_link_cleanup() {
