@@ -752,6 +752,23 @@ void lua_manager_run_event_queue() {
     }
 }
 
+void lua_manager_run_event(const char *event, json_t *data) {
+    if (no_events) {
+        if (data) json_decref(data);   
+        return;
+    }
+
+    int data_cbi = NULL;
+    if (data) {
+        lua_pushjson(lua->lua, data);
+        data_cbi = luaL_ref(lua->lua, LUA_REGISTRYINDEX);
+    }
+
+    lua_manager_call_event_handlers(event, data_cbi);
+
+    if (data_cbi) luaL_unref(lua->lua, LUA_REGISTRYINDEX, data_cbi);
+}
+
 void lua_manager_queue_event(const char *event, json_t *data) {
     //if (!lua || !lua->lua) return; // lua not yet initialized
     if (no_events) {

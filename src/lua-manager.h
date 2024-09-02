@@ -21,6 +21,7 @@ void lua_manager_run_events();
 void lua_manager_run_event_queue();
 
 void lua_manager_queue_event(const char *event, json_t *data);
+void lua_manager_run_event(const char *event, json_t *data);
 
 typedef int lua_manager_module_opener_fn(lua_State *L);
 
