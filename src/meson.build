@@ -41,6 +41,7 @@ egoverlay_sources = files(
 
     'lua-sqlite.c',
     'lua-json.c',
+    'lua-gl.c',
 
     '../contrib/glad/src/gl.c',
     '../contrib/sqlite-amalgamation-3460000/sqlite3.c',

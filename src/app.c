@@ -34,6 +34,7 @@
 
 #include "lua-sqlite.h"
 #include "lua-json.h"
+#include "lua-gl.h"
 
 #include <time.h>
 #include <stdio.h>
@@ -449,6 +450,8 @@ static DWORD WINAPI app_render_thread(LPVOID lpParam) {
     timeBeginPeriod(tc.wPeriodMin);
 
     mat4f_t proj = {0};
+    mat4f_t sceneproj = {0};
+    mat4f_t sceneview = {0};
 
     // run startup events
     lua_manager_queue_event("startup", NULL);
@@ -464,14 +467,22 @@ static DWORD WINAPI app_render_thread(LPVOID lpParam) {
     
     //char fg_cls[512] = {0};
 
+    vec3f_t avatar = {0,0,0};
+    vec3f_t camera = {0,0,0};
+    vec3f_t camera_front = {0, 0, 0};
+    vec3f_t up = {0.f, 1.f, 0.f};
+
+    float fov = 0.f;
+
+    int logged = 0;
     while (!glfwWindowShouldClose(app->win)) {
-        settings_get_double(app->settings, "overlay.frameTargetTime", &frame_target);
-        frame_begin = glfwGetTime();        
+        settings_get_double(app->settings, "overlay.frameTargetTime", &frame_target);        
+        frame_begin = glfwGetTime();
 
         int width;
         int height;
         app_get_framebuffer_size(&width, &height);
-        mat4f_ortho(&proj, 0.f, (float)width, 0.f, (float)height,-1.f, 1.f);
+        mat4f_ortho(&proj, 0.f, (float)width, 0.f, (float)height,-1.f, 1.f);        
 
         glViewport(0, 0, width, height);
         glScissor(0, 0, width, height);        
@@ -489,6 +500,29 @@ static DWORD WINAPI app_render_thread(LPVOID lpParam) {
         glClearColor(0.0f, 0.0f, 0.0f, 0.f);
         glClearDepth(-1.f); // left-handed
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        fov = mumble_link_fov();
+        if (fov!=0.0) {
+
+            mumble_link_avatar_position(&avatar.x, &avatar.y, &avatar.z);
+            mumble_link_camera_position(&camera.x, &camera.y, &camera.z);
+            mumble_link_camera_front(&camera_front.x, &camera_front.y, &camera_front.z);
+            
+            mat4f_perpsective_lh(&sceneproj, fov, (float)width/(float)height, 1.f, 10000.f);
+
+            avatar.x *= 39.3701f;
+            avatar.y *= 39.3701f;
+            avatar.z *= 39.3701f;
+            camera.x *= 39.3701f;
+            camera.y *= 39.3701f;
+            camera.z *= 39.3701f;
+
+            mat4f_camera_facing(&sceneview, &camera, &camera_front, &up);
+
+            overlay_3d_begin_frame(&sceneview, &sceneproj);
+            lua_manager_run_event("draw-3d", NULL);
+            overlay_3d_end_frame();
+        }
 
         glDisable(GL_DEPTH_TEST);
         ui_draw(&proj);
@@ -559,6 +593,7 @@ int app_run() {
     json_lua_init();
     web_request_init();
     ui_init();
+    overlay_3d_init();
     mumble_link_init();
     lua_sqlite_init();
 
@@ -646,6 +681,7 @@ int app_run() {
     glfwMakeContextCurrent(app->win);
     lua_manager_cleanup();
     mumble_link_cleanup();
+    overlay_3d_cleanup();
     ui_cleanup();
     web_request_cleanup();
     glfwMakeContextCurrent(NULL);

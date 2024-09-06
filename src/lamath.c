@@ -34,6 +34,76 @@ void mat4f_ortho(mat4f_t *m, float left, float right, float top, float bottom, f
     m->i4j4 = 1.f;
 }
 
+void mat4f_frustum(mat4f_t *m, float left, float right, float top, float bottom, float near_, float far_) {
+    m->i1j1 = (2 * near_) / (right - left);
+    m->i2j1 = 0.f;
+    m->i3j1 = (right + left) / (right - left);
+    m->i4j1 = 0.f;
+
+    m->i1j2 = 0.f;
+    m->i2j2 = (2 * near_) / (top - bottom);
+    m->i3j2 = (top + bottom) / (top - bottom);
+    m->i4j2 = 0.f;
+
+    m->i1j3 = 0.f;
+    m->i2j3 = 0.f;
+    m->i3j3 = ((far_ + near_) / (far_ - near_)) * -1;
+    m->i4j3 = ((2 * far_ * near_) / (far_ - near_)) * -1;
+
+    m->i1j4 = 0.f;
+    m->i2j4 = 0.f;
+    m->i3j4 = -1.f;
+    m->i4j4 = 0.f;
+}
+
+void mat4f_perpsective_rh(mat4f_t *m, float fovy, float aspect, float near_, float far_) {
+    float f = 1.f / tanf(fovy/2.f);
+
+    m->i1j1 = f / aspect;
+    m->i2j1 = 0.f;
+    m->i3j1 = 0.f;
+    m->i4j1 = 0.f;
+
+    m->i1j2 = 0.f;
+    m->i2j2 = f;
+    m->i3j2 = 0.f;
+    m->i4j2 = 0.f;
+
+    m->i1j3 = 0.f;
+    m->i2j3 = 0.f;
+    m->i3j3 = (far_ + near_) / (near_ - far_);
+    m->i4j3 = (2 * far_ * near_) / (near_ - far_);
+
+    m->i1j4 = 0.f;
+    m->i2j4 = 0.f;
+    m->i3j4 = -1.f;
+    m->i4j4 = 0.f;
+}
+
+void mat4f_perpsective_lh(mat4f_t *m, float fovy, float aspect, float near_, float far_) {
+    float f = 1.f / tanf(fovy/2.f);
+
+    m->i1j1 = f / aspect;
+    m->i2j1 = 0.f;
+    m->i3j1 = 0.f;
+    m->i4j1 = 0.f;
+
+    m->i1j2 = 0.f;
+    m->i2j2 = f;
+    m->i3j2 = 0.f;
+    m->i4j2 = 0.f;
+
+    m->i1j3 = 0.f;
+    m->i2j3 = 0.f;
+    m->i3j3 = (far_ + near_) / (near_ - far_);
+    m->i4j3 = -(2 * far_ * near_) / (near_ - far_);
+
+    m->i1j4 = 0.f;
+    m->i2j4 = 0.f;
+    m->i3j4 = 1.f;
+    m->i4j4 = 0.f;
+}
+
 void mat4f_identity(mat4f_t *m) {
     m->i1j1 = 1.f; m->i2j1 = 0.f; m->i3j1 = 0.f; m->i4j1 = 0.f;
     m->i1j2 = 0.f; m->i2j2 = 1.f; m->i3j2 = 0.f; m->i4j2 = 0.f;
@@ -89,6 +159,130 @@ mat4f_t *mat4f_from_lua(lua_State *L, int i) {
     mat4f_t *m = *(mat4f_t**)luaL_checkudata(L, i, "LAMathMat4FMetaTable");
 
     return m;
+}
+
+void mat4f_lookat_rh(mat4f_t *m, vec3f_t *camera, vec3f_t *center, vec3f_t *up) {
+    vec3f_t F = {center->x - camera->x, center->y - camera->y, center->z - camera->z};
+    vec3f_t nF = {0};
+
+    vec3f_t nUP = {0};
+
+    vec3f_normalize(&F, &nF);
+    vec3f_normalize(up, &nUP);
+
+    vec3f_t s = {0};
+    vec3f_crossproduct(&nF, &nUP, &s);
+
+    vec3f_t ns = {0};
+    vec3f_normalize(&s, &ns);
+
+    vec3f_t u = {0};
+    vec3f_crossproduct(&ns, &nF, &u);
+
+    // transposed, column major
+    mat4f_t M = {
+        s.x, u.x, -nF.x, 0.f,
+        s.y, u.y, -nF.y, 0.f,
+        s.z, u.z, -nF.z, 0.f,
+        0.f, 0.f, 0.f, 1.f
+    };
+    
+    mat4f_t t = {0};
+    mat4f_translate(&t, -camera->x, -camera->y, -camera->z);
+
+    mat4f_mult_mat4f(&t, &M, m);
+}
+
+void mat4f_lookat_lh(mat4f_t *m, vec3f_t *camera, vec3f_t *center, vec3f_t *up) {
+    vec3f_t F = {camera->x - center->x, camera->y - center->y, camera->z - center->z};
+    vec3f_t nF = {0};
+
+    vec3f_t nUP = {0};
+
+    vec3f_normalize(&F, &nF);
+    vec3f_normalize(up, &nUP);
+
+    vec3f_t s = {0};
+    vec3f_crossproduct(&nF, &nUP, &s);
+
+    vec3f_t ns = {0};
+    vec3f_normalize(&s, &ns);
+
+    vec3f_t u = {0};
+    vec3f_crossproduct(&ns, &nF, &u);
+
+    // transposed, column major
+    mat4f_t M = {
+        s.x, u.x, -nF.x, 0.f,
+        s.y, u.y, -nF.y, 0.f,
+        s.z, u.z, -nF.z, 0.f,
+        0.f, 0.f, 0.f, 1.f
+    };
+    
+    mat4f_t t = {0};
+    mat4f_translate(&t, -camera->x, -camera->y, -camera->z);
+
+    mat4f_mult_mat4f(&t, &M, m);
+}
+
+void mat4f_camera_facing(mat4f_t *m, vec3f_t *camera, vec3f_t *forward, vec3f_t *up) {
+    vec3f_t nUP = {0};
+
+    vec3f_normalize(up, &nUP);
+
+    vec3f_t s = {0};
+    //vec3f_crossproduct(forward, &nUP, &s);
+    vec3f_crossproduct(&nUP, forward, &s);
+
+    vec3f_t ns = {0};
+    vec3f_normalize(&s, &ns);
+
+    vec3f_t u = {0};
+    //vec3f_crossproduct(&ns, forward, &u);
+    vec3f_crossproduct(forward, &ns, &u);
+
+    // transposed, column major
+    mat4f_t M = {
+        s.x, u.x, forward->x, 0.f,
+        s.y, u.y, forward->y, 0.f,
+        s.z, u.z, forward->z, 0.f,
+        0.f, 0.f, 0.f, 1.f
+    };
+    
+    mat4f_t t = {0};
+    mat4f_translate(&t, -camera->x, -camera->y, -camera->z);
+
+    mat4f_mult_mat4f(&t, &M, m);
+}
+
+void mat4f_rotatex(mat4f_t *m, float radians) {
+    mat4f_identity(m);
+    m->i2j2 = cosf(radians);
+    m->i3j2 = -sinf(radians);
+    m->i2j3 = sinf(radians);
+    m->i3j3 = cos(radians);
+}
+
+void mat4f_rotatey(mat4f_t *m, float radians) {
+    mat4f_identity(m);
+    m->i1j1 = cosf(radians);
+    m->i3j1 = sinf(radians);
+    m->i1j3 = -sinf(radians);
+    m->i3j3 = cosf(radians);
+}
+
+void mat4f_rotatez(mat4f_t *m, float radians) {
+    mat4f_identity(m);
+    m->i1j1 = cosf(radians);
+    m->i2j1 = -sinf(radians);
+    m->i1j2 = sinf(radians);
+    m->i2j2 = cosf(radians);
+}
+
+void vec3f_crossproduct(vec3f_t *a, vec3f_t *b, vec3f_t *out) {
+    out->x = a->y * b->z - a->z * b->y;
+    out->y = a->z * b->x - a->x * b->z;
+    out->z = a->x * b->y - a->y * b->x;
 }
 
 void mat2f_rotate(mat2f_t *m, float radians) {
@@ -149,4 +343,11 @@ float angle_of_segment(vec2f_t *p1, vec2f_t *p2) {
     vec2f_translate(p2, &neg_p1, &translated_p2);
 
     return atan2f(translated_p2.y, translated_p2.x);
+}
+
+void vec3f_normalize(vec3f_t *in, vec3f_t *out) {
+    float len = sqrtf((in->x * in->x) + (in->y * in->y) + (in->z * in->z));
+    out->x = in->x / len;
+    out->y = in->y / len;
+    out->z = in->z / len;
 }

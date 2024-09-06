@@ -8,6 +8,9 @@ shader_srcs = [
     'polyline.frag',
     'image.vert',
     'image.frag',
+
+    'sprite-collection.vert',
+    'sprite-collection.frag',
 ]
 
 shaders = []
