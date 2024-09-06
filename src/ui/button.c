@@ -364,7 +364,7 @@ luaL_Reg ui_button_funcs[] = {
 Buttons
 =======
 
-.. lua:currentmodule:: overlay-ui
+.. lua:currentmodule:: eg-overlay-ui
 
 Functions
 ---------

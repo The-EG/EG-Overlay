@@ -98,7 +98,7 @@ void lua_push_ui_separator(lua_State *L, ui_separator_t *sep) {
 Separator Element
 =================
 
-.. lua:currentmodule:: overlay-ui
+.. lua:currentmodule:: eg-overlay-ui
 
 Functions
 ---------

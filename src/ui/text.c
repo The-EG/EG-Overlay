@@ -212,7 +212,7 @@ void lua_push_ui_text(lua_State *L, ui_text_t *text) {
 Text Elements
 =============
 
-.. lua:currentmodule:: overlay-ui
+.. lua:currentmodule:: eg-overlay-ui
 
 Functions
 ---------

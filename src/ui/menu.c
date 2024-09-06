@@ -339,7 +339,7 @@ void ui_menu_hide(ui_menu_t *menu) {
 Menus
 =====
 
-.. lua:currentmodule:: overlay-ui
+.. lua:currentmodule:: eg-overlay-ui
 
 The API used to create and control context/pop-up menus is detailed below.
 

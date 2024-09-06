@@ -420,14 +420,14 @@ static int ui_lua_remove_top_level_element(lua_State *L);
 static int ui_lua_mouse_position(lua_State *L);
 
 /*** RST
-overlay-ui
-==========
+eg-overlay-ui
+=============
 
-.. lua:module:: overlay-ui
+.. lua:module:: eg-overlay-ui
 
 .. code-block:: lua
 
-    local ui = require 'overlay-ui'
+    local ui = require 'eg-overlay-ui'
 
 .. toctree::
     :caption: Top Level Elements

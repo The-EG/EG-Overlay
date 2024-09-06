@@ -360,7 +360,7 @@ void lua_push_ui_textentry(lua_State *L, ui_text_entry_t *entry) {
 Text Entry Elements
 ===================
 
-.. lua:currentmodule:: overlay-ui
+.. lua:currentmodule:: eg-overlay-ui
 
 Functions
 ---------

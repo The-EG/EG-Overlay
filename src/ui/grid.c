@@ -190,7 +190,7 @@ void ui_grid_draw(ui_grid_t *grid, int offset_x, int offset_y, mat4f_t *proj) {
 Grid Layouts
 ============
 
-.. lua:currentmodule:: overlay-ui
+.. lua:currentmodule:: eg-overlay-ui
 
 Functions
 ---------
@@ -249,11 +249,11 @@ int ui_grid_lua_new(lua_State *L) {
     int cols = (int)luaL_checkinteger(L, 2);
 
     if (rows < 1) {
-        return luaL_error(L, "overlay-ui.grid: rows must be 1 or greater.");
+        return luaL_error(L, "eg-overlay-ui.grid: rows must be 1 or greater.");
     }
 
     if (cols < 1) {
-        return luaL_error(L, "overlay-ui.grid: columns must be 1 or greater.");
+        return luaL_error(L, "eg-overlay-ui.grid: columns must be 1 or greater.");
     }
 
     ui_grid_t *grid = ui_grid_new(rows, cols);

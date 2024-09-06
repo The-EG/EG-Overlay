@@ -407,7 +407,7 @@ void lua_push_ui_window(lua_State *L, ui_window_t *window) {
 Windows
 =======
 
-.. lua:currentmodule:: overlay-ui
+.. lua:currentmodule:: eg-overlay-ui
 
 Functions
 ---------

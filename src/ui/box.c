@@ -269,7 +269,7 @@ void lua_push_uibox(ui_box_t *box, lua_State *L) {
 Box Layouts
 ===========
 
-.. lua:currentmodule:: overlay-ui
+.. lua:currentmodule:: eg-overlay-ui
 
 Functions
 ---------

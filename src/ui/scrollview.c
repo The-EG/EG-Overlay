@@ -310,7 +310,7 @@ void lua_push_ui_scrollview(lua_State *L, ui_scroll_view_t *scroll) {
 Scrollview Container
 ====================
 
-.. lua:currentmodule:: overlay-ui
+.. lua:currentmodule:: eg-overlay-ui
 
 Functions
 ---------
