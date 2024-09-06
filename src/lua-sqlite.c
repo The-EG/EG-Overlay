@@ -293,7 +293,7 @@ int db_lua_execute(lua_State *L) {
 */
 
 /*** RST
-    .. lua:method:: bind(key, value)
+    .. lua:method:: bind(key, value[, blob])
 
         Set the statement parameter to the given value.
 
@@ -306,14 +306,19 @@ int db_lua_execute(lua_State *L) {
 
         :param key:
         :param value:
+        :param boolean blob: (Optional) Bind the parameter as a BLOB instead of
+            autodetecting type.
 
         .. versionhistory::
             :0.0.1: Added
+            :0.2.0: Added ``blob`` argument
 */
 int statement_lua_bind(lua_State *L) {
     statement_t *stmt = luaL_checkstatement(L, 1);
 
-    if (lua_gettop(L)!=3) return luaL_error(L, "statement:bind takes 2 arguments, name/index and value.");
+    if (lua_gettop(L)!=4 && lua_gettop(L)!=3) return luaL_error(L, "statement:bind takes 2 or 3 arguments, name/index, value, and (optionally) blob.");
+
+    int blob = lua_toboolean(L, 4);
 
     int c = 0;
     if (lua_type(L, 2)==LUA_TNUMBER) {
@@ -327,22 +332,29 @@ int statement_lua_bind(lua_State *L) {
     }
 
     int r = 0;
-    switch (lua_type(L, 3)) {
-    case LUA_TNIL:
-        r = sqlite3_bind_null(stmt->stmt, c);
-        break;
-    case LUA_TNUMBER:
-        if (lua_isinteger(L, 3)) r = sqlite3_bind_int64(stmt->stmt, c, lua_tointeger(L, 3));
-        else r = sqlite3_bind_double(stmt->stmt, c, lua_tonumber(L, 3));
-        break;
-    case LUA_TBOOLEAN:
-        r = sqlite3_bind_int(stmt->stmt, c, lua_toboolean(L, 3));
-        break;
-    case LUA_TSTRING:
-        r = sqlite3_bind_text(stmt->stmt, c, lua_tostring(L, 3), -1, SQLITE_TRANSIENT);
-        break;
-    default:
-        return luaL_error(L, "Can't bind Lua type %d", lua_type(L,3));
+
+    if (blob) {
+        int len = 0;
+        const char *data = lua_tolstring(L, 3, &len);
+        sqlite3_bind_blob(stmt->stmt, c, data, len, SQLITE_TRANSIENT);
+    } else {
+        switch (lua_type(L, 3)) {
+        case LUA_TNIL:
+            r = sqlite3_bind_null(stmt->stmt, c);
+            break;
+        case LUA_TNUMBER:
+            if (lua_isinteger(L, 3)) r = sqlite3_bind_int64(stmt->stmt, c, lua_tointeger(L, 3));
+            else r = sqlite3_bind_double(stmt->stmt, c, lua_tonumber(L, 3));
+            break;
+        case LUA_TBOOLEAN:
+            r = sqlite3_bind_int(stmt->stmt, c, lua_toboolean(L, 3));
+            break;
+        case LUA_TSTRING:
+            r = sqlite3_bind_text(stmt->stmt, c, lua_tostring(L, 3), -1, SQLITE_TRANSIENT);
+            break;
+        default:
+            return luaL_error(L, "Can't bind Lua type %d", lua_type(L,3));
+        }
     }
 
     if (r!=SQLITE_OK)
