@@ -383,11 +383,12 @@ void app_init(HINSTANCE hinst, int argc, char **argv) {
     //glCullFace(GL_BACK);
 
 
-    // alpha blending, blend rgb as normal, but add alpha values up so that
-    // stacked partially transparent elements eventually become opaque
+    // alpha blending, but we'll do premultiplied RGB in our fragment shaders
     glEnable(GL_BLEND);
-    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE);
-    glBlendEquationSeparate(GL_FUNC_ADD, GL_FUNC_ADD);
+    glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+    // old method, remove later
+    //glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE);
+    //glBlendEquationSeparate(GL_FUNC_ADD, GL_FUNC_ADD);
     
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);

@@ -11,5 +11,5 @@ void main() {
     vec4 t = texture(texSampler, fragTexCoord);
 
     float alpha = t.r * fragColor.a;
-    outColor = vec4(fragColor.rgb, alpha);
+    outColor = vec4(fragColor.rgb * alpha, alpha);
 }
