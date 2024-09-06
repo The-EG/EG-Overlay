@@ -25,13 +25,13 @@ void main() {
         break;
     case 4:
     case 1:
-        gl_Position = proj * vec4(left, bottom, 0.0, 1.0);
-        fragTexCoord = vec2(texLeft, texBottom);
+        gl_Position = proj * vec4(right, top, 0.0, 1.0);
+        fragTexCoord = vec2(texRight, texTop);
         break;
     case 3:
     case 2:
-        gl_Position = proj * vec4(right, top, 0.0, 1.0);
-        fragTexCoord = vec2(texRight, texTop);
+        gl_Position = proj * vec4(left, bottom, 0.0, 1.0);
+        fragTexCoord = vec2(texLeft, texBottom);
         break;
     case 5:
         gl_Position = proj * vec4(right, bottom, 0.0, 1.0);

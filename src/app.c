@@ -379,8 +379,6 @@ void app_init(HINSTANCE hinst, int argc, char **argv) {
     logger_info(app->log, "----------------------------------------------");
 
     glfwSwapInterval(0); // no V-sync
-    //glEnable(GL_CULL_FACE);
-    //glCullFace(GL_BACK);
 
 
     // alpha blending, but we'll do premultiplied RGB in our fragment shaders
@@ -391,7 +389,13 @@ void app_init(HINSTANCE hinst, int argc, char **argv) {
     //glBlendEquationSeparate(GL_FUNC_ADD, GL_FUNC_ADD);
     
     glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LESS);
+
+    // GW2 is a DirectX application, so we'll be using left-handed rendering
+    // instead of right-handed. Switch some defaults around to compensate.
+    glDepthFunc(GL_GEQUAL);
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
+    glFrontFace(GL_CW);
     
     // let the render thread grab the context when it starts up
     glfwMakeContextCurrent(NULL);
@@ -483,6 +487,7 @@ static DWORD WINAPI app_render_thread(LPVOID lpParam) {
         }
 
         glClearColor(0.0f, 0.0f, 0.0f, 0.f);
+        glClearDepth(-1.f); // left-handed
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         glDisable(GL_DEPTH_TEST);
