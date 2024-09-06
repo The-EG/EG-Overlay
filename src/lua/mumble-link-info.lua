@@ -72,7 +72,7 @@ local avatar_pos, avatar_posx, avatar_posy, avatar_posz = position_info("Avatar 
 local avatar_front, avatar_frontx, avatar_fronty, avatar_frontz = position_info("Avatar Front", box)
 
 local cam_pos, cam_posx, cam_posy, cam_posz = position_info("Camera Position", box)
---local cam_top, cam_topx, cam_topy, cam_topz = position_info("Camera Top", box)
+-- local cam_top, cam_topx, cam_topy, cam_topz = position_info("Camera Top", box)
 local cam_front, cam_frontx, cam_fronty, cam_frontz = position_info("Camera Front", box)
 
 box:pack_end(ui_state);
@@ -91,9 +91,9 @@ local function update()
     --local camtop = mumble_link.camera_top
     local camfront = mumble_link.camera_front
 
-    avatar_posx:update_text(string.format('  X % 4.4f', apos.x))
-    avatar_posy:update_text(string.format('  Y % 4.4f', apos.y))
-    avatar_posz:update_text(string.format('  Z % 4.4f', apos.z))
+    avatar_posx:update_text(string.format('  X % 4.4f', apos.x * 39.3701))
+    avatar_posy:update_text(string.format('  Y % 4.4f', apos.y * 39.3701))
+    avatar_posz:update_text(string.format('  Z % 4.4f', apos.z * 39.3701))
 
     -- avatar_topx:update_text(string.format(' X % 4.4f', atop.x))
     -- avatar_topy:update_text(string.format(' Y % 4.4f', atop.y))
@@ -103,9 +103,9 @@ local function update()
     avatar_fronty:update_text(string.format(' Y % 4.4f', afront.y))
     avatar_frontz:update_text(string.format(' Z % 4.4f', afront.z))
 
-    cam_posx:update_text(string.format('  X % 4.4f', campos.x))
-    cam_posy:update_text(string.format('  Y % 4.4f', campos.y))
-    cam_posz:update_text(string.format('  Z % 4.4f', campos.z))
+    cam_posx:update_text(string.format('  X % 4.4f', campos.x * 39.3701))
+    cam_posy:update_text(string.format('  Y % 4.4f', campos.y * 39.3701))
+    cam_posz:update_text(string.format('  Z % 4.4f', campos.z * 39.3701))
 
     -- cam_topx:update_text(string.format('  X % 4.4f', camtop.x))
     -- cam_topy:update_text(string.format('  Y % 4.4f', camtop.y))
