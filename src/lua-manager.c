@@ -754,7 +754,6 @@ void lua_manager_run_event_queue() {
 
 void lua_manager_run_event(const char *event, json_t *data) {
     if (no_events) {
-        if (data) json_decref(data);   
         return;
     }
 
@@ -769,10 +768,8 @@ void lua_manager_run_event(const char *event, json_t *data) {
     if (data_cbi) luaL_unref(lua->lua, LUA_REGISTRYINDEX, data_cbi);
 }
 
-void lua_manager_queue_event(const char *event, json_t *data) {
-    //if (!lua || !lua->lua) return; // lua not yet initialized
+void lua_manager_queue_event(const char *event, json_t *data) { 
     if (no_events) {
-        if (data) json_decref(data);   
         return;
     }
 
