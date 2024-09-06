@@ -4,5 +4,6 @@ logging_sources = files(
     'sink.c',
     'stderr-sink.c',
     'event-sink.c',
-    'file-sink.c'
+    'file-sink.c',
+    'dbg-sink.c',
 )

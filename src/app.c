@@ -10,9 +10,9 @@
 
 #include "app.h"
 #include "logging/logger.h"
-#include "logging/stderr-sink.h"
 #include "logging/file-sink.h"
 #include "logging/event-sink.h"
+#include "logging/dbg-sink.h"
 #include <stdlib.h>
 
 #include "ui/ui.h"
@@ -252,8 +252,8 @@ void app_init(HINSTANCE hinst, int argc, char **argv) {
     logger_add_sink(log, lua_sink);
 
     if (IsDebuggerPresent()) {
-        log_sink_t *stderr_sink = log_stderr_sink_new();
-        logger_add_sink(log, stderr_sink);
+        log_sink_t *dbg_sink = log_dbg_sink_new();
+        logger_add_sink(log, dbg_sink);
     }
 
     logger_set_default(log);
