@@ -165,7 +165,7 @@ local outer_box = ui.box('vertical')
 outer_box:spacing(10)
 outer_box:padding(5,5,2,2)
 
-local message_scroll = ui.scroll_view()
+local message_scroll = ui.scrollview()
 message_scroll:scroll_amount(40)
 
 local message_box = ui.box('vertical')

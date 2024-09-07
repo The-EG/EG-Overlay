@@ -275,7 +275,7 @@ int ui_scroll_view_lua_scroll_amount(lua_State *L);
 
 void ui_scroll_view_register_lua_funcs(lua_State *L) {
     lua_pushcfunction(L, &ui_scroll_view_lua_new);
-    lua_setfield(L, -2, "scroll_view");
+    lua_setfield(L, -2, "scrollview");
 }
 
 luaL_Reg scroll_view_funcs[] = {
