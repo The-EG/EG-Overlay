@@ -63,7 +63,9 @@ void ui_scroll_view_free(ui_scroll_view_t *scroll) {
 }
 
 void ui_scroll_view_set_child(ui_scroll_view_t *scroll, ui_element_t *child) {
+    if (scroll->child) ui_element_unref(scroll->child);
     scroll->child = child;
+    ui_element_ref(child);
 }
 
 void ui_scroll_view_draw(ui_scroll_view_t *scroll, int offset_x, int offset_y, mat4f_t *proj) {
