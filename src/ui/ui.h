@@ -95,6 +95,10 @@ struct ui_element_t {
     int max_width;
     int max_height;
 
+    ui_color_t bg_color;
+    ui_color_t fg_color;
+    ui_color_t border_color;
+
     uint8_t ref_count;
 };
 

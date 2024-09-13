@@ -177,7 +177,7 @@ void ui_window_draw(ui_window_t *win, int offset_x, int offset_y, mat4f_t *proj)
 
     int old_scissor[4];
     push_scissor(coffx, coffy, win->child_width, win->child_height, old_scissor);
-    if (win->child && win->child->draw) win->child->draw(win->child, coffx, coffy, proj);
+    if (win->child) ui_element_draw(win->child, coffx, coffy, proj);
     pop_scissor(old_scissor);
 }
 

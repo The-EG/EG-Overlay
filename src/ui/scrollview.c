@@ -98,7 +98,7 @@ void ui_scroll_view_draw(ui_scroll_view_t *scroll, int offset_x, int offset_y, m
             int cx = sx - scroll->disp_x;
             int cy = sy - scroll->disp_y;
 
-            if (scroll->child->draw) scroll->child->draw(scroll->child, cx, cy, proj);
+            ui_element_draw(scroll->child, cx, cy, proj);
 
             if (scroll->show_vertical_bar) {
                 ui_color_t border_color = 0;

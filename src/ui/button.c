@@ -163,7 +163,8 @@ void ui_button_draw(ui_button_t *button, int offset_x, int offset_y, mat4f_t *pr
 
     if (button->draw_state && button->state) ui_rect_draw(offset_x + button->element.x + button->border_width, offset_y + button->element.y + button->border_width, button->element.width - (button->border_width * 2), button->element.height - (button->border_width * 2), button->state_color, proj);
 
-    if (button->child && button->child->draw) button->child->draw(button->child, offset_x + button->element.x + button->border_width, offset_y + button->element.y + button->border_width, proj);
+    if (button->child) ui_element_draw(button->child, offset_x + button->element.x + button->border_width, offset_y + button->element.y + button->border_width, proj);
+    //if (button->child && button->child->draw) button->child->draw(button->child, offset_x + button->element.x + button->border_width, offset_y + button->element.y + button->border_width, proj);
 
     ui_add_input_element(offset_x, offset_y, button->element.x, button->element.y, button->element.width, button->element.height, (ui_element_t*)button);
 }

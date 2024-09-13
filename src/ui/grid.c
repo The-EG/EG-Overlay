@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <lauxlib.h>
+#include "rect.h"
 #include "grid.h"
 #include "ui.h"
 
@@ -143,6 +144,17 @@ int ui_grid_get_preferred_size(ui_grid_t *grid, int *width, int *height) {
     return 1;
 }
 
+
+int ui_grid_colwidth(ui_grid_t *grid, int col) {
+    if (col < 0 || col >= grid->cols) return -1;
+    return grid->colwidths[col];
+}
+
+int ui_row_rowheight(ui_grid_t *grid, int row) {
+    if (row < 0 || row >= grid->rows) return -1;
+    return grid->rowheights[row];
+}
+
 void ui_grid_draw(ui_grid_t *grid, int offset_x, int offset_y, mat4f_t *proj) {
     int cx = offset_x + grid->element.x;
     int cy = offset_y + grid->element.y;
@@ -204,6 +216,7 @@ int ui_grid_lua_del(lua_State *L);
 int ui_grid_lua_attach(lua_State *L);
 int ui_grid_lua_rowspacing(lua_State *L);
 int ui_grid_lua_colspacing(lua_State *L);
+int ui_grid_lua_background(lua_State *L);
 
 void ui_grid_lua_register_ui_funcs(lua_State *L) {
     lua_pushcfunction(L, &ui_grid_lua_new);
@@ -215,6 +228,7 @@ luaL_Reg ui_grid_lua_funcs[] = {
     "attach"    , &ui_grid_lua_attach,
     "rowspacing", &ui_grid_lua_rowspacing,
     "colspacing", &ui_grid_lua_colspacing,
+    "background", &ui_grid_lua_background,
     NULL        ,  NULL
 };
 
@@ -479,4 +493,29 @@ int ui_grid_lua_colspacing(lua_State *L) {
     ui_grid_colspacing(grid, col, spacing);
 
     return 0;
+}
+
+/*** RST
+    .. lua:method:: background([color])
+
+        Set or retrieve background color. If a background color with an alpha
+        value of 0 is specified, no background is drawn.
+
+        :param integer color: A color, see :ref:`colors`.
+        :rtype: integer
+
+        .. versionhistory::
+            :0.1.0: Added
+*/
+int ui_grid_lua_background(lua_State *L) {
+    ui_grid_t *grid = lua_checkuigrid(L, 1);
+
+    if (lua_gettop(L)==2) {
+        grid->element.bg_color = (ui_color_t)luaL_checkinteger(L, 2);
+
+        return 0;
+    }
+
+    lua_pushinteger(L, grid->element.bg_color);
+    return 1;
 }

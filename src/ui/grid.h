@@ -9,4 +9,7 @@ void ui_grid_attach(ui_grid_t *grid, void *uielement, int row, int col, int rows
 void ui_grid_rowspacing(ui_grid_t *grid, int row, int spacing);
 void ui_grid_colspacing(ui_grid_t *grid, int col, int spacing);
 
+int ui_grid_colwidth(ui_grid_t *grid, int col);
+int ui_row_rowheight(ui_grid_t *grid, int row);
+
 void ui_grid_lua_register_ui_funcs(lua_State *L);

@@ -132,6 +132,24 @@ void ui_cleanup() {
 
 void ui_element_draw(void *element, int offset_x, int offset_y, mat4f_t *proj) {
     ui_element_t *e = (ui_element_t*)element;
+
+    if (UI_COLOR_A_INT(e->bg_color)>0) {
+        int bgx = offset_x + e->x;
+        int bgy = offset_y + e->y;
+        ui_rect_draw(bgx, bgy, e->width, e->height, e->bg_color, proj);
+    }
+
+    if (UI_COLOR_A_INT(e->border_color)>0) {
+        // left
+        ui_rect_draw(offset_x + e->x, offset_y + e->y, 1, e->height, e->border_color, proj);
+        // top
+        ui_rect_draw(offset_x + e->x + 1, offset_y + e->y, e->width - 2, 1, e->border_color, proj);
+        // right
+        ui_rect_draw(offset_x + e->x + e->width - 1, offset_y + e->y, 1, e->height, e->border_color, proj);
+        // bottom
+        ui_rect_draw(offset_x + e->x + 1, offset_y + e->y + e->height - 1, e->width - 2, 1, e->border_color, proj);
+    }
+
     if (!e->draw) return;
 
     e->draw(element, offset_x, offset_y, proj);
