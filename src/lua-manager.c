@@ -1037,7 +1037,7 @@ static int overlay_exit(lua_State *L) {
     :rtype: table
 
     .. versionhistory::
-        :0.2.0: Added
+        :0.1.0: Added
 */
 int overlay_findfiles(lua_State *L) {
     const char *path = luaL_checkstring(L, 1);

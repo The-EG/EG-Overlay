@@ -23,7 +23,7 @@ Attributes
     A :lua:class:`sqlite` database housing all imported marker packs.
 
     .. versionhistory::
-        :0.2.0: Added
+        :0.1.0: Added
 ]]--
 data.db = sqlite.open(overlay.data_folder('markers') .. 'markers.db')
 data.db:execute('PRAGMA foreign_keys = ON')
@@ -51,7 +51,7 @@ Functions
     :rtype: md_markerpack
 
     .. versionhistory::
-        :0.2.0: Added
+        :0.1.0: Added
 ]]--
 function data.markerpack(path, packtype)
     return markerpack:new(path, packtype)
@@ -70,7 +70,7 @@ end
     :rtype: md_category
 
     .. versionhistory::
-        :0.2.0: Added
+        :0.1.0: Added
 ]]--
 function data.category(typeid, active)
     return category:new(typeid, active)
@@ -87,7 +87,7 @@ end
     :rtype: md_datafile
 
     .. versionhistory::
-        :0.2.0: Added
+        :0.1.0: Added
 ]]--
 function data.datafile(path, filedata)
     return datafile:new(path, filedata)
@@ -148,7 +148,7 @@ end
             id. If ``type`` is not included an error will occur.
 
         .. versionhistory::
-            :0.2.0: Added
+            :0.1.0: Added
 ]]--
 function markerpack:addpoi(props)
     if not props['type'] then
@@ -191,7 +191,7 @@ end
             id. If ``type`` is not included an error will occur.
 
         .. versionhistory::
-            :0.2.0: Added
+            :0.1.0: Added
 ]]--
 function markerpack:addtrail(props, coords)
     if not props['type'] then
@@ -242,7 +242,7 @@ end
             This will also delete all associated POIs and Trails.
 
         .. versionhistory::
-            :0.2.0: Added
+            :0.1.0: Added
 ]]--
 function markerpack:delete()
     local s = data.db:prepare('DELETE FROM markerpack WHERE id = ?')
@@ -300,7 +300,7 @@ end
         :rtype: any
 
         .. versionhistory::
-            :0.2.0: Added
+            :0.1.0: Added
 ]]--
 function category:prop(name, value)
     if value==nil then
@@ -329,7 +329,7 @@ end
         :rtype: boolean
 
         .. versionhistory::
-            :0.2.0: Added
+            :0.1.0: Added
 ]]--
 function category:active(value)
     if value==nil then
@@ -391,7 +391,7 @@ end
         :rtype: string
 
         .. versionhistory::
-            :0.2.0: Added
+            :0.1.0: Added
 ]]--
 function datafile:data()
     local s = data.db:prepare("SELECT data FROM data_file WHERE path = ?")
@@ -428,7 +428,7 @@ Database Tables
     =========== ======= ========================================================
 
     .. versionhistory::
-        :0.2.0: Added
+        :0.1.0: Added
 ]]--
 local markerpack_create_sql = [[
 CREATE TABLE IF NOT EXISTS markerpack (
@@ -454,7 +454,7 @@ CREATE TABLE IF NOT EXISTS markerpack (
     ====== ==== ===========================================================================================
 
     .. versionhistory::
-        :0.2.0: Added
+        :0.1.0: Added
 ]]--
 local category_create_sql = [[
 CREATE TABLE IF NOT EXISTS category (
@@ -485,7 +485,7 @@ CREATE TABLE IF NOT EXISTS category (
     ======== ======= =========================
 
     .. versionhistory::
-        :0.2.0: Added
+        :0.1.0: Added
 ]]--
 local category_props_create_sql = [[
 CREATE TABLE IF NOT EXISTS category_props (
@@ -517,7 +517,7 @@ CREATE TABLE IF NOT EXISTS category_props (
     ========== ======= ========================
 
     .. versionhistory::
-        :0.2.0: Added
+        :0.1.0: Added
 ]]--
 local poi_create_sql = [[
 CREATE TABLE IF NOT EXISTS poi (
@@ -546,7 +546,7 @@ CREATE TABLE IF NOT EXISTS poi (
     ======== ======= ==================
 
     .. versionhistory::
-        :0.2.0: Added
+        :0.1.0: Added
 ]]--
 local poi_props_create_sql = [[
 CREATE TABLE IF NOT EXISTS poi_props (
@@ -575,7 +575,7 @@ CREATE TABLE IF NOT EXISTS poi_props (
     ========== ======= ====================
 
     .. versionhistory::
-        :0.2.0: Added
+        :0.1.0: Added
 ]]--
 local trail_create_sql = [[
 CREATE TABLE IF NOT EXISTS trail
@@ -603,7 +603,7 @@ CREATE TABLE IF NOT EXISTS trail
     ======== ======= ==================
 
     .. versionhistory::
-        :0.2.0: Added
+        :0.1.0: Added
 ]]--
 local trail_props_create_sql = [[
 CREATE TABLE IF NOT EXISTS trail_props (
@@ -634,7 +634,7 @@ CREATE TABLE IF NOT EXISTS trail_props (
     ===== ======= ==================
 
     .. versionhistory::
-        :0.2.0: Added
+        :0.1.0: Added
 ]]--
 local trail_coords_create_sql = [[
 CREATE TABLE IF NOT EXISTS trail_coord (
@@ -666,7 +666,7 @@ CREATE TABLE IF NOT EXISTS trail_coord (
     ==== ==== ==========================================================================================
 
     .. versionhistory::
-        :0.2.0: Added
+        :0.1.0: Added
 ]]--
 local data_file_create_sql = [[
 CREATE TABLE IF NOT EXISTS data_file (

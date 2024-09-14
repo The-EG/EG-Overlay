@@ -311,7 +311,7 @@ int db_lua_execute(lua_State *L) {
 
         .. versionhistory::
             :0.0.1: Added
-            :0.2.0: Added ``blob`` argument
+            :0.1.0: Added ``blob`` argument
 */
 int statement_lua_bind(lua_State *L) {
     statement_t *stmt = luaL_checkstatement(L, 1);

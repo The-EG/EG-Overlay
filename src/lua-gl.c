@@ -168,7 +168,7 @@ luaL_Reg texture_funcs[] = {
         load the texture data, so any format supported by it can be used.
 
     .. versionhistory::
-        :0.2.0: Added
+        :0.1.0: Added
 */
 int sprite_collection_lua_new(lua_State *L) {
     sprite_collection_t *sprite = lua_newuserdata(L, sizeof(sprite_collection_t));
@@ -388,7 +388,7 @@ Classes
             :lua:class:`o3dspritecollection` are cleared.
 
         .. versionhistory::
-            :0.2.0: Added
+            :0.1.0: Added
 */
 int sprite_collection_lua_updatelocations(lua_State *L) {
     sprite_collection_t *sprite = lua_checkspritecollection(L, 1);
@@ -516,7 +516,7 @@ int sprite_collection_lua_updatelocations(lua_State *L) {
             to call it at any other time will result in an error.
 
         .. versionhistory::
-            :0.2.0: Added
+            :0.1.0: Added
 */
 int sprite_collection_lua_draw(lua_State *L) {
     sprite_collection_t *sprite = lua_checkspritecollection(L, 1);
