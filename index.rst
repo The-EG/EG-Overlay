@@ -1,7 +1,10 @@
 EG-Overlay
 ==========
 
-EG-Overlay is yet another overlay for GuildWars 2. It is designed to be light weight and 'out of the way' as possible from both a resources and module author point of view. The core is written in C and everything else is Lua. Modules can be written purely in Lua, or Lua C modules can also be used.
+EG-Overlay is yet another overlay for GuildWars 2. It is designed to be light
+weight and 'out of the way' as possible from both a resources and module author
+point of view. The core is written in C and everything else is Lua. Modules can
+be written purely in Lua, or Lua C modules can also be used.
 
 User Guide
 ----------
@@ -32,7 +35,9 @@ User Guide
 Development
 -----------
 
-EG-Overlay provides a Lua environment for customization and extension. Modules are Lua modules/packages that are loaded into this environment and use the API detailed below.
+EG-Overlay provides a Lua environment for customization and extension. Modules
+are Lua modules/packages that are loaded into this environment and use the API
+detailed below.
 
 .. toctree::
     :maxdepth: 3
