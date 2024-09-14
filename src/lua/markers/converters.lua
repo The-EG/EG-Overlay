@@ -204,6 +204,7 @@ converters.fromxml = {
     ['resetguid'         ] = unchanged,
     ['resetlength'       ] = strtofloat,
     ['resetoffset'       ] = strtoint,
+    ['rotate'            ] = unchanged,
     ['rotate-x'          ] = strtofloat,
     ['rotate-y'          ] = strtofloat,
     ['rotate-z'          ] = strtofloat,

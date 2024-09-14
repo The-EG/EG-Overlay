@@ -2,7 +2,8 @@ pathing_lua_srcs = [
     'init.lua',
     'converters.lua',
     'loaders.lua',
-    'data.lua'
+    'data.lua',
+    'manager.lua',
 ]
 
 foreach lua : pathing_lua_srcs

@@ -1,3 +1,20 @@
+--[[ RST
+Markers
+=======
+
+.. overlay:module:: markers
+
+The Markers module manages and displays in game markers that are displayed in
+the 3D scene and can be used to help guide the player. The module can read
+marker data and packs in XML format originally specified in the TACO overlay.
+
+.. toctree::
+    :caption: Submodules
+    :maxdepth: 1
+
+    data
+
+]]--
 require 'mumble-link-events'
 
 local overlay = require 'eg-overlay'
@@ -5,9 +22,10 @@ local loaders = require 'markers.loaders'
 local logger = require 'logger'
 local ml = require 'mumble-link'
 local settings = require 'settings'
-
 local ui = require 'eg-overlay-ui'
 local uih = require 'ui-helpers'
+
+local mdata = require 'markers.data'
 
 local markers = {}
 
@@ -53,7 +71,7 @@ markers.main_menu = {
     show_markers = checkbox_menu_item("Show Markers"),
     manage_markers = menu_item("Manage Markers"),
     sep1 = sep_menu_item(),
-    reload_categories = menu_item("Reload Categories"),
+    --reload_categories = menu_item("Reload Categories"),
     settings = menu_item("Settings")
 }
 
@@ -62,7 +80,7 @@ markers.main_menu.sep1.menuitem:enabled(false)
 markers.main_menu.menu:add_item(markers.main_menu.show_markers.menuitem)
 markers.main_menu.menu:add_item(markers.main_menu.manage_markers.menuitem)
 markers.main_menu.menu:add_item(markers.main_menu.sep1.menuitem)
-markers.main_menu.menu:add_item(markers.main_menu.reload_categories.menuitem)
+--markers.main_menu.menu:add_item(markers.main_menu.reload_categories.menuitem)
 markers.main_menu.menu:add_item(markers.main_menu.settings.menuitem)
 
 function markers.on_map_change()
@@ -72,21 +90,54 @@ function markers.on_map_change()
 
     local start_time = overlay.time()
 
-    local ids_in_map = {}
-    for i, p in ipairs(markers.pois) do
-        if tonumber(p.MapID)==ml.map_id then
-            if p.type then ids_in_map[p.type] = true end
-            table.insert(markers.pois_in_map, p)
-        end
+    local poi_select = [[
+    SELECT
+        poi.id,
+        poi.type,
+        px.value as xpos,
+        py.value as ypos,
+        pz.value as zpos,
+        CASE WHEN piconfile.value IS NULL THEN caticon.value ELSE piconfile.value END as iconfile
+    FROM poi
+    INNER JOIN poi_props pmap ON pmap.poi = poi.id AND pmap.property = 'mapid'
+    INNER JOIN category ON category.typeid = poi.type
+    LEFT JOIN category_props caticon ON caticon.category = category.typeid AND caticon.property = 'iconfile'
+    LEFT JOIN poi_props px ON px.poi = poi.id AND px.property = 'xpos'
+    LEFT JOIN poi_props py ON py.poi = poi.id AND py.property = 'ypos'
+    LEFT JOIN poi_props pz ON pz.poi = poi.id AND pz.property = 'zpos'
+    LEFT JOIN poi_props piconfile ON piconfile.poi = poi.id AND piconfile.property = 'iconfile'
+    WHERE pmap.value = ?
+    ]]
+
+    local poistmt = mdata.db:prepare(poi_select)
+    poistmt:bind(1, ml.map_id)
+
+    local function poi_rows()
+        return poistmt:step()
+    end
+
+    local pois = {}
+    local categories = {}
+    local icons = {}
+
+    for row in poi_rows do
+        table.insert(pois, row)
+        categories[row.type] = true
+        if row.iconfile then icons[row.iconfile] = true end
+        coroutine.yield()
     end
 
     local end_time = overlay.time()
 
-    markers.log:info("%d pois, took %.2f seconds", #markers.pois_in_map, (end_time - start_time))
-    markers.log:info("  categories in map:")
-    for k,v in pairs(ids_in_map) do
-        markers.log:info("    %s", k)
-    end
+    local catcount = 0
+    local iconcount = 0
+
+    for k,v in pairs(categories) do catcount = catcount + 1 end
+    for k,v in pairs(icons) do iconcount = iconcount + 1 end
+
+    markers.log:info("%d pois, took %.2f seconds", #pois, (end_time - start_time))
+    markers.log:info("%d categories in map", catcount)
+    markers.log:info("%d icons", iconcount)
 end
 
 function markers.on_main_menu_event(event)
@@ -202,5 +253,6 @@ function markers.on_startup()
 end
 
 overlay.add_event_handler('startup', markers.on_startup)
+overlay.add_event_handler('mumble-link-map-changed', markers.on_map_change)
 
 return markers
