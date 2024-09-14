@@ -81,6 +81,8 @@ static int overlay_data_folder(lua_State *L);
 static int overlay_clipboard_text(lua_State *L);
 static int overlay_exit(lua_State *L);
 
+int overlay_findfiles(lua_State *L);
+
 static luaL_Reg overlay_funcs[] = {
     "add_event_handler"   , &overlay_add_event_handler,
     "remove_event_handler", &overlay_remove_event_handler,
@@ -93,6 +95,7 @@ static luaL_Reg overlay_funcs[] = {
     "data_folder"         , &overlay_data_folder,
     "clipboard_text"      , &overlay_clipboard_text,
     "exit"                , &overlay_exit,
+    "findfiles"           , &overlay_findfiles,
     NULL                  ,  NULL
 };
 
@@ -1026,6 +1029,75 @@ static int overlay_exit(lua_State *L) {
 }
 
 /*** RST
+.. lua:function:: findfiles(path)
+
+    Return a table containing the files and directories in path.
+
+    :param string path:
+    :rtype: table
+
+    .. versionhistory::
+        :0.2.0: Added
+*/
+int overlay_findfiles(lua_State *L) {
+    const char *path = luaL_checkstring(L, 1);
+
+    
+    HANDLE h = NULL;
+    WIN32_FIND_DATA fd = {0};
+
+    h = FindFirstFile(path, &fd);
+
+    if (h==INVALID_HANDLE_VALUE) {
+        // on the stack so we don't leak it with luaL_error
+        char *msgbuf[512] = {0};
+        DWORD err = GetLastError();
+        FormatMessage(
+            FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+            NULL,
+            err,
+            MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+            (LPTSTR) msgbuf,
+            511,
+            NULL
+        );
+
+        return luaL_error(L, "findfiles failed for %s: %s", path, msgbuf);
+    }
+
+    lua_newtable(L); // the result table
+    int table_ind = 1;
+    do {
+        lua_newtable(L);
+
+        if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+            lua_pushliteral(L, "directory");
+        } else {
+            lua_pushliteral(L, "file");
+        }
+        lua_setfield(L, -2, "type");
+
+        lua_pushboolean(L, fd.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN);
+        lua_setfield(L, -2, "hidden");
+
+        lua_pushboolean(L, fd.dwFileAttributes & FILE_ATTRIBUTE_SYSTEM);
+        lua_setfield(L, -2, "system");
+
+        lua_pushboolean(L, fd.dwFileAttributes & FILE_ATTRIBUTE_READONLY);
+        lua_setfield(L, -2, "readonly");
+
+        lua_pushstring(L, fd.cFileName);
+        lua_setfield(L, -2, "name");
+
+        lua_seti(L, -2, table_ind++);
+    } while (FindNextFile(h, &fd));
+
+    FindClose(h);
+ 
+    return 1;
+}
+
+/*** RST
 Events
 ------
 
@@ -1050,3 +1122,4 @@ Events
     .. versionhistory::
         :0.0.1: Added
 */
+
