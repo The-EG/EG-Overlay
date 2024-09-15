@@ -355,27 +355,6 @@ int ui_process_mouse_event(ui_mouse_event_t *event) {
         if (ui->mouse_capture_element->process_mouse_event(ui->mouse_capture_element, event, ui->capture_offset_x, ui->capture_offset_y)) return 1;
     }
 
-    /*
-
-    if (ui->mouse_over_element) {
-        int cx = 0;
-        int cy = 0;
-        if (!ui_element_get_child_offsets(ui->elements, ui->mouse_over_element, &cx, &cy)) {
-            // the element was removed while the mouse was over it?
-            ui->mouse_over_element = NULL;
-        } else {
-            int ex = event->x - cx;
-            int ey = event->y - cy;
-            // if we are no longer over the element send it a leave
-            if (!MOUSE_POINT_OVER_ELEMENT_P(ex, ey, ui->mouse_over_element)) {
-                ui_send_leave_event(ui->mouse_over_element);
-                ui->mouse_over_element = NULL;
-            }
-        }
-    }
-
-    */
-
     WaitForSingleObject(ui->input_mutex, INFINITE);
     ui_input_element_t *e = ui->input_elements;
 
@@ -715,5 +694,33 @@ int ui_lua_check_align(lua_State *L, int ind) {
     else if (strcmp(align_str, "end"   )==0) return    1;
     else if (strcmp(align_str, "fill"  )==0) return -999;
     
-    return luaL_error(L, "align argument must be one of: 'start', 'middle', 'end', or 'fill'.");
+    return luaL_error(L, "align argument must be one of: "
+                         "'start', 'middle', 'end', or 'fill'.");
+}
+
+ui_element_t *lua_checkuielement(lua_State *L, int ind) {
+    ui_element_t *e = *(ui_element_t**)lua_touserdata(L, ind);
+
+    if (e==NULL) return luaL_error(L, "Argument #%d is not a UI element.", ind);
+
+    if (lua_getmetatable(L, ind)==0) {
+        return luaL_error(L, "Argument #%d is not a UI element.", ind);
+    }
+
+    if (lua_getfield(L, ind, "__is_uielement")!=LUA_TBOOLEAN) {
+        return luaL_error(L, "Argument #%d is not a UI element.", ind);
+    }
+
+    if (!lua_isboolean(L, -1)) {
+        return luaL_error(L, "Argument #%d is not a UI element.", ind);
+    }
+
+    int is_uielement = lua_toboolean(L, -1);
+    lua_pop(L, 2); // __is_uielement and the metatable
+
+    if (!is_uielement) {
+        return luaL_error(L, "Argument #%d is not a UI element.", ind);
+    }
+
+    return e;
 }

@@ -241,6 +241,9 @@ void lua_pushuigrid(lua_State *L, ui_grid_t *grid) {
         lua_pushvalue(L, -1);
         lua_setfield(L, -2, "__index");
 
+        lua_pushboolean(L, 1);
+        lua_setfield(L, -2, "__is_uielement");
+
         luaL_setfuncs(L, ui_grid_lua_funcs, 0);
     }
     lua_setmetatable(L, -2);
@@ -373,9 +376,7 @@ int ui_grid_lua_attach(lua_State *L) {
 
     ui_grid_t *grid = lua_checkuigrid(L, 1);
 
-    if (!lua_type(L, 2)==LUA_TUSERDATA) return luaL_error(L, "first argument must be a UI element.");
-
-    ui_element_t *element = *(ui_element_t**)lua_touserdata(L, 2);
+    ui_element_t *element = lua_checkuielement(L, 2);
 
     int row = (int)luaL_checkinteger(L, 3);
     int col = (int)luaL_checkinteger(L, 4);

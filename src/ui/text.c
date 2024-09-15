@@ -194,6 +194,9 @@ static void ui_text_lua_register_metatable(lua_State *L) {
         lua_pushvalue(L, -1);
         lua_setfield(L, -2, "__index");
 
+        lua_pushboolean(L, 1);
+        lua_setfield(L, -2, "__is_uielement");
+
         luaL_setfuncs(L, ui_text_funcs, 0);
     }
 }

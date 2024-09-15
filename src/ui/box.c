@@ -251,6 +251,10 @@ static void ui_box_lua_register_metatable(lua_State *L) {
     if (luaL_newmetatable(L, "UIBoxMetaTable")) {
         lua_pushvalue(L, -1);
         lua_setfield(L, -2, "__index");
+
+        lua_pushboolean(L, 1);
+        lua_setfield(L, -2, "__is_uielement");
+
         luaL_setfuncs(L, ui_box_funcs, 0);
     }
 }
@@ -376,13 +380,12 @@ static int ui_box_lua_pack_end(lua_State *L) {
     int args = lua_gettop(L);
 
     if (args <2 || args >4) 
-    return luaL_error(L, "Invalid number of arguments to box:pack_end. box:pack_end(ui_element [, expand [, align]])");
+    return luaL_error(L, "Invalid number of arguments to box:pack_end. "
+                         "box:pack_end(ui_element [, expand [, align]])");
 
     ui_box_t *box = CHECK_UI_BOX(L, 1);
 
-    if (!lua_isuserdata(L, 2)) return luaL_error(L, "box:pack_end argument #1 must be a UI element.");
-
-    ui_element_t *element = *(ui_element_t**)lua_touserdata(L, 2);
+    ui_element_t *element = lua_checkuielement(L, 2);
 
     int fill = 0;
     int align = -1;

@@ -294,6 +294,10 @@ void ui_scroll_view_register_metatable(lua_State *L) {
     if (luaL_newmetatable(L, "UIScrollViewMetaTable")) {
         lua_pushvalue(L, -1);
         lua_setfield(L, -2, "__index");
+
+        lua_pushboolean(L, 1);
+        lua_setfield(L, -2, "__is_uielement");
+
         luaL_setfuncs(L, scroll_view_funcs, 0);
     }
 }
@@ -396,9 +400,8 @@ int ui_scroll_view_lua_pos(lua_State *L) {
 */
 int ui_scroll_view_lua_set_child(lua_State *L) {
     ui_scroll_view_t *sv = LUA_CHECK_SCROLLVIEW(L, 1);
-    if (lua_type(L, 2)!=LUA_TUSERDATA) return luaL_error(L, "ui_scroll:set_child paramter #1 must be a ui-element.");
 
-    ui_element_t *child = *(ui_element_t**)lua_touserdata(L, 2);
+    ui_element_t *child = lua_checkuielement(L, 2);
 
     ui_scroll_view_set_child(sv, child);
 

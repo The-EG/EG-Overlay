@@ -387,6 +387,10 @@ void lua_push_ui_menu(lua_State *L, ui_menu_t *menu) {
     if (luaL_newmetatable(L, "UIMenuMetaTable")) {
         lua_pushvalue(L, -1);
         lua_setfield(L, -2, "__index");
+        
+        lua_pushboolean(L, 1);
+        lua_setfield(L, -2, "__is_uielement");
+
         luaL_setfuncs(L, menu_funcs, 0);
     }
 

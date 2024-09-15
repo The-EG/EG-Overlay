@@ -563,6 +563,10 @@ void lua_push_ui_button(lua_State *L, ui_button_t *button) {
     if (luaL_newmetatable(L, "UIButtonMetaTable")) {
         lua_pushvalue(L, -1);
         lua_setfield(L, -2, "__index");
+    
+        lua_pushboolean(L, 1);
+        lua_setfield(L, -2, "__is_uielement");
+
         luaL_setfuncs(L, ui_button_funcs, 0);
     }
 

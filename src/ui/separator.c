@@ -87,6 +87,10 @@ void lua_push_ui_separator(lua_State *L, ui_separator_t *sep) {
     if (luaL_newmetatable(L, "UISeparatorMetaTable")) {
         lua_pushvalue(L, -1);
         lua_setfield(L, -2, "__index");
+
+        lua_pushboolean(L, 1);
+        lua_setfield(L, -2, "__is_uielement");
+
         luaL_setfuncs(L, ui_separator_funcs, 0);
     }
     lua_setmetatable(L, -2);

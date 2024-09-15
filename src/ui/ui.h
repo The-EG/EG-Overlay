@@ -153,4 +153,4 @@ typedef struct ui_lua_element_t ui_lua_element_t;
 
 int ui_lua_check_align(lua_State *L, int ind);
 
-//void ui_lua_element_draw(ui_lua_element_t *element, mat4f_t *proj);
+ui_element_t *lua_checkuielement(lua_State *L, int ind);

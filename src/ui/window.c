@@ -472,8 +472,7 @@ Classes
 static int ui_window_lua_set_child(lua_State *L) {
     ui_window_t *win = CHECK_UI_WIN(L, 1);
 
-    if (!lua_isuserdata(L, 2)) return luaL_error(L, "window:set_child argument #1 must be a UI element.");
-    ui_element_t *element = *(ui_element_t**)lua_touserdata(L, 2);
+    ui_element_t *element = lua_checkuielement(L, 2);
 
     ui_window_set_child(win, (ui_element_t*)element);
 
