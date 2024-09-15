@@ -117,9 +117,6 @@ void ui_cleanup() {
         e = prev;
     }
 
-    //while (ui->top_level_elements) ui_remove_top_level_element(ui->top_level_elements->element);
-
-
     CloseHandle(ui->input_mutex);
     logger_debug(ui->log, "cleanup");
     ui_polyline_cleanup();
@@ -352,7 +349,12 @@ int ui_process_mouse_event(ui_mouse_event_t *event) {
             ui_send_enter_event(ui->mouse_capture_element, ui->capture_offset_x, ui->capture_offset_y);
             ui->mouse_over_element = ui->mouse_capture_element;
         }
-        if (ui->mouse_capture_element->process_mouse_event(ui->mouse_capture_element, event, ui->capture_offset_x, ui->capture_offset_y)) return 1;
+        if (ui->mouse_capture_element->process_mouse_event(
+                ui->mouse_capture_element,
+                event,
+                ui->capture_offset_x,
+                ui->capture_offset_y
+            )) return 1;
     }
 
     WaitForSingleObject(ui->input_mutex, INFINITE);
@@ -369,7 +371,8 @@ int ui_process_mouse_event(ui_mouse_event_t *event) {
             if (ui->mouse_over_element) ui_send_leave_event(ui->mouse_over_element, e->offset_x, e->offset_y);
                 ui->mouse_over_element = NULL;
         }
-        if (e->element->process_mouse_event && (MOUSE_POINT_IN_RECT(event->x, event->y, e->offset_x + e->x, e->offset_y + e->y, e->w, e->h))) {
+        if (e->element->process_mouse_event &&
+            (MOUSE_POINT_IN_RECT(event->x, event->y, e->offset_x + e->x, e->offset_y + e->y, e->w, e->h))) {
             if (e->element->process_mouse_event(e->element, event, e->offset_x, e->offset_y)) {
                 ReleaseMutex(ui->input_mutex);
                 return 1;
