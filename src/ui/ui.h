@@ -33,12 +33,34 @@ typedef struct {
     int value;
 } ui_mouse_event_t;
 
-#define MOUSE_POINT_IN_RECT(x, y, rx, ry, rw, rh) (x >= rx && x <= rx + rw && y >= ry && y <= ry + rh)
-//#define MOUSE_POINT_OVER_ELEMENT_P(mx, my, e) MOUSE_POINT_IN_RECT(mx, my, e->x, e->y, e->width, e->height)
-#define MOUSE_EVENT_OVER_ELEMENT(event, offsetx, offsety, element) MOUSE_POINT_IN_RECT(event->x, event->y, offsetx + element.x, offsety + element.y, element.width, element.height)
-#define MOUSE_EVENT_OVER_ELEMENT_P(event, offsetx, offsety, element) MOUSE_POINT_IN_RECT(event->x, event->y, offsetx + element->x, offsety + element->y, element->width, element->height)
-#define MOUSE_EVENT_IS_LEFT_UP(e) (e->event==UI_MOUSE_EVENT_TYPE_BTN_UP && e->button==UI_MOUSE_EVENT_BUTTON_LEFT)
-#define MOUSE_EVENT_IS_LEFT_DN(e) (e->event==UI_MOUSE_EVENT_TYPE_BTN_DOWN && e->button==UI_MOUSE_EVENT_BUTTON_LEFT)
+#define MOUSE_POINT_IN_RECT(x, y, rx, ry, rw, rh) ( \
+    x >= rx && \
+    x <= rx + rw && \
+    y >= ry && \
+    y <= ry + rh \
+)
+#define MOUSE_EVENT_OVER_ELEMENT(event, offsetx, offsety, element) \
+    MOUSE_POINT_IN_RECT( \
+        event->x, \
+        event->y, \
+        offsetx + element.x, \
+        offsety + element.y, \
+        element.width, \
+        element.height \
+    )
+#define MOUSE_EVENT_OVER_ELEMENT_P(event, offsetx, offsety, element) \
+    MOUSE_POINT_IN_RECT( \
+        event->x, \
+        event->y, \
+        offsetx + element->x, \
+        offsety + element->y, \
+        element->width, \
+        element->height \
+    )
+#define MOUSE_EVENT_IS_LEFT_UP(e) \
+    (e->event==UI_MOUSE_EVENT_TYPE_BTN_UP && e->button==UI_MOUSE_EVENT_BUTTON_LEFT)
+#define MOUSE_EVENT_IS_LEFT_DN(e) \
+    (e->event==UI_MOUSE_EVENT_TYPE_BTN_DOWN && e->button==UI_MOUSE_EVENT_BUTTON_LEFT)
 
 typedef enum {
     UI_KEYBOARD_EVENT_TYPE_KEYDOWN,
