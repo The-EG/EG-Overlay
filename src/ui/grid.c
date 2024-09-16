@@ -216,7 +216,6 @@ int ui_grid_lua_del(lua_State *L);
 int ui_grid_lua_attach(lua_State *L);
 int ui_grid_lua_rowspacing(lua_State *L);
 int ui_grid_lua_colspacing(lua_State *L);
-int ui_grid_lua_background(lua_State *L);
 
 void ui_grid_lua_register_ui_funcs(lua_State *L) {
     lua_pushcfunction(L, &ui_grid_lua_new);
@@ -224,12 +223,14 @@ void ui_grid_lua_register_ui_funcs(lua_State *L) {
 }
 
 luaL_Reg ui_grid_lua_funcs[] = {
-    "__gc"      , &ui_grid_lua_del,
-    "attach"    , &ui_grid_lua_attach,
-    "rowspacing", &ui_grid_lua_rowspacing,
-    "colspacing", &ui_grid_lua_colspacing,
-    "background", &ui_grid_lua_background,
-    NULL        ,  NULL
+    "__gc"              , &ui_grid_lua_del,
+    "attach"            , &ui_grid_lua_attach,
+    "rowspacing"        , &ui_grid_lua_rowspacing,
+    "colspacing"        , &ui_grid_lua_colspacing,
+    "background"        , &ui_element_lua_background,
+    "addeventhandler"   , &ui_element_lua_addeventhandler,
+    "removeeventhandler", &ui_element_lua_removeeventhandler,
+    NULL                ,  NULL
 };
 
 void lua_pushuigrid(lua_State *L, ui_grid_t *grid) {
@@ -497,26 +498,8 @@ int ui_grid_lua_colspacing(lua_State *L) {
 }
 
 /*** RST
-    .. lua:method:: background([color])
 
-        Set or retrieve background color. If a background color with an alpha
-        value of 0 is specified, no background is drawn.
+    .. include:: /docs/_include/ui_element_color.rst
 
-        :param integer color: A color, see :ref:`colors`.
-        :rtype: integer
-
-        .. versionhistory::
-            :0.1.0: Added
+    .. include:: /docs/_include/ui_element_eventhandlers.rst
 */
-int ui_grid_lua_background(lua_State *L) {
-    ui_grid_t *grid = lua_checkuigrid(L, 1);
-
-    if (lua_gettop(L)==2) {
-        grid->element.bg_color = (ui_color_t)luaL_checkinteger(L, 2);
-
-        return 0;
-    }
-
-    lua_pushinteger(L, grid->element.bg_color);
-    return 1;
-}

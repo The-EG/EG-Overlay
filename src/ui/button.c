@@ -24,8 +24,6 @@ struct ui_button_t {
 
     ui_element_t *child;
 
-    int event_cbi;
-
     int draw_state;
     int state; // checkbox/toggle
     int pref_size; // checkbox
@@ -34,25 +32,6 @@ struct ui_button_t {
     char *lua_bind_field;
 };
 
-typedef enum {
-    UI_BUTTON_EVENT_TYPE_ENTER,
-    UI_BUTTON_EVENT_TYPE_LEAVE,
-    UI_BUTTON_EVENT_TYPE_MOUSE_DOWN_LEFT,
-    UI_BUTTON_EVENT_TYPE_MOUSE_DOWN_RIGHT,
-    UI_BUTTON_EVENT_TYPE_MOUSE_UP_LEFT,
-    UI_BUTTON_EVENT_TYPE_MOUSE_UP_RIGHT,
-    UI_BUTTON_EVENT_TYPE_MOUSE_CLICK_LEFT,
-    UI_BUTTON_EVENT_TYPE_MOUSE_CLICK_RIGHT,
-    UI_BUTTON_EVENT_TYPE_TOGGLE_ON,
-    UI_BUTTON_EVENT_TYPE_TOGGLE_OFF
-} ui_button_event_type;
-
-typedef struct ui_button_lua_event_data_t {
-    ui_button_t *button;
-    ui_button_event_type event;
-} ui_button_lua_event_data_t;
-
-int ui_button_lua_event_callback(lua_State *L, ui_button_lua_event_data_t *data);
 
 void ui_button_free(ui_button_t *button);
 void ui_button_draw(ui_button_t *button, int offset_x, int offset_y, mat4f_t *proj);
@@ -92,7 +71,6 @@ ui_button_t *ui_checkbox_new(int size) {
 }
 
 void ui_button_free(ui_button_t *button) {
-    if (button->event_cbi) lua_manager_unref(button->event_cbi);
     if (button->child) ui_element_unref(button->child);
     if (button->lua_bind_table) {
         lua_manager_unref(button->lua_bind_table);
@@ -188,54 +166,30 @@ int ui_button_get_preferred_size(ui_button_t *button, int *width, int *height) {
     return 0;
 }
 
-ui_button_lua_event_data_t *new_event_data(ui_button_t *button, ui_button_event_type type) {
-    ui_button_lua_event_data_t *data = calloc(1, sizeof(ui_button_lua_event_data_t));
-    data->button = button;
-    data->event = type;
-    
-    return data;
-}
-
 int ui_button_process_mouse_event(ui_button_t *button, ui_mouse_event_t *event, int offset_x, int offset_y) {
-
     if (event->event==UI_MOUSE_EVENT_TYPE_ENTER) {
-        ui_button_lua_event_data_t *data = new_event_data(button, UI_BUTTON_EVENT_TYPE_ENTER);
-        if (button->event_cbi) lua_manager_add_event_callback(&ui_button_lua_event_callback, data);
         button->bg_hover = 1;
     } else if (event->event==UI_MOUSE_EVENT_TYPE_LEAVE) {
-        ui_button_lua_event_data_t *data = new_event_data(button, UI_BUTTON_EVENT_TYPE_LEAVE);
-        if (button->event_cbi) lua_manager_add_event_callback(&ui_button_lua_event_callback, data);
         button->bg_hover = 0;
     } else if (event->event==UI_MOUSE_EVENT_TYPE_BTN_DOWN) {
         ui_capture_mouse_events((ui_element_t*)button, offset_x, offset_y);
-        ui_button_lua_event_data_t *data = NULL;
-        if (event->button==UI_MOUSE_EVENT_BUTTON_LEFT) data = new_event_data(button, UI_BUTTON_EVENT_TYPE_MOUSE_DOWN_LEFT);
-        else if (event->button==UI_MOUSE_EVENT_BUTTON_RIGHT) data = new_event_data(button, UI_BUTTON_EVENT_TYPE_MOUSE_DOWN_RIGHT);
-        if (data && button->event_cbi) lua_manager_add_event_callback(&ui_button_lua_event_callback, data);
         button->bg_highlight = 1;
     } else if (event->event==UI_MOUSE_EVENT_TYPE_BTN_UP && button->bg_highlight==1) {
-        ui_capture_mouse_events((ui_element_t*)button, offset_x, offset_y);
-        ui_button_lua_event_data_t *data = NULL;
-        if (event->button==UI_MOUSE_EVENT_BUTTON_LEFT) data = new_event_data(button, UI_BUTTON_EVENT_TYPE_MOUSE_UP_LEFT);
-        else if (event->button==UI_MOUSE_EVENT_BUTTON_RIGHT) data = new_event_data(button, UI_BUTTON_EVENT_TYPE_MOUSE_UP_RIGHT);
-        if (data && button->event_cbi) lua_manager_add_event_callback(&ui_button_lua_event_callback, data);
-
         if (MOUSE_POINT_IN_RECT(event->x, event->y, offset_x + button->element.x, offset_y + button->element.y, button->element.width, button->element.height)) {
-            // the up happned while still over the button, this is a 'click'
-            ui_button_lua_event_data_t *clickdata = NULL;
-            if (event->button==UI_MOUSE_EVENT_BUTTON_LEFT) clickdata = new_event_data(button, UI_BUTTON_EVENT_TYPE_MOUSE_CLICK_LEFT);
-            else if (event->button==UI_MOUSE_EVENT_BUTTON_RIGHT) clickdata = new_event_data(button, UI_BUTTON_EVENT_TYPE_MOUSE_CLICK_RIGHT);
-            if (clickdata && button->event_cbi) lua_manager_add_event_callback(&ui_button_lua_event_callback, clickdata);
+            // the up happened while still over the button, this is a 'click'
+            if (event->button==UI_MOUSE_EVENT_BUTTON_LEFT) {
+                ui_element_call_lua_event_handlers(button, "click-left");
+            } else if (event->button==UI_MOUSE_EVENT_BUTTON_RIGHT) {
+                ui_element_call_lua_event_handlers(button, "click-right");
+            }
+
             button->state = button->state ? 0 : 1;
             if (button->lua_bind_table) {
                 lua_manager_settabletref_bool(button->lua_bind_table, button->lua_bind_field, button->state);
             }
             if (button->draw_state) {
                 // this is a toggle/checkbox. send a toggle-on or toggle-off event
-                ui_button_lua_event_data_t *toggledata = NULL;
-                if (button->state) toggledata = new_event_data(button, UI_BUTTON_EVENT_TYPE_TOGGLE_ON);
-                else               toggledata = new_event_data(button, UI_BUTTON_EVENT_TYPE_TOGGLE_OFF);
-                if (button->event_cbi) lua_manager_add_event_callback(&ui_button_lua_event_callback, toggledata);
+                ui_element_call_lua_event_handlers(button, (button->state ? "toggle-on" : "toggle-off"));
             }
         }
         button->bg_highlight = 0;
@@ -252,38 +206,6 @@ void ui_button_set_child(ui_button_t *button, ui_element_t *child) {
     if (button->child) ui_element_ref(child);
 }
 
-int ui_button_lua_event_callback(lua_State *L, ui_button_lua_event_data_t *data) {
-
-    lua_rawgeti(L, LUA_REGISTRYINDEX, data->button->event_cbi);
-
-    switch (data->event) {
-    case UI_BUTTON_EVENT_TYPE_ENTER:             lua_pushliteral(L, "enter"      ); break;
-    case UI_BUTTON_EVENT_TYPE_LEAVE:             lua_pushliteral(L, "leave"      ); break;
-    case UI_BUTTON_EVENT_TYPE_MOUSE_CLICK_LEFT:  lua_pushliteral(L, "click-left" ); break;
-    case UI_BUTTON_EVENT_TYPE_MOUSE_CLICK_RIGHT: lua_pushliteral(L, "click-right"); break;
-    case UI_BUTTON_EVENT_TYPE_MOUSE_DOWN_LEFT:   lua_pushliteral(L, "down-left"  ); break;
-    case UI_BUTTON_EVENT_TYPE_MOUSE_DOWN_RIGHT:  lua_pushliteral(L, "down-right" ); break;
-    case UI_BUTTON_EVENT_TYPE_MOUSE_UP_LEFT:     lua_pushliteral(L, "up-left"    ); break;
-    case UI_BUTTON_EVENT_TYPE_MOUSE_UP_RIGHT:    lua_pushliteral(L, "up-right"   ); break;
-    case UI_BUTTON_EVENT_TYPE_TOGGLE_ON:         lua_pushliteral(L, "toggle-on"  ); break;
-    case UI_BUTTON_EVENT_TYPE_TOGGLE_OFF:        lua_pushliteral(L, "toggle-off" ); break;
-    default:                                     lua_pushliteral(L, "unknown"    ); break;
-    }
-
-    /*
-    if (lua_pcall(L, 1, 0, 0)!=LUA_OK) {
-        const char *err = lua_tostring(L, -1);
-        logger_t *log = logger_get("ui-button");
-        logger_error(log, "Error while running button event callback: %s", err);
-        lua_pop(L, 1);
-    }
-    */
-
-    free(data);
-
-    return 1;
-}
-
 int ui_button_lua_new(lua_State *L);
 int ui_checkbox_lua_new(lua_State *L);
 
@@ -292,7 +214,6 @@ int ui_button_lua_set_child(lua_State *L);
 int ui_button_lua_background_color(lua_State *L);
 int ui_button_lua_border_color(lua_State *L);
 int ui_button_lua_border_width(lua_State *L);
-int ui_button_lua_event_handler(lua_State *L);
 int ui_button_lua_bind_value(lua_State *L);
 
 void lua_push_ui_button(lua_State *L, ui_button_t *button);
@@ -351,14 +272,15 @@ static int ui_image_button_process_mouse_event(ui_image_button_t *btn, ui_mouse_
 */
 
 luaL_Reg ui_button_funcs[] = {
-    "__gc"            , &ui_button_lua_del,
-    "set_child"       , &ui_button_lua_set_child,
-    "background_color", &ui_button_lua_background_color,
-    "border_color"    , &ui_button_lua_border_color,
-    "border_width"    , &ui_button_lua_border_width,
-    "event_handler"   , &ui_button_lua_event_handler,
-    "bind_value"      , &ui_button_lua_bind_value,
-    NULL              ,  NULL
+    "__gc"              , &ui_button_lua_del,
+    "set_child"         , &ui_button_lua_set_child,
+    "background_color"  , &ui_button_lua_background_color,
+    "border_color"      , &ui_button_lua_border_color,
+    "border_width"      , &ui_button_lua_border_width,
+    "bind_value"        , &ui_button_lua_bind_value,
+    "addeventhandler"   , &ui_element_lua_addeventhandler,
+    "removeeventhandler", &ui_element_lua_removeeventhandler,
+    NULL                ,  NULL
 };
 
 /*** RST
@@ -432,6 +354,25 @@ Classes
     
     This can be a :lua:class:`uitext` for a simple text button, but can also be
     a layout container that also has children for more complex buttons.
+
+    In addition to the events in :ref:`ui-events`, buttons can send the
+    following:
+
+    =========== =============================================================
+    Event       Description
+    =========== =============================================================
+    click-left  The button was clicked with the primary/left mouse button.
+    click-right The button was clicked with the secondary/right mouse button.
+    toggle-on   The button has changed to a toggled/checked state.
+    toggle-off  The button has changed to a untoggled/unchecked state.
+    =========== =============================================================
+
+    .. important::
+
+        The ``click-*`` events are only sent when the corresponding mouse button
+        is both pressed and released while the cursor is over the button. This
+        is a more accurate way of determining if the button was clicked
+        intentionally than monitoring for only up or down events.
 
     .. lua:method:: set_child(uielement)
 
@@ -514,48 +455,6 @@ int ui_button_lua_border_width(lua_State *L) {
     return 0;
 }
 
-/*** RST
-    .. lua:method:: event_handler(handler_func)
-
-        Set a function to be called on button events. A button can only have a
-        single event handler at a time.
-
-        The handler is called with a single string argument that indicates the
-        type of event:
-
-        =========== =====================================
-        Value       Description
-        =========== =====================================
-        enter       Mouse cursor entered the button.
-        leave       Mouse cursor left the button.
-        click-left  Left click (sent on button release).
-        click-right Right click (sent on button release).
-        down-left   Left mouse button down.
-        down-right  Right mouse button down.
-        up-left     Left mouse button released.
-        up-right    Right mouse button released.
-        toggle-on   Button toggled on or checked.
-        toggle-off  Button toggled off or un-checked.
-        =========== =====================================
-
-        :param handler_func: A function to be called on button events.
-        :type handler_func: function
-
-        .. versionhistory::
-            :0.0.1: Added
-*/
-int ui_button_lua_event_handler(lua_State *L) {
-    ui_button_t *btn = LUA_CHECK_BUTTON(L, 1);
-
-    if (!lua_isfunction(L, 2)) return luaL_error(L, "button:event_handler argument #1 must be a function.");
-
-    if (btn->event_cbi) luaL_unref(L, LUA_REGISTRYINDEX, btn->event_cbi);
-    lua_pushvalue(L, 2);
-    btn->event_cbi = luaL_ref(L, LUA_REGISTRYINDEX);
-
-    return 0;
-}
-
 void lua_push_ui_button(lua_State *L, ui_button_t *button) {
     ui_button_t **pbtn = (ui_button_t**)lua_newuserdata(L, sizeof(ui_button_t*));
     *pbtn = button;
@@ -597,3 +496,7 @@ int ui_button_lua_bind_value(lua_State *L) {
 
     return 0;
 }
+
+/*** RST
+    .. include:: /docs/_include/ui_element_eventhandlers.rst
+*/

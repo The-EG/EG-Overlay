@@ -31,6 +31,7 @@ exclude_patterns = [
     'Thumbs.db',
     '.DS_Store',
     '_ext',
+    '_include',
     'src/app.c',
     'src/gl.c',
     'src/hashstr.c',

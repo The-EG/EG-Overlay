@@ -23,6 +23,8 @@ struct ui_text_s {
 
     int wrap_indices_count;
     int *wrap_indices;
+
+    int events;
 };
 
 void ui_text_free(ui_text_t *text);
@@ -136,25 +138,8 @@ void ui_text_draw(ui_text_t *text, int offset_x, int offset_y,  mat4f_t *proj) {
             loffset += nextl + 1;
             y += ui_font_get_line_spacing(text->font);
         }
-        //if (text->wrap_indices_count==0)
-        //    ui_font_render_text(text->font, proj, x, y, text->text, strlen(text->text), text->color);
-        //else {
-            // int wi = 0;
-            // int char_ind = 0;
-            // int line_len = 0;
-            // int line_gap = ui_font_get_line_spacing(text->font);
-            // while (wi <text->wrap_indices_count) {
-            //     line_len = text->wrap_indices[wi] - char_ind;
-            //     char *line_str = text->text + char_ind;
-            //     ui_font_render_text(text->font, proj, x, y, line_str, line_len, text->color);
-            //     char_ind = text->wrap_indices[wi] + 1;
-            //     wi++;
-            //     y += line_gap;
-            // }
-
-        // remainder of the string
-        //ui_font_render_text(text->font, proj, x, y, text->text + char_ind, strlen(text->text) - char_ind, text->color);
         pop_scissor(old_scissor);
+        if (text->events) ui_add_input_element(offset_x, offset_y, text->element.x, text->element.y, text->element.width, text->element.height, (ui_element_t*)text);
     }
 }
 
@@ -174,12 +159,17 @@ static int ui_text_lua_new(lua_State *L);
 static int ui_text_lua_del(lua_State *L);
 static int ui_text_lua_update_text(lua_State *L);
 static int ui_text_lua_draw(lua_State *L);
+static int ui_text_lua_events(lua_State *L);
 
 static luaL_Reg ui_text_funcs[] = {
-    "update_text", &ui_text_lua_update_text,
-    "draw",        &ui_text_lua_draw,
-    "__gc",        &ui_text_lua_del,
-    NULL,           NULL
+    "update_text"       , &ui_text_lua_update_text,
+    "draw"              , &ui_text_lua_draw,
+    "__gc"              , &ui_text_lua_del,
+    "addeventhandler"   , &ui_element_lua_addeventhandler,
+    "removeeventhandler", &ui_element_lua_removeeventhandler,
+    "events"            , &ui_text_lua_events,
+    "background"        , &ui_element_lua_background,
+    NULL                , NULL
 };
 
 static void ui_text_lua_register_metatable(lua_State *L);
@@ -319,3 +309,30 @@ static int ui_text_lua_draw(lua_State *L) {
 
     return 0;
 }
+
+/*** RST
+ 
+    .. include:: /docs/_include/ui_element_eventhandlers.rst
+
+    .. lua:method:: events(value)
+        
+        Set if this element should emit events or not. Defaults to ``false``.
+
+        :param boolean value:
+
+        .. versionhistory::
+            :0.1.0: Added
+*/
+static int ui_text_lua_events(lua_State *L) {
+    if (lua_gettop(L)!=2) return luaL_error(L, "events takes a boolean parameter.");
+
+    ui_text_t *text = *(ui_text_t**)luaL_checkudata(L, 1, "UITextMetaTable");
+
+    text->events = lua_toboolean(L, 2);
+
+    return 0;
+}
+
+/*** RST
+    .. include:: /docs/_include/ui_element_colors.rst
+*/

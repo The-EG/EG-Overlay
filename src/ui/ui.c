@@ -67,6 +67,13 @@ static ui_t *ui = NULL;
 
 int ui_lua_open_module(lua_State *L);
 
+typedef struct {
+    int cbi;
+    char *event;
+} ui_element_event_handler_data_t;
+
+int ui_element_lua_event_handler_callback(lua_State *L, ui_element_event_handler_data_t *data);
+
 void ui_init() {
     ui = calloc(1, sizeof(ui_t));
 
@@ -295,7 +302,14 @@ void ui_element_ref(ui_element_t *element) {
 void ui_element_unref(ui_element_t *element) {
     element->ref_count--;
 
-    if (element->ref_count==0 && element->free) element->free(element);
+    if (element->ref_count) return;
+
+    for (size_t hi=0;hi<element->lua_event_handler_count;hi++) {
+        lua_manager_unref(element->lua_event_handlers[hi]);
+    }
+    if (element->lua_event_handlers) free(element->lua_event_handlers);
+
+    if (element->free) element->free(element);
 }
 
 void ui_add_input_element(int offset_x, int offset_y, int x, int y, int w, int h, ui_element_t *element) {
@@ -318,37 +332,81 @@ static void ui_send_leave_event(ui_element_t *element, int offset_x, int offset_
     ui_mouse_event_t leave = {0};
     leave.event = UI_MOUSE_EVENT_TYPE_LEAVE;
     if (element->process_mouse_event) element->process_mouse_event(element, &leave, offset_x, offset_y);
+    ui_element_call_lua_event_handlers(element, "leave"); 
 }
 
 static void ui_send_enter_event(ui_element_t *element, int offset_x, int offset_y) {
     ui_mouse_event_t enter = {0};
     enter.event = UI_MOUSE_EVENT_TYPE_ENTER;
     if (element->process_mouse_event) element->process_mouse_event(element, &enter, offset_x, offset_y);
+    ui_element_call_lua_event_handlers(element, "enter");
+}
+
+void ui_send_lua_mouse_event(ui_element_t *element, ui_mouse_event_t *event) {
+    const char *ename = "unknown";
+
+    if (event->event==UI_MOUSE_EVENT_TYPE_BTN_DOWN) {
+        if      (event->button==UI_MOUSE_EVENT_BUTTON_LEFT  ) ename = "btn-down-left";
+        else if (event->button==UI_MOUSE_EVENT_BUTTON_RIGHT ) ename = "btn-down-right";
+        else if (event->button==UI_MOUSE_EVENT_BUTTON_MIDDLE) ename = "btn-down-middle";
+        else if (event->button==UI_MOUSE_EVENT_BUTTON_X1    ) ename = "btn-down-x1";
+        else if (event->button==UI_MOUSE_EVENT_BUTTON_X2    ) ename = "btn-down-x2";
+        else                                                  ename = "btn-down-unk";
+    } else if (event->event==UI_MOUSE_EVENT_TYPE_BTN_UP) {
+        if      (event->button==UI_MOUSE_EVENT_BUTTON_LEFT  ) ename = "btn-up-left";
+        else if (event->button==UI_MOUSE_EVENT_BUTTON_RIGHT ) ename = "btn-up-right";
+        else if (event->button==UI_MOUSE_EVENT_BUTTON_MIDDLE) ename = "btn-up-middle";
+        else if (event->button==UI_MOUSE_EVENT_BUTTON_X1    ) ename = "btn-up-x1";
+        else if (event->button==UI_MOUSE_EVENT_BUTTON_X2    ) ename = "btn-up-x2";
+        else                                                  ename = "btn-up-unk";
+    } else if (event->event==UI_MOUSE_EVENT_TYPE_MOVE) {
+        ename = "move";
+    } else if (event->event==UI_MOUSE_EVENT_TYPE_WHEEL) {
+        if (event->value<=0) ename = "wheel-up";
+        else                 ename = "wheel-down";
+    } else if (event->event==UI_MOUSE_EVENT_TYPE_HWHEEL) {
+        if (event->value<=0) ename = "wheel-left";
+        else                 ename = "wheel-right";
+    } else if (event->event==UI_MOUSE_EVENT_TYPE_ENTER) ename = "enter";
+      else if (event->event==UI_MOUSE_EVENT_TYPE_LEAVE) ename = "leave";
+
+    ui_element_call_lua_event_handlers(element, ename);
 }
 
 int ui_process_mouse_event(ui_mouse_event_t *event) {
     ui->last_mouse_x = event->x;
     ui->last_mouse_y = event->y;
 
-    if (ui->mouse_capture_element) {
-        // still need to give the enter and leave events to the element that has captured
-        // the mouse, so do that before sending the actual event
-        int mouse_over_capture = MOUSE_POINT_IN_RECT(
-            event->x,
-            event->y,
-            ui->capture_offset_x + ui->mouse_capture_element->x,
-            ui->capture_offset_y + ui->mouse_capture_element->y,
-            ui->mouse_capture_element->width,
-            ui->mouse_capture_element->height
-        ) ? 1 : 0;
+    ui_input_element_t *top_element_under_mouse = NULL;
 
-        if (ui->mouse_over_element==ui->mouse_capture_element && !mouse_over_capture) {
-            ui_send_leave_event(ui->mouse_capture_element, ui->capture_offset_x, ui->capture_offset_y);
-            ui->mouse_over_element = NULL;
-        } else if (ui->mouse_over_element==NULL && mouse_over_capture) {
-            ui_send_enter_event(ui->mouse_capture_element, ui->capture_offset_x, ui->capture_offset_y);
-            ui->mouse_over_element = ui->mouse_capture_element;
+    WaitForSingleObject(ui->input_mutex, INFINITE);
+    for (ui_input_element_t *e = ui->input_elements;e;e = e->prev) {
+        if (MOUSE_POINT_IN_RECT(event->x, event->y, e->offset_x + e->x, e->offset_y + e->y, e->w, e->h)) {
+            top_element_under_mouse = e;
+            break;
         }
+    }
+    ReleaseMutex(ui->input_mutex);
+
+    if (top_element_under_mouse && ui->mouse_over_element!=top_element_under_mouse->element) {
+        if (ui->mouse_over_element) {
+            // proper offsets shouldn't be needed for leave/enter
+            ui_send_leave_event(ui->mouse_over_element, 0, 0);
+        }
+        ui_send_enter_event(
+            top_element_under_mouse->element,
+            top_element_under_mouse->offset_x,
+            top_element_under_mouse->offset_y
+        );
+        ui->mouse_over_element = top_element_under_mouse->element;
+    } else if (top_element_under_mouse==NULL && ui->mouse_over_element) {
+        ui_send_leave_event(ui->mouse_over_element, 0, 0);
+        ui->mouse_over_element = NULL;
+    }
+
+    if (ui->mouse_capture_element) {
+        ui_send_lua_mouse_event(ui->mouse_capture_element, event);
+
         if (ui->mouse_capture_element->process_mouse_event(
                 ui->mouse_capture_element,
                 event,
@@ -357,27 +415,23 @@ int ui_process_mouse_event(ui_mouse_event_t *event) {
             )) return 1;
     }
 
+    if (top_element_under_mouse) {
+        ui_send_lua_mouse_event(top_element_under_mouse->element, event);
+    }
+
     WaitForSingleObject(ui->input_mutex, INFINITE);
     ui_input_element_t *e = ui->input_elements;
 
-    while (e) {
+    while (e) { 
         if (MOUSE_POINT_IN_RECT(event->x, event->y, e->offset_x + e->x, e->offset_y + e->y, e->w, e->h)) {
-            if (ui->mouse_over_element!=e->element) {
-                if (ui->mouse_over_element) ui_send_leave_event(ui->mouse_over_element, e->offset_x, e->offset_y);
-                ui->mouse_over_element = e->element;
-                ui_send_enter_event(e->element, e->offset_x, e->offset_y);
-            }
-        } else if (ui->mouse_over_element==e->element) {
-            if (ui->mouse_over_element) ui_send_leave_event(ui->mouse_over_element, e->offset_x, e->offset_y);
-                ui->mouse_over_element = NULL;
-        }
-        if (e->element->process_mouse_event &&
-            (MOUSE_POINT_IN_RECT(event->x, event->y, e->offset_x + e->x, e->offset_y + e->y, e->w, e->h))) {
-            if (e->element->process_mouse_event(e->element, event, e->offset_x, e->offset_y)) {
-                ReleaseMutex(ui->input_mutex);
-                return 1;
+            if (e->element->process_mouse_event) {
+                if (e->element->process_mouse_event(e->element, event, e->offset_x, e->offset_y)) {
+                    ReleaseMutex(ui->input_mutex);
+                    return 1;
+                }
             }
         }
+
         e = e->prev;
     }
 
@@ -410,6 +464,89 @@ void ui_release_mouse_events(ui_element_t *element) {
         ui->capture_offset_x = 0;
         ui->capture_offset_y = 0;
     }
+}
+
+int ui_element_lua_addeventhandler(lua_State *L) {
+    ui_element_t *element = lua_checkuielement(L, 1);
+
+    if (!lua_isfunction(L, 2)) return luaL_error(L, "Event handler must be a function.");
+
+    int *h = element->lua_event_handlers;
+    size_t newcount = element->lua_event_handler_count + 1;
+    
+    element->lua_event_handlers = realloc(h, newcount * sizeof(int));
+
+    lua_pushvalue(L, 2);
+    int cbi = luaL_ref(L, LUA_REGISTRYINDEX);
+    element->lua_event_handlers[element->lua_event_handler_count++] = cbi;
+
+    lua_pushinteger(L, cbi);
+    
+    return 1;
+}
+
+
+int ui_element_lua_removeeventhandler(lua_State *L) {
+    ui_element_t *element = lua_checkuielement(L, 1);
+    int cbi = (int)luaL_checkinteger(L, 2);
+
+    size_t cbi_ind = 0;
+    for (size_t i=0;i<element->lua_event_handler_count;i++) {
+        if (element->lua_event_handlers[i]==cbi) {
+            cbi_ind = i;
+            break;
+        }
+    }
+    
+    if (cbi_ind==0 && element->lua_event_handlers[cbi_ind]!=cbi) {
+        return luaL_error(L, "Lua event handler not found.");
+    }
+
+    for (size_t i=cbi_ind;i<element->lua_event_handler_count-1;i++) {
+        element->lua_event_handlers[i] = element->lua_event_handlers[i+1];
+    }
+
+    element->lua_event_handlers = realloc(
+        element->lua_event_handlers,
+        sizeof(int) * (element->lua_event_handler_count - 1)
+    );
+    element->lua_event_handler_count--;
+
+    return 0;
+}
+
+void ui_element_call_lua_event_handlers(ui_element_t *element, const char *event) {
+    for (size_t hi=0;hi<element->lua_event_handler_count;hi++) {
+        ui_element_event_handler_data_t *d = calloc(1, sizeof(ui_element_event_handler_data_t));
+
+        d->cbi = element->lua_event_handlers[hi];
+        d->event = calloc(strlen(event)+1, sizeof(char));
+        memcpy(d->event, event, strlen(event));
+
+        lua_manager_add_event_callback(&ui_element_lua_event_handler_callback, d);
+    }
+}
+
+int ui_element_lua_event_handler_callback(lua_State *L, ui_element_event_handler_data_t *data) {
+    lua_rawgeti(L, LUA_REGISTRYINDEX, data->cbi);
+    lua_pushstring(L, data->event);
+
+    free(data);
+    
+    return 1;
+}
+
+int ui_element_lua_background(lua_State *L) {
+    ui_element_t *element = lua_checkuielement(L, 1);
+
+    if (lua_gettop(L)==2) {
+        element->bg_color = (ui_color_t)luaL_checkinteger(L, 2);
+        return 0;
+    }
+
+    lua_pushinteger(L, element->bg_color);
+
+    return 1;
 }
 
 static int ui_lua_element(lua_State *L);
@@ -541,6 +678,53 @@ If style parameters are omitted, defaults will be used.
     and most commonly used font sizes should have extra room on the first page
     after that. In reality, this should only be a concern for huge font sizes
     (> 40).
+
+.. _ui-events:
+
+UI Events
+---------
+
+Most UI elements can send events to event handlers in Lua. Such elements
+implement ``addeventhandler`` and ``removeeventhandler`` methods. Some elements
+do not emit events by default and need to be enabled using an ``events`` method.
+
+Event handler functions are passed a single argument, a string describing the
+event:
+
+=================== ======================================
+Value               Description
+=================== ======================================
+``btn-down-left``   Mouse button 1 (left) pressed.
+``btn-down-right``  Mouse button 2 (right) pressed.
+``btn-down-middle`` Mouse button 3 (middle) pressed.
+``btn-down-x1``     Mouse button 4 pressed.
+``btn-down-x2``     Mouse button 5 pressed.
+``btn-down-unk``    An unknown mouse button is pressed.
+``btn-up-left``     Mouse button 1 (left) released.
+``btn-up-right``    Mouse button 2 (right) released.
+``btn-up-middle``   Mouse button 3 (middle) released.
+``btn-up-x1``       Mouse button 4 released.
+``btn-up-x2``       Mouse button 5 released.
+``btn-up-unk``      An unknown mouse button is released.
+``move``            Mouse cursor moved (over the element).
+``wheel-up``        Mouse wheel scrolled up.
+``wheel-down``      Mouse wheel scrolled down.
+``wheel-left``      Mouse wheel scrolled left.
+``wheel-right``     Mouse wheel scrolled right.
+``enter``           Mouse cursor entered the element area.
+``leave``           Mouse cursor left the element area.
+=================== ======================================
+
+.. note::
+
+    Elements may send additional events not listed here.
+
+.. important::
+
+    Events are sent to Lua like any other event, asynchronously. This means that
+    there may be some delay between an event occurring and the event handler
+    being called in Lua. However, events still should arrive in the same order
+    that they occurred.
 
 Core UI
 -------
@@ -704,25 +888,25 @@ int ui_lua_check_align(lua_State *L, int ind) {
 ui_element_t *lua_checkuielement(lua_State *L, int ind) {
     ui_element_t *e = *(ui_element_t**)lua_touserdata(L, ind);
 
-    if (e==NULL) return luaL_error(L, "Argument #%d is not a UI element.", ind);
+    if (e==NULL) luaL_error(L, "Argument #%d is not a UI element.", ind);
 
     if (lua_getmetatable(L, ind)==0) {
-        return luaL_error(L, "Argument #%d is not a UI element.", ind);
+        luaL_error(L, "Argument #%d is not a UI element.", ind);
     }
 
     if (lua_getfield(L, ind, "__is_uielement")!=LUA_TBOOLEAN) {
-        return luaL_error(L, "Argument #%d is not a UI element.", ind);
+        luaL_error(L, "Argument #%d is not a UI element.", ind);
     }
 
     if (!lua_isboolean(L, -1)) {
-        return luaL_error(L, "Argument #%d is not a UI element.", ind);
+        luaL_error(L, "Argument #%d is not a UI element.", ind);
     }
 
     int is_uielement = lua_toboolean(L, -1);
     lua_pop(L, 2); // __is_uielement and the metatable
 
     if (!is_uielement) {
-        return luaL_error(L, "Argument #%d is not a UI element.", ind);
+        luaL_error(L, "Argument #%d is not a UI element.", ind);
     }
 
     return e;

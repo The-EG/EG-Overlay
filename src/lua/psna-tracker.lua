@@ -83,7 +83,7 @@ local function new_agent(name, locations, chatlinks)
     grid:attach(agent.loc_txt, agentrow, 2, 1, 1, 'start', 'middle')
     grid:attach(agent.btn    , agentrow, 3, 1, 1, 'fill' , 'fill')
     agentrow = agentrow + 1
-    agent.btn:event_handler(function(event)
+    agent.btn:addeventhandler(function(event)
         if event == 'click-left' then on_button_click(agent) end
     end)
     return agent

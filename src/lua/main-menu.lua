@@ -57,7 +57,7 @@ main_menu.win:show()
 function main_menu.add_item(event, module_actions)
     main_menu.log:debug("Adding item %s", module_actions.name)
     local btn = uih.text_button(module_actions.name)
-    btn:event_handler(module_actions.primary_action)
+    btn:addeventhandler(module_actions.primary_action)
     box:pack_end(btn, false, 'fill')    
 end
 

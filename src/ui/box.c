@@ -26,6 +26,8 @@ struct ui_box_t {
     } padding;
 
     int spacing;
+
+    int events;
 };
 
 static void ui_box_free(ui_box_t *box);
@@ -90,8 +92,6 @@ static void ui_box_draw(ui_box_t *box, int offset_x, int offset_y, mat4f_t *proj
     int pref_height;
     ui_box_get_preferred_size(box, &pref_width, &pref_height);
 
-    //if (box->element.width - box->padding.left - box->padding.right < pref_width) pref_width = box->element.width - box->padding.left - box->padding.right;
-    //if (box->element.height - box->padding.top - box->padding.bottom < pref_height) pref_height = box->element.height - box->padding.top - box->padding.bottom;
     if (box->element.width < pref_width) pref_width = box->element.width;
     if (box->element.height < pref_height) pref_height = box->element.height;
 
@@ -114,8 +114,6 @@ static void ui_box_draw(ui_box_t *box, int offset_x, int offset_y, mat4f_t *proj
 
     // we'll need this to offset the x/y later. if no items are filled then no offsets
     if (fill_items==0) extra_room = 0;
-
-    //ui_rect_draw(offset_x + box->element.x + box->padding.left, offset_y + box->element.y + box->padding.top, box->element.width - box->padding.left - box->padding.right, box->element.height - box->padding.top - box->padding.bottom, 0x00FF00FF, proj);
 
     if (box->orientation==UI_BOX_ORIENTATION_VERTICAL) {
         if      (box->align< 0) y = offset_y + box->element.y + box->padding.top;
@@ -176,6 +174,15 @@ static void ui_box_draw(ui_box_t *box, int offset_x, int offset_y, mat4f_t *proj
             i = i->next;
         }
     }
+
+    if (box->events) {
+        ui_add_input_element(
+            offset_x, offset_y,
+            box->element.x, box->element.y,
+            box->element.width, box->element.height,
+            (ui_element_t*)box
+        );
+    }
 }
 
 static int ui_box_get_preferred_size(ui_box_t *box, int *width, int *height) {
@@ -230,16 +237,21 @@ static int ui_box_lua_set_align(lua_State *L);
 static int ui_box_lua_spacing(lua_State *L);
 static int ui_box_lua_item_count(lua_State *L);
 static int ui_box_lua_pop_start(lua_State *L);
+static int ui_box_lua_events(lua_State *L);
 
 static luaL_Reg ui_box_funcs[] = {
-    "__gc",       &ui_box_lua_del,
-    "padding",    &ui_box_lua_set_padding,
-    "pack_end",   &ui_box_lua_pack_end,
-    "align",      &ui_box_lua_set_align,
-    "spacing",    &ui_box_lua_spacing,
-    "item_count", &ui_box_lua_item_count,
-    "pop_start",  &ui_box_lua_pop_start,
-    NULL,        NULL
+    "__gc"              , &ui_box_lua_del,
+    "padding"           , &ui_box_lua_set_padding,
+    "pack_end"          , &ui_box_lua_pack_end,
+    "align"             , &ui_box_lua_set_align,
+    "spacing"           , &ui_box_lua_spacing,
+    "item_count"        , &ui_box_lua_item_count,
+    "pop_start"         , &ui_box_lua_pop_start,
+    "events"            , &ui_box_lua_events,
+    "addeventhandler"   , &ui_element_lua_addeventhandler,
+    "removeeventhandler", &ui_element_lua_removeeventhandler,
+    "background"        , &ui_element_lua_background,
+    NULL                , NULL
 };
 
 void ui_box_lua_register_ui_funcs(lua_State *L) {
@@ -485,3 +497,29 @@ static int ui_box_lua_pop_start(lua_State *L) {
 
     return 0;
 }
+
+/*** RST
+    
+    .. include:: /docs/_include/ui_element_eventhandlers.rst
+
+    .. lua:method:: events(value)
+
+        Set if this element should emit events or not. Defaults to ``false``.
+
+        :param boolean value:
+
+        .. versionhistory::
+            :0.1.0: Added
+*/
+static int ui_box_lua_events(lua_State *L) {
+    if (lua_gettop(L)!=2) return luaL_error(L, "events takes a boolean parameter.");
+
+    ui_box_t *box = CHECK_UI_BOX(L, 1);
+    box->events = lua_toboolean(L, 2);
+
+    return 0;
+}
+
+/*** RST
+    .. include:: /docs/_include/ui_element_color.rst
+*/

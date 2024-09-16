@@ -122,6 +122,9 @@ struct ui_element_t {
     ui_color_t border_color;
 
     uint8_t ref_count;
+
+    size_t lua_event_handler_count;
+    int *lua_event_handlers;
 };
 
 int ui_element_has_focus(void *element);
@@ -130,6 +133,13 @@ void ui_clear_focus();
 
 void ui_element_ref(void *element);
 void ui_element_unref(void *element);
+
+// Lua functions common to most UI elements
+int ui_element_lua_addeventhandler(lua_State *L);
+int ui_element_lua_removeeventhandler(lua_State *L);
+int ui_element_lua_background(lua_State *L);
+
+void ui_element_call_lua_event_handlers(ui_element_t *element, const char *event);
 
 void ui_init();
 void ui_cleanup();
