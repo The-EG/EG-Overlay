@@ -4,6 +4,7 @@
 #include "rect.h"
 #include "grid.h"
 #include "ui.h"
+#include "../utils.h"
 
 typedef struct ui_grid_cell_t {
     ui_element_t *item;
@@ -36,17 +37,17 @@ void ui_grid_draw(ui_grid_t *grid, int offset_x, int offset_y, mat4f_t *proj);
 void ui_grid_free(ui_grid_t *grid);
 
 ui_grid_t *ui_grid_new(int rows, int cols) {
-    ui_grid_t *grid = calloc(1, sizeof(ui_grid_t));
+    ui_grid_t *grid = egoverlay_calloc(1, sizeof(ui_grid_t));
 
-    grid->cells = calloc(rows * cols, sizeof(ui_grid_cell_t));
+    grid->cells = egoverlay_calloc(rows * cols, sizeof(ui_grid_cell_t));
 
     grid->rows = rows;
     grid->cols = cols;
 
-    grid->rowspacing = calloc(rows, sizeof(int));
-    grid->rowheights = calloc(rows, sizeof(int));
-    grid->colspacing = calloc(cols, sizeof(int));
-    grid->colwidths = calloc(cols, sizeof(int));
+    grid->rowspacing = egoverlay_calloc(rows, sizeof(int));
+    grid->rowheights = egoverlay_calloc(rows, sizeof(int));
+    grid->colspacing = egoverlay_calloc(cols, sizeof(int));
+    grid->colwidths = egoverlay_calloc(cols, sizeof(int));
 
     grid->element.draw = &ui_grid_draw;
     grid->element.free = &ui_grid_free;
@@ -62,8 +63,12 @@ void ui_grid_free(ui_grid_t *grid) {
         if (grid->cells[c].item) ui_element_unref(grid->cells[c].item);
     }
 
-    free(grid->cells);
-    free(grid);
+    egoverlay_free(grid->cells);
+    egoverlay_free(grid->rowspacing);
+    egoverlay_free(grid->rowheights);
+    egoverlay_free(grid->colspacing);
+    egoverlay_free(grid->colwidths);
+    egoverlay_free(grid);
 }
 
 void ui_grid_attach(ui_grid_t *grid, void *uielement, int row, int col, int rowspan, int colspan, int horizalign, int vertalign) {

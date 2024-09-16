@@ -4,6 +4,7 @@
 #include "event-sink.h"
 #include "logger.h"
 #include "../lua-manager.h"
+#include "../utils.h"
 #include <jansson.h>
 
 typedef struct log_event_sink_t {
@@ -15,7 +16,7 @@ log_sink_t *log_event_sink_clone(log_sink_t *sink);
 
 
 log_sink_t *log_event_sink_new() {
-    log_event_sink_t *new = calloc(1, sizeof(log_event_sink_t));
+    log_event_sink_t *new = egoverlay_calloc(1, sizeof(log_event_sink_t));
 
     new->sink.write = &log_event_sink_write;
     new->sink.clone = &log_event_sink_clone;

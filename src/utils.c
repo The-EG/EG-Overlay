@@ -22,7 +22,7 @@ char *load_file(const char *path, size_t *length) {
 
     //logger_debug(log, "Read %d bytes from %s.", *length, path);
 
-    char *data = calloc(*length, sizeof(char));
+    char *data = egoverlay_calloc(*length, sizeof(char));
     fseek(f, 0, SEEK_SET);
     fread(data, sizeof(char), *length, f);
 
@@ -107,13 +107,13 @@ void error_and_exit(const char *title, const char *msg_format, ...) {
     va_end(args);
 
     // now allocate it and do the actual format
-    msgbuf = calloc(msglen, sizeof(char));
+    msgbuf = egoverlay_calloc(msglen, sizeof(char));
     
     va_start(args, msg_format);
     vsnprintf(msgbuf, msglen, msg_format, args);
     va_end(args);
 
     MessageBox(NULL, msgbuf, title, MB_OK | MB_ICONERROR);
-    free(msgbuf);
+    egoverlay_free(msgbuf);
     exit(-1);
 }

@@ -53,7 +53,7 @@ static int ui_menu_item_process_mouse_event(ui_menu_item_t *item, ui_mouse_event
 static int ui_menu_process_mouse_event(ui_menu_t *menu, ui_mouse_event_t *event, int offset_x, int offset_y);
 
 ui_menu_item_t *ui_menu_item_new() {
-    ui_menu_item_t *mi = calloc(1, sizeof(ui_menu_item_t));
+    ui_menu_item_t *mi = egoverlay_calloc(1, sizeof(ui_menu_item_t));
     mi->element.draw                = &ui_menu_item_draw;
     mi->element.process_mouse_event = &ui_menu_item_process_mouse_event;
     mi->element.get_preferred_size  = &ui_menu_item_get_preferred_size;
@@ -142,7 +142,7 @@ static void ui_menu_item_free(ui_menu_item_t *item) {
     if (item->child) ui_element_unref(item->child);
     if (item->pre) ui_element_unref(item->pre);
     if (item->sub_menu) ui_element_unref(item->sub_menu);
-    free(item);
+    egoverlay_free(item);
 }
 
 static int ui_menu_item_process_mouse_event(ui_menu_item_t *item, ui_mouse_event_t *event, int offset_x, int offset_y) {
@@ -253,7 +253,7 @@ static void ui_menu_draw(ui_menu_t *menu, int offset_x, int offset_y, mat4f_t *p
 }
 
 ui_menu_t *ui_menu_new() {
-    ui_menu_t *menu = calloc(1, sizeof(ui_menu_t));
+    ui_menu_t *menu = egoverlay_calloc(1, sizeof(ui_menu_t));
     menu->element.draw = &ui_menu_draw;
     menu->element.process_mouse_event = &ui_menu_process_mouse_event;
     menu->element.free = &ui_menu_free;
@@ -268,7 +268,7 @@ ui_menu_t *ui_menu_new() {
 void ui_menu_free(ui_menu_t *menu) {
     ui_element_unref(menu->box);
 
-    free(menu);
+    egoverlay_free(menu);
 }
 
 static int ui_menu_process_mouse_event(ui_menu_t *menu, ui_mouse_event_t *event, int offset_x, int offset_y) {   

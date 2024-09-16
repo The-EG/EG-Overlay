@@ -125,15 +125,15 @@ static int embedded_module_searcher(lua_State *L) {
 }
 
 void lua_manager_init() {
-    lua = calloc(1, sizeof(lua_manager_t));
+    lua = egoverlay_calloc(1, sizeof(lua_manager_t));
 
     lua->log = logger_get("lua");
 
     logger_info(lua->log, "Initializing Lua...");
 
     lua->event_handler_table_size = 512;
-    lua->event_handler_types = calloc(lua->event_handler_table_size, sizeof(char*));
-    lua->event_handlers = calloc(lua->event_handler_table_size, sizeof(lua_event_handler_t*));
+    lua->event_handler_types = egoverlay_calloc(lua->event_handler_table_size, sizeof(char*));
+    lua->event_handlers = egoverlay_calloc(lua->event_handler_table_size, sizeof(lua_event_handler_t*));
 
     lua->lua = luaL_newstate();
 
@@ -158,36 +158,41 @@ void lua_manager_cleanup() {
     // don't queue events from now on
     no_events = 1;
 
+    // flush the event queue and let coroutines finish
+    lua_manager_run_event_queue();
+    while(lua_manager_resume_coroutines()) ;
+
     for (size_t e=0;e<lua->event_handler_table_size;e++) {
         if (lua->event_handler_types[e]) {
-            free(lua->event_handler_types[e]);
+            egoverlay_free(lua->event_handler_types[e]);
             lua_event_handler_t *h = lua->event_handlers[e];
             while (h) {
                 lua_event_handler_t *next = h->next;
                 luaL_unref(lua->lua, LUA_REGISTRYINDEX, h->cbi);
-                free(h);
+                egoverlay_free(h);
                 h = next;
             }
         }
     }
-    free(lua->event_handlers);
-    free(lua->event_handler_types);
+    egoverlay_free(lua->event_handlers);
+    egoverlay_free(lua->event_handler_types);
 
     lua_manager_module_opener_t *mo = lua->module_openers;
     while (mo) {
-        free(mo->name);
+        egoverlay_free(mo->name);
         lua_manager_module_opener_t *next = mo->next;
-        free(mo);
+        egoverlay_free(mo);
         mo = next;
     }    
 
     lua_close(lua->lua);
+    egoverlay_free(lua);
 }
 
 void lua_manager_add_module_opener(const char *name, lua_manager_module_opener_fn *opener_fn) {
-    lua_manager_module_opener_t *mo = calloc(1, sizeof(lua_manager_module_opener_t));
+    lua_manager_module_opener_t *mo = egoverlay_calloc(1, sizeof(lua_manager_module_opener_t));
     mo->opener_fn = opener_fn;
-    mo->name = calloc(strlen(name) + 1, sizeof(char));
+    mo->name = egoverlay_calloc(strlen(name) + 1, sizeof(char));
     memcpy(mo->name, name, strlen(name));
 
     if (lua->module_openers==NULL) {
@@ -245,10 +250,10 @@ char *lua_manager_get_lua_module_name2(lua_State *L, int stack_depth) {
     }
 
     size_t name_len = strlen(path) - start;
-    name = calloc(name_len+1, sizeof(char));
+    name = egoverlay_calloc(name_len+1, sizeof(char));
     memcpy(name, path + start, name_len);
 
-    free(path);
+    egoverlay_free(path);
 
     return name;
 }
@@ -263,11 +268,11 @@ char *lua_manager_get_lua_module_name_and_line2(lua_State *L, int stack_depth) {
     lua_getstack(L, stack_depth, &st);
     lua_getinfo(L, "l", &st);
 
-    char *nal = calloc(strlen(name) + 1 + 7, sizeof(char));
+    char *nal = egoverlay_calloc(strlen(name) + 1 + 7, sizeof(char));
     memcpy(nal, name, strlen(name));
     nal[strlen(name)] = ':';
     snprintf(nal + strlen(name) + 1, 6, "%d", st.currentline);
-    free(name);
+    egoverlay_free(name);
 
     return nal;
 }
@@ -281,7 +286,7 @@ char *get_lua_module_path(lua_State *L, int stack_depth) {
     lua_getstack(L, stack_depth, &st);
     lua_getinfo(L, "S", &st);
 
-    char *path = calloc(strlen(st.source)+1, sizeof(char));
+    char *path = egoverlay_calloc(strlen(st.source)+1, sizeof(char));
     memcpy(path, st.source, strlen(st.source));
 
     return path;
@@ -330,7 +335,7 @@ static int overlay_add_event_handler(lua_State *L) {
     lua_pushvalue(L, 2);
     int cbi = luaL_ref(L, LUA_REGISTRYINDEX);
 
-    lua_event_handler_t *h = calloc(1, sizeof(lua_event_handler_t));
+    lua_event_handler_t *h = egoverlay_calloc(1, sizeof(lua_event_handler_t));
     h->cbi = cbi;
     
     uint32_t event_hash = djb2_hash_string(event);
@@ -346,7 +351,7 @@ static int overlay_add_event_handler(lua_State *L) {
     }
 
     if (lua->event_handler_types[event_ind]==NULL) {
-        lua->event_handler_types[event_ind] = calloc(strlen(event) + 1, sizeof(char));
+        lua->event_handler_types[event_ind] = egoverlay_calloc(strlen(event) + 1, sizeof(char));
         memcpy(lua->event_handler_types[event_ind], event, strlen(event));
     }
 
@@ -360,7 +365,7 @@ static int overlay_add_event_handler(lua_State *L) {
 
     char *mod = lua_manager_get_lua_module_name(L);
     logger_info(lua->log, "%s registered for %s events.", mod, event);
-    free(mod);
+    egoverlay_free(mod);
 
     lua_pushinteger(L, cbi);
 
@@ -414,11 +419,11 @@ static int overlay_remove_event_handler(lua_State *L) {
 
     if (prev) prev->next = h->next;
     if (prev==NULL) lua->event_handlers[event_ind] = h->next;
-    free(h);
+    egoverlay_free(h);
 
     char *mod = lua_manager_get_lua_module_name(L);
     logger_info(lua->log, "%s unregistered for %s events.", mod, event);
-    free(mod);
+    egoverlay_free(mod);
 
     return 0;
 }
@@ -448,9 +453,9 @@ static int overlay_queue_event(lua_State *L) {
         data_cbi = luaL_ref(L, LUA_REGISTRYINDEX);
     }
 
-    lua_event_list_t *e = calloc(1, sizeof(lua_event_list_t));
+    lua_event_list_t *e = egoverlay_calloc(1, sizeof(lua_event_list_t));
     e->data_cbi = data_cbi;
-    e->event = calloc(strlen(event)+1, sizeof(char));
+    e->event = egoverlay_calloc(strlen(event)+1, sizeof(char));
     memcpy(e->event, event, strlen(event));
 
     if (event_queue==NULL) {
@@ -533,7 +538,7 @@ void lua_manager_settabletref_bool(int table_ind, const char *field, int value) 
 }
 
 void lua_manager_add_event_callback(lua_manager_event_callback *cb, void *data) {
-    lua_event_callback_list_t *e = calloc(1, sizeof(lua_event_callback_list_t));
+    lua_event_callback_list_t *e = egoverlay_calloc(1, sizeof(lua_event_callback_list_t));
     e->cb = cb;
     e->data = data;
 
@@ -569,7 +574,7 @@ static lua_event_handler_t *get_event_handlers(const char *event) {
 }
 
 void lua_manager_add_coroutine_thread(lua_State *thread, int threadi) {
-    lua_manager_coroutine_thread_list_t *coroutine = calloc(1, sizeof(lua_manager_coroutine_thread_list_t));
+    lua_manager_coroutine_thread_list_t *coroutine = egoverlay_calloc(1, sizeof(lua_manager_coroutine_thread_list_t));
     coroutine->thread = thread;
     coroutine->threadi = threadi;
 
@@ -593,7 +598,7 @@ void lua_manager_remove_coroutine_thread(int threadi) {
             lua_closethread(c->thread, NULL);
             if (p) p->next = c->next;
             if (lua->coroutine_threads==c) lua->coroutine_threads = c->next;
-            free(c);
+            egoverlay_free(c);
             return;
         }
         p = c;
@@ -639,7 +644,7 @@ void lua_manager_run_events() {
         }
         
         if (lua->event_cbs==e) lua->event_cbs = e->next;
-        free(e);
+        egoverlay_free(e);
         if (prev) prev->next = e->next;
         e = next;
     }
@@ -665,7 +670,7 @@ int lua_manager_resume_coroutines() {
             if (p) p->next = c->next;
             if (lua->coroutine_threads==c) lua->coroutine_threads = c->next;
             lua_manager_coroutine_thread_list_t *n = c->next;
-            free(c);
+            egoverlay_free(c);
             c = n;
         } else {
             // error, clean up the thread
@@ -677,7 +682,7 @@ int lua_manager_resume_coroutines() {
             if (p) p->next = c->next;
             if (lua->coroutine_threads==c) lua->coroutine_threads = c->next;
             lua_manager_coroutine_thread_list_t *n = c->next;
-            free(c);
+            egoverlay_free(c);
             c = n;
         }
     }
@@ -748,9 +753,9 @@ void lua_manager_run_event_queue() {
 
         lua_manager_call_event_handlers(eq->event, eq->data_cbi);
 
-        free(eq->event);
+        egoverlay_free(eq->event);
         if (eq->data_cbi) luaL_unref(lua->lua, LUA_REGISTRYINDEX, eq->data_cbi);
-        free(eq);
+        egoverlay_free(eq);
         eq = next;
     }
 }
@@ -760,7 +765,7 @@ void lua_manager_run_event(const char *event, json_t *data) {
         return;
     }
 
-    int data_cbi = NULL;
+    int data_cbi = 0;
     if (data) {
         lua_pushjson(lua->lua, data);
         data_cbi = luaL_ref(lua->lua, LUA_REGISTRYINDEX);
@@ -776,12 +781,12 @@ void lua_manager_queue_event(const char *event, json_t *data) {
         return;
     }
 
-    lua_event_list_t *e = calloc(1, sizeof(lua_event_list_t));
+    lua_event_list_t *e = egoverlay_calloc(1, sizeof(lua_event_list_t));
     if (data) {
         e->data = data;
         json_incref(data);
     }
-    e->event = calloc(strlen(event)+1, sizeof(char));
+    e->event = egoverlay_calloc(strlen(event)+1, sizeof(char));
     memcpy(e->event, event, strlen(event));
 
     if (event_queue==NULL) {
@@ -940,7 +945,7 @@ static int overlay_data_folder(lua_State *L) {
     const char *name = luaL_checkstring(L, 1);
 
     size_t proc_path_len = MAX_PATH;
-    char *proc_path = calloc(proc_path_len+1, sizeof(char));
+    char *proc_path = egoverlay_calloc(proc_path_len+1, sizeof(char));
 
     proc_path_len = GetModuleFileName(NULL, proc_path, (DWORD)proc_path_len);
     if (!proc_path_len) {
@@ -956,30 +961,31 @@ static int overlay_data_folder(lua_State *L) {
     }
 
     size_t data_path_len = last_sep + strlen("\\data\\") + strlen(name) + 2;
-    char *data_path = calloc(data_path_len, sizeof(char));
+    char *data_path = egoverlay_calloc(data_path_len, sizeof(char));
 
     memcpy(data_path, proc_path, last_sep);
+    egoverlay_free(proc_path);
     memcpy(data_path + last_sep, "\\data\\",strlen("\\data\\"));
     memcpy(data_path + last_sep + strlen("\\data\\"), name, strlen(name));
     data_path[data_path_len-2] = '\\';
 
     switch(SHCreateDirectoryEx(NULL, data_path, NULL)) {
     case ERROR_BAD_PATHNAME:
-        free(data_path);
+        egoverlay_free(data_path);
         return luaL_error(L, "Couldn't create data directory: bad pathname.");
     case ERROR_FILENAME_EXCED_RANGE:
-        free(data_path);
+        egoverlay_free(data_path);
         return luaL_error(L, "Couldn't create data directory: filename exceeded range.");
     case ERROR_PATH_NOT_FOUND:
-        free(data_path);
+        egoverlay_free(data_path);
         return luaL_error(L, "Couldn't create data directory: path not found.");
     case ERROR_CANCELLED:
-        free(data_path);
+        egoverlay_free(data_path);
         return luaL_error(L, "Couldn't create data directory: cancelled.");
     }
 
     lua_pushstring(L, data_path);
-    free(data_path);
+    egoverlay_free(data_path);
 
     return 1;
 }

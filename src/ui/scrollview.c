@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <lauxlib.h>
 #include "scrollview.h"
-#include "utils.h"
+#include "../utils.h"
 #include "../logging/logger.h"
 #include "rect.h"
 #include "../app.h"
@@ -44,7 +44,7 @@ int ui_scroll_view_process_mouse_event(ui_scroll_view_t *scroll, ui_mouse_event_
 void ui_scroll_view_size_updated(ui_scroll_view_t *scroll);
 
 ui_scroll_view_t *ui_scroll_view_new() {
-    ui_scroll_view_t *scroll = calloc(1, sizeof(ui_scroll_view_t));
+    ui_scroll_view_t *scroll = egoverlay_calloc(1, sizeof(ui_scroll_view_t));
     scroll->element.width = 100;
     scroll->element.height = 100;
     scroll->element.draw = &ui_scroll_view_draw;
@@ -59,7 +59,9 @@ ui_scroll_view_t *ui_scroll_view_new() {
 }
 
 void ui_scroll_view_free(ui_scroll_view_t *scroll) {
-    free(scroll);
+    if (scroll->child) ui_element_unref(scroll->child);
+
+    egoverlay_free(scroll);
 }
 
 void ui_scroll_view_set_child(ui_scroll_view_t *scroll, ui_element_t *child) {
@@ -359,11 +361,7 @@ Classes
 int ui_scroll_view_lua_del(lua_State *L) {
     ui_scroll_view_t *sv = LUA_CHECK_SCROLLVIEW(L, 1);
 
-    lua_getiuservalue(L, -1, 1);
-    int lua_managed = lua_toboolean(L, -1);
-    lua_pop(L, 1);
-
-    if (lua_managed) ui_scroll_view_free(sv);
+    ui_element_unref(sv);
 
     return 0;
 }

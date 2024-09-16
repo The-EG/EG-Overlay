@@ -116,8 +116,8 @@ void ui_font_init() {
 
     glGenVertexArrays(1, &vao);
 
-    cache_fonts = calloc(CACHE_MAX_SIZE, sizeof(ui_font_t*));
-    cache_keys = calloc(CACHE_MAX_SIZE, sizeof(uint32_t));
+    cache_fonts = egoverlay_calloc(CACHE_MAX_SIZE, sizeof(ui_font_t*));
+    cache_keys = egoverlay_calloc(CACHE_MAX_SIZE, sizeof(uint32_t));
 }
 
 void ui_font_cleanup() {
@@ -125,8 +125,8 @@ void ui_font_cleanup() {
     for (size_t i=0;i<CACHE_MAX_SIZE;i++) {
         if (cache_keys[i]) ui_font_free(cache_fonts[i]);
     }
-    free(cache_fonts);
-    free(cache_keys);
+    egoverlay_free(cache_fonts);
+    egoverlay_free(cache_keys);
 
     gl_shader_program_free(shader_program);
 
@@ -136,7 +136,7 @@ void ui_font_cleanup() {
 }
 
 ui_font_t *ui_font_new(const char *path, int size, int weight, int slant, int width) {
-    ui_font_t *font = calloc(1, sizeof(ui_font_t));
+    ui_font_t *font = egoverlay_calloc(1, sizeof(ui_font_t));
 
     FT_Error err = FT_New_Face(ftlib, path, 0, &font->face);
     if (err) {
@@ -147,7 +147,7 @@ ui_font_t *ui_font_new(const char *path, int size, int weight, int slant, int wi
 
     FT_MM_Var *mm_var;
     if (!FT_Get_MM_Var(font->face, &mm_var)) {
-        FT_Fixed *coords = calloc(mm_var->num_axis, sizeof(FT_Fixed));
+        FT_Fixed *coords = egoverlay_calloc(mm_var->num_axis, sizeof(FT_Fixed));
         FT_Get_Var_Design_Coordinates(font->face, mm_var->num_axis, coords);
 
         for (FT_UInt a=0;a<mm_var->num_axis;a++) {
@@ -186,7 +186,7 @@ ui_font_t *ui_font_new(const char *path, int size, int weight, int slant, int wi
 
         FT_Set_Var_Design_Coordinates(font->face, mm_var->num_axis, coords);
         FT_Done_MM_Var(ftlib, mm_var);
-        free(coords);
+        egoverlay_free(coords);
     } else {
         logger_warn(logger, "%s is not a variable font; weight, slant, and width will be ignored.", path);
     }
@@ -225,24 +225,24 @@ void ui_font_free(ui_font_t *font) {
     glyph_page_t *p = font->glyph_pages;
     while (p) {
         glDeleteTextures(1, &p->texture);
-        free(p->glyphs);
-        free(p->pixels);
-        free(p->metrics);
+        egoverlay_free(p->glyphs);
+        egoverlay_free(p->pixels);
+        egoverlay_free(p->metrics);
         glyph_page_t *z = p;
         p = z->next;
-        free(z);
+        egoverlay_free(z);
     }
 
     FT_Done_Face(font->face);
 
-    free(font);
+    egoverlay_free(font);
 }
 
 static glyph_page_t *ui_font_init_page(ui_font_t *font) {
-    glyph_page_t *page = calloc(1, sizeof(glyph_page_t));
-    page->glyphs = calloc(font->page_max_glyphs, sizeof(uint32_t));
-    page->pixels = calloc((GLYPH_TEX_SIZE * GLYPH_TEX_SIZE), sizeof(uint8_t));
-    page->metrics = calloc(font->page_max_glyphs, sizeof(glyph_metrics_t));
+    glyph_page_t *page = egoverlay_calloc(1, sizeof(glyph_page_t));
+    page->glyphs = egoverlay_calloc(font->page_max_glyphs, sizeof(uint32_t));
+    page->pixels = egoverlay_calloc((GLYPH_TEX_SIZE * GLYPH_TEX_SIZE), sizeof(uint8_t));
+    page->metrics = egoverlay_calloc(font->page_max_glyphs, sizeof(glyph_metrics_t));
 
     glGenTextures(1, &page->texture);
 
@@ -754,7 +754,7 @@ int ui_font_get_text_wrap_indices(ui_font_t *font, const char *text, int width, 
         if (codepoint==' ' || codepoint=='\t') last_break_ind = (int)c;
 
         if (penx > width) {
-            breaks = realloc(breaks, (break_count + 1) * sizeof(int));
+            breaks = egoverlay_realloc(breaks, (break_count + 1) * sizeof(int));
             if (last_break_ind > 0) {
                 breaks[break_count++] = last_break_ind;
                 c = last_break_ind + 1;

@@ -1,6 +1,6 @@
 #include "button.h"
 #include "ui.h"
-#include "utils.h"
+#include "../utils.h"
 #include "rect.h"
 #include "text.h"
 #include "../app.h"
@@ -39,7 +39,7 @@ int ui_button_get_preferred_size(ui_button_t *button, int *width, int *height);
 int ui_button_process_mouse_event(ui_button_t *button, ui_mouse_event_t *event, int offset_x, int offset_y);
 
 ui_button_t *ui_button_new() {
-    ui_button_t *btn = calloc(1, sizeof(ui_button_t));
+    ui_button_t *btn = egoverlay_calloc(1, sizeof(ui_button_t));
 
     btn->element.draw                = &ui_button_draw;
     btn->element.get_preferred_size  = &ui_button_get_preferred_size;
@@ -74,9 +74,9 @@ void ui_button_free(ui_button_t *button) {
     if (button->child) ui_element_unref(button->child);
     if (button->lua_bind_table) {
         lua_manager_unref(button->lua_bind_table);
-        free(button->lua_bind_field);
+        egoverlay_free(button->lua_bind_field);
     }
-    free(button);
+    egoverlay_free(button);
 }
 
 void ui_button_draw(ui_button_t *button, int offset_x, int offset_y, mat4f_t *proj) {
@@ -483,7 +483,7 @@ int ui_button_lua_bind_value(lua_State *L) {
     
     if (btn->lua_bind_table) {
         luaL_unref(L, LUA_REGISTRYINDEX, btn->lua_bind_table);
-        free(btn->lua_bind_field);
+        egoverlay_free(btn->lua_bind_field);
     }
 
     const char *field = lua_tostring(L, 3);
@@ -491,7 +491,7 @@ int ui_button_lua_bind_value(lua_State *L) {
     lua_pushvalue(L, 2);
     btn->lua_bind_table = luaL_ref(L, LUA_REGISTRYINDEX);
 
-    btn->lua_bind_field = calloc(strlen(field)+1, sizeof(char));
+    btn->lua_bind_field = egoverlay_calloc(strlen(field)+1, sizeof(char));
     memcpy(btn->lua_bind_field, field, strlen(field));
 
     return 0;

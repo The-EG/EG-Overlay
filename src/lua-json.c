@@ -356,8 +356,6 @@ json_t *lua_tojson(lua_State *L, int index) {
     case LUA_TNIL:      return json_null();
     case LUA_TSTRING: {
         const char *val = lua_tostring(L, index);
-        //char *newstr = calloc(strlen(val)+1, sizeof(char));
-        //memcpy(newstr, val, strlen(val));
         return json_string(val);
     }   
     default:

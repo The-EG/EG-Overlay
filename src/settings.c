@@ -66,12 +66,12 @@ int settings_lua_save(lua_State *L);
 settings_t *settings_new(const char *name) {
     CreateDirectory("settings", NULL);
 
-    settings_t *settings = calloc(1, sizeof(settings_t));
+    settings_t *settings = egoverlay_calloc(1, sizeof(settings_t));
     settings->log = logger_get("settings");
     
     settings->mutex = CreateMutex(NULL, 0, NULL);
 
-    settings->file_path  = calloc(strlen(name) + strlen("settings/.json") + 1, sizeof(char));
+    settings->file_path  = egoverlay_calloc(strlen(name) + strlen("settings/.json") + 1, sizeof(char));
     memcpy(settings->file_path , "settings/", strlen("settings/"));
     memcpy(settings->file_path  + strlen("settings/"), name, strlen(name));
     memcpy(settings->file_path  + strlen("settings/") + strlen(name), ".json", strlen(".json"));
@@ -90,8 +90,8 @@ settings_t *settings_new(const char *name) {
     }
 
     settings->default_values_hash_size = 64;
-    settings->default_keys = calloc(settings->default_values_hash_size, sizeof(char*));
-    settings->default_values = calloc(settings->default_values_hash_size, sizeof(settings_default_t*));
+    settings->default_keys = egoverlay_calloc(settings->default_values_hash_size, sizeof(char*));
+    settings->default_values = egoverlay_calloc(settings->default_values_hash_size, sizeof(settings_default_t*));
 
     settings->save_on_set = 1;
 
@@ -112,20 +112,20 @@ void settings_unref(settings_t *settings) {
 void settings_free(settings_t *settings) {
     for (size_t h=0;h<settings->default_values_hash_size;h++) {
         if (settings->default_keys[h]) {
-            free(settings->default_keys[h]);
-            if (settings->default_values[h]->type==SETTINGS_DEFAULT_TYPE_STRING) free(settings->default_values[h]->value_str);
+            egoverlay_free(settings->default_keys[h]);
+            if (settings->default_values[h]->type==SETTINGS_DEFAULT_TYPE_STRING) egoverlay_free(settings->default_values[h]->value_str);
             if (settings->default_values[h]->type==SETTINGS_DEFAULT_TYPE_JSON) json_decref(settings->default_values[h]->value_json);
-            free(settings->default_values[h]);
+            egoverlay_free(settings->default_values[h]);
         }
     }
-    free(settings->default_keys);
-    free(settings->default_values);
+    egoverlay_free(settings->default_keys);
+    egoverlay_free(settings->default_values);
 
     CloseHandle(settings->mutex);
-    free(settings->file_path);
+    egoverlay_free(settings->file_path);
     json_decref(settings->data);
 
-    free(settings);
+    egoverlay_free(settings);
 }
 
 int settings_open_lua_module(lua_State *L) {
@@ -298,19 +298,19 @@ void settings_set_internal(settings_t *settings, const char *key, json_t *value)
 
     json_t *parent = settings->data;
     if (last_dot) {
-        char *parent_path = calloc(last_dot+1, sizeof(char));
+        char *parent_path = egoverlay_calloc(last_dot+1, sizeof(char));
         memcpy(parent_path, key, last_dot);
 
         parent = settings_data_for_path(parent_path, settings->data, 1);
-        free(parent_path);
+        egoverlay_free(parent_path);
     }
 
     size_t node_key_len = keylen - last_dot;
-    char *node_key = calloc(node_key_len + 1, sizeof(char));
+    char *node_key = egoverlay_calloc(node_key_len + 1, sizeof(char));
     memcpy(node_key, key + last_dot + 1, node_key_len);
     
     json_object_set(parent, node_key, value);
-    free(node_key);
+    egoverlay_free(node_key);
 
     if (settings->save_on_set) settings_save(settings);    
 
@@ -383,14 +383,14 @@ json_t *settings_data_for_path(const char *path, json_t *data, int create) {
         return val;
     }
 
-    // otherwise look for the first node in the path and then recurse
-    char *first_node = calloc(first_dot + 1, sizeof(char));
+    // otherwise look for the first node in the path and then recurs
+    char *first_node = egoverlay_calloc(first_dot + 1, sizeof(char));
     memcpy(first_node, path, first_dot);
 
     json_t *node_data = json_object_get(data, first_node);
 
     if (node_data) {
-        free(first_node);
+        egoverlay_free(first_node);
         return settings_data_for_path(path + first_dot + 1, node_data, create);
     }
 
@@ -399,10 +399,10 @@ json_t *settings_data_for_path(const char *path, json_t *data, int create) {
         json_t *val = json_object();
         json_object_set(data, first_node, val);
         json_decref(val);
-        free(first_node);
+        egoverlay_free(first_node);
         return settings_data_for_path(path + first_dot + 1, val, 1);
     }    
-    free(first_node);
+    egoverlay_free(first_node);
     return NULL;
 }
 
@@ -437,7 +437,7 @@ uint32_t settings_get_default_key_ind_and_create(settings_t *settings, const cha
     uint32_t key_ind = settings_get_default_key_ind(settings, key);
 
     if (settings->default_keys[key_ind]==NULL) {
-        settings->default_keys[key_ind] = calloc(strlen(key)+1, sizeof(char));
+        settings->default_keys[key_ind] = egoverlay_calloc(strlen(key)+1, sizeof(char));
         memcpy(settings->default_keys[key_ind], key, strlen(key));
     }
 
@@ -446,7 +446,7 @@ uint32_t settings_get_default_key_ind_and_create(settings_t *settings, const cha
 
 void settings_free_default_value(settings_default_t *dv) {
     if (dv->type==SETTINGS_DEFAULT_TYPE_JSON) json_decref(dv->value_json);
-    if (dv->type==SETTINGS_DEFAULT_TYPE_STRING) free(dv->value_str);
+    if (dv->type==SETTINGS_DEFAULT_TYPE_STRING) egoverlay_free(dv->value_str);
 }
 
 void settings_set_default(settings_t *settings, const char *key, json_t *value) {
@@ -455,7 +455,7 @@ void settings_set_default(settings_t *settings, const char *key, json_t *value) 
     if (settings->default_values[key_ind]) {
         settings_free_default_value(settings->default_values[key_ind]);
     } else {
-        settings->default_values[key_ind] = calloc(1, sizeof(settings_default_t));
+        settings->default_values[key_ind] = egoverlay_calloc(1, sizeof(settings_default_t));
 
     }
     settings->default_values[key_ind]->type = SETTINGS_DEFAULT_TYPE_JSON;
@@ -468,7 +468,7 @@ void settings_set_default_int(settings_t *settings, const char *key, int value) 
     if (settings->default_values[key_ind]) {
         settings_free_default_value(settings->default_values[key_ind]);
     } else {
-        settings->default_values[key_ind] = calloc(1, sizeof(settings_default_t));
+        settings->default_values[key_ind] = egoverlay_calloc(1, sizeof(settings_default_t));
 
     }
     settings->default_values[key_ind]->type = SETTINGS_DEFAULT_TYPE_INT;
@@ -481,11 +481,11 @@ void settings_set_default_string(settings_t *settings, const char *key, const ch
     if (settings->default_values[key_ind]) {
         settings_free_default_value(settings->default_values[key_ind]);
     } else {
-        settings->default_values[key_ind] = calloc(1, sizeof(settings_default_t));
+        settings->default_values[key_ind] = egoverlay_calloc(1, sizeof(settings_default_t));
 
     }
     settings->default_values[key_ind]->type = SETTINGS_DEFAULT_TYPE_STRING;
-    settings->default_values[key_ind]->value_str = calloc(strlen(value)+1, sizeof(char));
+    settings->default_values[key_ind]->value_str = egoverlay_calloc(strlen(value)+1, sizeof(char));
     memcpy(settings->default_values[key_ind]->value_str, value, strlen(value));
 }
 
@@ -495,7 +495,7 @@ void settings_set_default_double(settings_t *settings, const char *key, double v
     if (settings->default_values[key_ind]) {
         settings_free_default_value(settings->default_values[key_ind]);
     } else {
-        settings->default_values[key_ind] = calloc(1, sizeof(settings_default_t));
+        settings->default_values[key_ind] = egoverlay_calloc(1, sizeof(settings_default_t));
 
     }
     settings->default_values[key_ind]->type = SETTINGS_DEFAULT_TYPE_DOUBLE;
@@ -508,7 +508,7 @@ void settings_set_default_boolean(settings_t *settings, const char *key, int val
     if (settings->default_values[key_ind]) {
         settings_free_default_value(settings->default_values[key_ind]);
     } else {
-        settings->default_values[key_ind] = calloc(1, sizeof(settings_default_t));
+        settings->default_values[key_ind] = egoverlay_calloc(1, sizeof(settings_default_t));
 
     }
     settings->default_values[key_ind]->type = SETTINGS_DEFAULT_TYPE_BOOLEAN;

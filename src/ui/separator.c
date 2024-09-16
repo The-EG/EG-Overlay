@@ -3,6 +3,7 @@
 #include "separator.h"
 #include "rect.h"
 #include "../app.h"
+#include "../utils.h"
 #include <lauxlib.h>
 
 struct ui_separator_t {
@@ -22,7 +23,7 @@ void ui_separator_draw(ui_separator_t *sep, int offset_x, int offset_y, mat4f_t 
 int ui_separator_get_preferred_size(ui_separator_t *sep, int *width, int *height);
 
 ui_separator_t *ui_separator_new(int orientation) {
-    ui_separator_t *sep = calloc(1, sizeof(ui_separator_t));
+    ui_separator_t *sep = egoverlay_calloc(1, sizeof(ui_separator_t));
 
     sep->orientation = orientation;
     sep->thickness = 1;
@@ -38,7 +39,7 @@ ui_separator_t *ui_separator_new(int orientation) {
 }
 
 void ui_separator_free(ui_separator_t *sep) {
-    free(sep);
+    egoverlay_free(sep);
 }
 
 void ui_separator_draw(ui_separator_t *sep, int offset_x, int offset_y, mat4f_t *proj) {

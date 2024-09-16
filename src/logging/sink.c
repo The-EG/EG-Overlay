@@ -1,10 +1,11 @@
 #include <stdlib.h>
 #include <assert.h>
 #include "sink.h"
+#include "../utils.h"
 
 void log_sink_free(log_sink_t *sink) {
     if (sink->free) sink->free(sink);
-    else free(sink);
+    else egoverlay_free(sink);
 }
 
 void log_sink_write(log_sink_t *sink, enum LOGGER_LEVEL level, const char *message) {

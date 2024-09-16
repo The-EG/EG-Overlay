@@ -265,7 +265,7 @@ void app_init(HINSTANCE hinst, int argc, char **argv) {
     logger_info(log, "Git Commit: " GITHASHSTR);
     logger_info(log, "----------------------------------------------------");
 
-    app = calloc(1, sizeof(app_t));
+    app = egoverlay_calloc(1, sizeof(app_t));
     app->target_win_class = "ArenaNet_Gr_Window_Class";
     app->log = log;
     logger_debug(app->log, "init");
@@ -430,7 +430,7 @@ void app_cleanup() {
     logger_free(app->log);
     logger_cleanup();
 
-    free(app);
+    egoverlay_free(app);
 }
 
 static DWORD WINAPI app_render_thread(LPVOID lpParam) {
@@ -679,6 +679,7 @@ int app_run() {
     CloseHandle(render_thread);
 
     glfwMakeContextCurrent(app->win);
+    ui_clear_top_level_elements();
     lua_manager_cleanup();
     mumble_link_cleanup();
     overlay_3d_cleanup();
@@ -742,7 +743,7 @@ char *app_getclipboard_text() {
     }
 
     char *textcpy = GlobalLock(glbltext);
-    char *text = calloc(strlen(textcpy)+1, sizeof(char));
+    char *text = egoverlay_calloc(strlen(textcpy)+1, sizeof(char));
     memcpy(text, textcpy, strlen(textcpy));
     GlobalUnlock(textcpy);
 

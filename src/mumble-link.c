@@ -119,7 +119,7 @@ static void mumble_link_check_identity_cache();
 int mumble_link_open_module(lua_State *L);
 
 void mumble_link_init() {
-    ml = calloc(1, sizeof(ml_t));
+    ml = egoverlay_calloc(1, sizeof(ml_t));
     ml->log = logger_get("mumble-link");
 
     ml->map_file = CreateFileMapping(
@@ -237,7 +237,7 @@ void mumble_link_cleanup() {
     if (ml->identity_cache) json_decref(ml->identity_cache);
     if (ml->gw2_ml) UnmapViewOfFile(ml->gw2_ml);
     if (ml->map_file) CloseHandle(ml->map_file);
-    free(ml);
+    egoverlay_free(ml);
 }
 
 static void mumble_link_check_identity_cache() {
@@ -307,7 +307,7 @@ static int mumble_link_lua_index(lua_State *L) {
 
     char *mod_name = lua_manager_get_lua_module_name(L);
     logger_warn(ml->log, "%s tried to read mumble_link.%s, does not exist.", mod_name, key);
-    free(mod_name);
+    egoverlay_free(mod_name);
 
     return 0;
 }
@@ -315,7 +315,7 @@ static int mumble_link_lua_index(lua_State *L) {
 static int mumble_link_lua_new_index(lua_State *L) {
     char *mod_name = lua_manager_get_lua_module_name(L);
     logger_warn(ml->log, "%s tried to assign to mumble_link!", mod_name);
-    free(mod_name);
+    egoverlay_free(mod_name);
 
     return 0;
 }

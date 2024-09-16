@@ -146,6 +146,7 @@ void ui_cleanup();
 
 void ui_add_top_level_element(void *element);
 void ui_remove_top_level_element(void *element);
+void ui_clear_top_level_elements();
 void ui_move_element_to_top(void *element);
 
 int ui_process_mouse_event(ui_mouse_event_t *event);

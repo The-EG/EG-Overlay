@@ -34,7 +34,7 @@ static int ui_text_get_preferred_size(ui_text_t *text, int *width, int *height);
 void ui_text_update_size(ui_text_t *text);
 
 ui_text_t *ui_text_new(const char *text, ui_color_t color, ui_font_t *font) {
-    ui_text_t *t = calloc(1, sizeof(ui_text_t));
+    ui_text_t *t = egoverlay_calloc(1, sizeof(ui_text_t));
 
     t->element.draw = &ui_text_draw;
     t->element.get_preferred_size = &ui_text_get_preferred_size;
@@ -52,8 +52,8 @@ ui_text_t *ui_text_new(const char *text, ui_color_t color, ui_font_t *font) {
 }
 
 void ui_text_free(ui_text_t *text) {
-    free(text->text);
-    free(text);
+    egoverlay_free(text->text);
+    egoverlay_free(text);
 }
 
 void ui_text_update_size(ui_text_t *text) {
@@ -76,7 +76,7 @@ void ui_text_update_size(ui_text_t *text) {
     //text->pref_height = ui_font_get_text_height(text->font);
     text->pref_height = (ui_font_get_line_spacing(text->font) * text->lines) + 2;
 
-    if (text->wrap_indices) free(text->wrap_indices);
+    if (text->wrap_indices) egoverlay_free(text->wrap_indices);
     text->wrap_indices_count = 0;
 
     /*
@@ -91,7 +91,7 @@ void ui_text_update_size(ui_text_t *text) {
 
 
 void ui_text_update_text(ui_text_t *text, const char *new_text) {
-    if (text->text) free(text->text);
+    if (text->text) egoverlay_free(text->text);
 
     size_t text_len = 0;
     for (int c=0;c<strlen(new_text);c++) {
@@ -99,7 +99,7 @@ void ui_text_update_text(ui_text_t *text, const char *new_text) {
         else text_len++;
     }
 
-    text->text = calloc(text_len+1, sizeof(char));
+    text->text = egoverlay_calloc(text_len+1, sizeof(char));
     size_t ti = 0;
     for (int c=0;new_text[c];c++) {
         if (new_text[c]=='\t') {

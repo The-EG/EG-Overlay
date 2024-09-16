@@ -49,7 +49,7 @@ typedef struct {
 int ui_text_lua_keydown_event_run_callback(lua_State *L, keydown_event_data_t *data);
 
 ui_text_entry_t *ui_text_entry_new(ui_font_t *font) {
-    ui_text_entry_t *entry = calloc(1, sizeof(ui_text_entry_t));
+    ui_text_entry_t *entry = egoverlay_calloc(1, sizeof(ui_text_entry_t));
 
     entry->element.draw = &ui_text_entry_draw;
     entry->element.get_preferred_size = &ui_text_entry_get_preferred_size;
@@ -58,7 +58,7 @@ ui_text_entry_t *ui_text_entry_new(ui_font_t *font) {
     entry->element.process_keyboard_event = &ui_text_entry_process_keyboard_event;
 
     entry->font = font;
-    entry->text = calloc(MAX_TEXT_LEN + 1, sizeof(char));
+    entry->text = egoverlay_calloc(MAX_TEXT_LEN + 1, sizeof(char));
 
     entry->pref_width = 50;
     entry->pref_height = ui_font_get_line_spacing(entry->font) + 4;
@@ -70,8 +70,8 @@ ui_text_entry_t *ui_text_entry_new(ui_font_t *font) {
 
 void ui_text_entry_free(ui_text_entry_t *entry) {
     if (entry->lua_cbi) lua_manager_unref(entry->lua_cbi);
-    free(entry->text);
-    free(entry);
+    egoverlay_free(entry->text);
+    egoverlay_free(entry);
 }
 
 const char *ui_text_entry_get_text(ui_text_entry_t *entry) {
@@ -89,8 +89,8 @@ int ui_text_lua_keydown_event_run_callback(lua_State *L, keydown_event_data_t *d
     lua_rawgeti(L, LUA_REGISTRYINDEX, data->entry->lua_cbi);
     lua_pushstring(L, data->key_name);
 
-    free(data->key_name);
-    free(data);
+    egoverlay_free(data->key_name);
+    egoverlay_free(data);
 
     return 1;
 }
@@ -238,17 +238,17 @@ int ui_text_entry_process_keyboard_event(ui_text_entry_t *entry, ui_keyboard_eve
     }
 
     if (event->vk_key==VK_RETURN || event->vk_key==VK_UP || event->vk_key==VK_DOWN) {
-        keydown_event_data_t *kdevent = calloc(1, sizeof(keydown_event_data_t));
+        keydown_event_data_t *kdevent = egoverlay_calloc(1, sizeof(keydown_event_data_t));
         kdevent->entry = entry;
         
         if (event->vk_key==VK_RETURN) {
-            kdevent->key_name = calloc(strlen("return")+1, sizeof(char));
+            kdevent->key_name = egoverlay_calloc(strlen("return")+1, sizeof(char));
             memcpy(kdevent->key_name, "return", strlen("return"));
         } else if (event->vk_key==VK_UP) {
-            kdevent->key_name = calloc(strlen("up")+1, sizeof(char));
+            kdevent->key_name = egoverlay_calloc(strlen("up")+1, sizeof(char));
             memcpy(kdevent->key_name, "up", strlen("up"));
         } else if (event->vk_key==VK_DOWN) {
-            kdevent->key_name = calloc(strlen("down")+1, sizeof(char));
+            kdevent->key_name = egoverlay_calloc(strlen("down")+1, sizeof(char));
             memcpy(kdevent->key_name, "down", strlen("down"));
         }
 
@@ -281,11 +281,11 @@ int ui_text_entry_process_keyboard_event(ui_text_entry_t *entry, ui_keyboard_eve
             size_t ct_len = strlen(clipboard_text);
             if (entry->text_len + ct_len < MAX_TEXT_LEN) {
                 if (entry->caret_pos < entry->text_len) {
-                    char *text_right = calloc(entry->text_len - entry->caret_pos, sizeof(char));
+                    char *text_right = egoverlay_calloc(entry->text_len - entry->caret_pos, sizeof(char));
                     memcpy(text_right, entry->text + entry->caret_pos, entry->text_len - entry->caret_pos);
 
                     memcpy(entry->text + entry->caret_pos + strlen(clipboard_text), text_right, entry->text_len - entry->caret_pos);
-                    free(text_right);
+                    egoverlay_free(text_right);
                 }
             }
 
@@ -293,7 +293,7 @@ int ui_text_entry_process_keyboard_event(ui_text_entry_t *entry, ui_keyboard_eve
             entry->text_len += strlen(clipboard_text);
             ui_text_entry_set_caret_pos(entry, entry->caret_pos + (int)strlen(clipboard_text));
         }
-        free(clipboard_text);
+        egoverlay_free(clipboard_text);
     }
 
     if (!event->alt && !event->ctrl && event->ascii[0] && entry->text_len < MAX_TEXT_LEN) {
@@ -301,11 +301,11 @@ int ui_text_entry_process_keyboard_event(ui_text_entry_t *entry, ui_keyboard_eve
         if (event->ascii[1]) len++;
 
         if (entry->caret_pos < entry->text_len) {
-            char *text_right = calloc(entry->text_len - entry->caret_pos, sizeof(char));
+            char *text_right = egoverlay_calloc(entry->text_len - entry->caret_pos, sizeof(char));
             memcpy(text_right, entry->text + entry->caret_pos, entry->text_len - entry->caret_pos);
 
             memcpy(entry->text + entry->caret_pos + len, text_right, entry->text_len - entry->caret_pos);
-            free(text_right);
+            egoverlay_free(text_right);
         }        
 
         entry->text[entry->caret_pos++] = event->ascii[0];
@@ -318,9 +318,9 @@ int ui_text_entry_process_keyboard_event(ui_text_entry_t *entry, ui_keyboard_eve
 
         entry->caret_x = ui_font_get_text_width(entry->font, entry->text, entry->caret_pos);
 
-        keydown_event_data_t *kdevent = calloc(1, sizeof(keydown_event_data_t));
+        keydown_event_data_t *kdevent = egoverlay_calloc(1, sizeof(keydown_event_data_t));
         kdevent->entry = entry;
-        kdevent->key_name = calloc(len+1, sizeof(char));
+        kdevent->key_name = egoverlay_calloc(len+1, sizeof(char));
         memcpy(kdevent->key_name, event->ascii, len);
 
         if (entry->lua_cbi) lua_manager_add_event_callback(&ui_text_lua_keydown_event_run_callback, kdevent);
@@ -448,11 +448,11 @@ int ui_text_entry_lua_hint(lua_State *L) {
     ui_text_entry_t *entry = LUA_CHECK_TEXT_ENTRY(L, 1);
     const char *hint = luaL_checkstring(L, 2);
 
-    if (entry->hint) free(entry->hint);
+    if (entry->hint) egoverlay_free(entry->hint);
     size_t hint_len = strlen(hint);
     if (strlen(hint)<1) return 0;
 
-    entry->hint = calloc(hint_len + 1, sizeof(char));
+    entry->hint = egoverlay_calloc(hint_len + 1, sizeof(char));
     memcpy(entry->hint, hint, hint_len);
 
     return 0;

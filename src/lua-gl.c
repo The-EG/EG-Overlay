@@ -7,6 +7,7 @@
 #include "logging/logger.h"
 #include "gl.h"
 #include "ui/ui.h"
+#include "utils.h"
 
 typedef struct {
     gl_shader_program_t *sprite_program;
@@ -23,7 +24,7 @@ static overlay_3d_t *overlay_3d = NULL;
 int overlay_3d_lua_open_module(lua_State *L);
 
 void overlay_3d_init() {
-    overlay_3d = calloc(1, sizeof(overlay_3d_t));
+    overlay_3d = egoverlay_calloc(1, sizeof(overlay_3d_t));
 
     overlay_3d->sprite_program = gl_shader_program_new();
     gl_shader_program_attach_shader_file(overlay_3d->sprite_program, "shaders/sprite-collection.vert", GL_VERTEX_SHADER);
@@ -36,7 +37,7 @@ void overlay_3d_init() {
 void overlay_3d_cleanup() {
     gl_shader_program_free(overlay_3d->sprite_program);
 
-    free(overlay_3d);
+    egoverlay_free(overlay_3d);
 }
 
 void overlay_3d_begin_frame(mat4f_t *view, mat4f_t *proj) {
@@ -286,7 +287,7 @@ int texture_lua_new(lua_State *L) {
 
     // create the pixels for the square texture and copy the image data into it
     // leaving space on either the right or bottom needed to make it square
-    uint8_t *tex_pixels = calloc((texsize * texsize * 4), sizeof(uint8_t));
+    uint8_t *tex_pixels = egoverlay_calloc((texsize * texsize * 4), sizeof(uint8_t));
     for (size_t r=0;r<texh;r++) {
         size_t tex_row_offset = r * texsize * 4;
         size_t img_row_offset = r * texw    * 4;
@@ -305,7 +306,7 @@ int texture_lua_new(lua_State *L) {
 
     glBindTexture(GL_TEXTURE_2D, 0);
 
-    free(tex_pixels);
+    egoverlay_free(tex_pixels);
     stbi_image_free(pixels);
 
     if (luaL_newmetatable(L, TEXTURE_MT)) {
@@ -408,7 +409,7 @@ int sprite_collection_lua_updatelocations(lua_State *L) {
     size_t len = luaL_len(L, 2);
     if (len==0) return luaL_error(L, "updateloctions(locations): locations is empty.");
 
-    sprite_collection_location_t *locs = calloc(len, sizeof(sprite_collection_location_t));
+    sprite_collection_location_t *locs = egoverlay_calloc(len, sizeof(sprite_collection_location_t));
 
     lua_pushnil(L);
     int li = 0;
@@ -501,7 +502,7 @@ int sprite_collection_lua_updatelocations(lua_State *L) {
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     sprite->count = len;
-    free(locs);
+    egoverlay_free(locs);
 
     return 0;
 }

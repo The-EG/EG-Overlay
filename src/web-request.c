@@ -95,7 +95,7 @@ static size_t web_request_write_callback(char *ptr, size_t size, size_t nmemb, v
     size_t cur_len = (*data) ? strlen(*data) : 0;
     size_t new_len = cur_len + nmemb + 1;
 
-    *data = realloc(*data, new_len);
+    *data = egoverlay_realloc(*data, new_len);
     //if (cur_len) memcpy(new_data, *data, cur_len);
     memcpy((*data) + cur_len, ptr, nmemb);
     (*data)[new_len-1] = 0;
@@ -133,8 +133,8 @@ static int web_request_run_lua_callback(lua_State *L, struct web_request_lua_cal
     luaL_unref(L, LUA_REGISTRYINDEX, data->cbi);
     luaL_unref(L, LUA_REGISTRYINDEX, data->reqi);
 
-    free(data->data);
-    free(data);
+    egoverlay_free(data->data);
+    egoverlay_free(data);
 
     return 3;
 }
@@ -149,7 +149,7 @@ static void web_request_perform(web_request_list_t *req) {
     web_request_value_list_t *v = request->query_params;
     while (v) {
         size_t query_param_size = strlen(v->name) + strlen(v->value) + 1;
-        char *query_param = calloc(query_param_size + 1, sizeof(char));
+        char *query_param = egoverlay_calloc(query_param_size + 1, sizeof(char));
         
         memcpy(query_param, v->name, strlen(v->name));
         query_param[strlen(v->name)] = '=';
@@ -157,7 +157,7 @@ static void web_request_perform(web_request_list_t *req) {
 
         curl_url_set(url, CURLUPART_QUERY, query_param, CURLU_URLENCODE | CURLU_APPENDQUERY);
 
-        free(query_param);
+        egoverlay_free(query_param);
 
         v = v->next;
     }
@@ -169,7 +169,7 @@ static void web_request_perform(web_request_list_t *req) {
     v = request->headers;
     while (v) {
         size_t header_size = strlen(v->name) + strlen(v->value) + 2;
-        char *header = calloc(header_size + 1, sizeof(char));
+        char *header = egoverlay_calloc(header_size + 1, sizeof(char));
 
         memcpy(header, v->name, strlen(v->name));
         memcpy(header + strlen(v->name), ": ", 2);
@@ -177,7 +177,7 @@ static void web_request_perform(web_request_list_t *req) {
 
         hdrs = curl_slist_append(hdrs, header);
 
-        free(header);
+        egoverlay_free(header);
 
         v = v->next;
     }
@@ -205,9 +205,9 @@ static void web_request_perform(web_request_list_t *req) {
 
         if (req->cb) req->cb(http_code, data, request);
         if (req->cbi){
-            struct web_request_lua_callback_data *ld = calloc(1, sizeof(struct web_request_lua_callback_data));
+            struct web_request_lua_callback_data *ld = egoverlay_calloc(1, sizeof(struct web_request_lua_callback_data));
             ld->cbi = req->cbi;
-            ld->data = calloc(strlen(data)+1, sizeof(char));
+            ld->data = egoverlay_calloc(strlen(data)+1, sizeof(char));
             memcpy(ld->data, data, strlen(data));
             ld->req = request;
             ld->reqi = req->requesti;
@@ -220,7 +220,7 @@ static void web_request_perform(web_request_list_t *req) {
 
     curl_url_cleanup(url);
 
-    if (data) free(data);
+    if (data) egoverlay_free(data);
 
     if (hdrs) curl_slist_free_all(hdrs);
 
@@ -247,8 +247,8 @@ static DWORD WINAPI web_request_thread(LPVOID lpParam) {
             web_request_perform(r);
             web_request_list_t *prev = r;
             r = r->next;
-            if (prev->source) free(prev->source);
-            free(prev);
+            if (prev->source) egoverlay_free(prev->source);
+            egoverlay_free(prev);
         }
         Sleep(25);
     }
@@ -259,24 +259,24 @@ static DWORD WINAPI web_request_thread(LPVOID lpParam) {
 
 
 web_request_t *web_request_new(const char *url) {
-    web_request_t *r = calloc(1, sizeof(web_request_t));
+    web_request_t *r = egoverlay_calloc(1, sizeof(web_request_t));
 
-    r->url = calloc(strlen(url) + 1, sizeof(char));
+    r->url = egoverlay_calloc(strlen(url) + 1, sizeof(char));
     memcpy(r->url, url, strlen(url));
 
     return r;
 }
 
 void web_request_free(web_request_t *request) {
-    free(request->url);
+    egoverlay_free(request->url);
 
     web_request_value_list_t *v = request->headers;
     web_request_value_list_t *n = NULL;
     while (v) {
-        free(v->name);
-        free(v->value);
+        egoverlay_free(v->name);
+        egoverlay_free(v->value);
         n = v->next;
-        free(v);
+        egoverlay_free(v);
         v = n;
     }
 
@@ -284,21 +284,21 @@ void web_request_free(web_request_t *request) {
     n = NULL;
 
     while (v) {
-        free(v->name);
-        free(v->value);
+        egoverlay_free(v->name);
+        egoverlay_free(v->value);
         n = v->next;
-        free(v);
+        egoverlay_free(v);
         v = n;
     }
 
-    free(request);
+    egoverlay_free(request);
 }
 
 static web_request_value_list_t *web_request_value_list_new_item(const char *name, const char *value) {
-    web_request_value_list_t *v = calloc(1, sizeof(web_request_value_list_t));
-    v->name = calloc(strlen(name)+1, sizeof(char));
+    web_request_value_list_t *v = egoverlay_calloc(1, sizeof(web_request_value_list_t));
+    v->name = egoverlay_calloc(strlen(name)+1, sizeof(char));
     memcpy(v->name, name, strlen(name));
-    v->value = calloc(strlen(value)+1, sizeof(char));
+    v->value = egoverlay_calloc(strlen(value)+1, sizeof(char));
     memcpy(v->value, value, strlen(value));
 
     return v;
@@ -327,13 +327,13 @@ void web_request_add_query_parameter(web_request_t *request, const char *name, c
 }
 
 void web_request_queue(web_request_t *request, web_request_callback *callback, int free_after, const char *source, int cbi) {
-    web_request_list_t *w = calloc(1, sizeof(web_request_list_t));
+    web_request_list_t *w = egoverlay_calloc(1, sizeof(web_request_list_t));
     w->request = request;
     w->cb = callback;
     w->cbi = cbi;
 
     if (source) {
-        w->source = calloc(strlen(source)+1, sizeof(char));
+        w->source = egoverlay_calloc(strlen(source)+1, sizeof(char));
         memcpy(w->source, source, strlen(source));
     }
 
@@ -537,7 +537,7 @@ static int web_request_lua_add_query_parameter(lua_State *L) {
 static int web_request_lua_queue(lua_State *L) {
     web_request_t *r = LUA_CHECK_WEBREQUEST(L, 1);
 
-    web_request_list_t *w = calloc(1, sizeof(web_request_list_t));
+    web_request_list_t *w = egoverlay_calloc(1, sizeof(web_request_list_t));
     w->request = r;
 
     // save a reference to the request on the Lua side. This will keep
@@ -560,9 +560,9 @@ static int web_request_lua_queue(lua_State *L) {
     char *mod_name = lua_manager_get_lua_module_name_and_line2(L, stack_depth);
     size_t mod_name_len = strlen(mod_name);
 
-    w->source = calloc(mod_name_len+1, sizeof(char));
+    w->source = egoverlay_calloc(mod_name_len+1, sizeof(char));
     memcpy(w->source, mod_name, mod_name_len);
-    free(mod_name);
+    egoverlay_free(mod_name);
 
     WaitForSingleObject(queue_mutex, INFINITE);
 

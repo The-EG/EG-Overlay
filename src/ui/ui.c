@@ -18,6 +18,7 @@
 #include "text-entry.h"
 #include "separator.h"
 #include "grid.h"
+#include "../utils.h"
 
 #include <lauxlib.h>
 
@@ -75,7 +76,7 @@ typedef struct {
 int ui_element_lua_event_handler_callback(lua_State *L, ui_element_event_handler_data_t *data);
 
 void ui_init() {
-    ui = calloc(1, sizeof(ui_t));
+    ui = egoverlay_calloc(1, sizeof(ui_t));
 
     ui->log = logger_get("ui");
 
@@ -116,11 +117,23 @@ void ui_init() {
     lua_manager_add_module_opener("eg-overlay-ui", &ui_lua_open_module);
 }
 
+void ui_clear_top_level_elements() {
+    ui_element_list_t *tle=ui->top_level_elements;
+    while (tle) {
+        ui_element_list_t *n = tle->next;
+        ui_element_unref(tle->element);
+        egoverlay_free(tle);
+        tle = n;
+    }
+    ui->top_level_elements = NULL;
+}
+
 void ui_cleanup() {
+    
     ui_input_element_t *e = ui->input_elements;
     while (e) {
         ui_input_element_t *prev = e->prev;
-        free(e);
+        egoverlay_free(e);
         e = prev;
     }
 
@@ -131,7 +144,7 @@ void ui_cleanup() {
     ui_font_cleanup();
     ui_image_cleanup();
 
-    free(ui);
+    egoverlay_free(ui);
 }
 
 void ui_element_draw(void *element, int offset_x, int offset_y, mat4f_t *proj) {
@@ -180,7 +193,7 @@ void ui_add_top_level_element(void *element) {
         }
     }
 
-    ui_element_list_t *e = calloc(1, sizeof(ui_element_list_t));
+    ui_element_list_t *e = egoverlay_calloc(1, sizeof(ui_element_list_t));
 
     e->element = element;
 
@@ -215,7 +228,7 @@ void ui_remove_top_level_element(void *element) {
                 ui->top_level_elements = e->next;
             }
 
-            free(e);
+            egoverlay_free(e);
             return;
         }
         e = e->next;
@@ -256,7 +269,7 @@ void ui_draw(mat4f_t *proj) {
     while (ie) {
         ui_input_element_t *n = ie;
         ie = ie->prev;
-        free(n);
+        egoverlay_free(n);
     }
     ui->input_elements = NULL;
 
@@ -307,13 +320,13 @@ void ui_element_unref(ui_element_t *element) {
     for (size_t hi=0;hi<element->lua_event_handler_count;hi++) {
         lua_manager_unref(element->lua_event_handlers[hi]);
     }
-    if (element->lua_event_handlers) free(element->lua_event_handlers);
+    if (element->lua_event_handlers) egoverlay_free(element->lua_event_handlers);
 
     if (element->free) element->free(element);
 }
 
 void ui_add_input_element(int offset_x, int offset_y, int x, int y, int w, int h, ui_element_t *element) {
-    ui_input_element_t *e = calloc(1, sizeof(ui_input_element_t));
+    ui_input_element_t *e = egoverlay_calloc(1, sizeof(ui_input_element_t));
 
     e->offset_x = offset_x;
     e->offset_y = offset_y;
@@ -474,7 +487,7 @@ int ui_element_lua_addeventhandler(lua_State *L) {
     int *h = element->lua_event_handlers;
     size_t newcount = element->lua_event_handler_count + 1;
     
-    element->lua_event_handlers = realloc(h, newcount * sizeof(int));
+    element->lua_event_handlers = egoverlay_realloc(h, newcount * sizeof(int));
 
     lua_pushvalue(L, 2);
     int cbi = luaL_ref(L, LUA_REGISTRYINDEX);
@@ -506,7 +519,7 @@ int ui_element_lua_removeeventhandler(lua_State *L) {
         element->lua_event_handlers[i] = element->lua_event_handlers[i+1];
     }
 
-    element->lua_event_handlers = realloc(
+    element->lua_event_handlers = egoverlay_realloc(
         element->lua_event_handlers,
         sizeof(int) * (element->lua_event_handler_count - 1)
     );
@@ -517,10 +530,10 @@ int ui_element_lua_removeeventhandler(lua_State *L) {
 
 void ui_element_call_lua_event_handlers(ui_element_t *element, const char *event) {
     for (size_t hi=0;hi<element->lua_event_handler_count;hi++) {
-        ui_element_event_handler_data_t *d = calloc(1, sizeof(ui_element_event_handler_data_t));
+        ui_element_event_handler_data_t *d = egoverlay_calloc(1, sizeof(ui_element_event_handler_data_t));
 
         d->cbi = element->lua_event_handlers[hi];
-        d->event = calloc(strlen(event)+1, sizeof(char));
+        d->event = egoverlay_calloc(strlen(event)+1, sizeof(char));
         memcpy(d->event, event, strlen(event));
 
         lua_manager_add_event_callback(&ui_element_lua_event_handler_callback, d);
@@ -531,7 +544,8 @@ int ui_element_lua_event_handler_callback(lua_State *L, ui_element_event_handler
     lua_rawgeti(L, LUA_REGISTRYINDEX, data->cbi);
     lua_pushstring(L, data->event);
 
-    free(data);
+    egoverlay_free(data->event);
+    egoverlay_free(data);
     
     return 1;
 }
@@ -824,7 +838,7 @@ static void ui_lua_element_register_metatable(lua_State *L) {
 
 static int ui_lua_element(lua_State *L) {
     ui_lua_element_t **element = lua_newuserdata(L, sizeof(ui_lua_element_t*));
-    ui_lua_element_t *e = calloc(1, sizeof(ui_lua_element_t));
+    ui_lua_element_t *e = egoverlay_calloc(1, sizeof(ui_lua_element_t));
 
     *element = e;
 
@@ -867,7 +881,7 @@ static int ui_lua_element_del(lua_State *L) {
 
     if (element->draw_cbi>0) luaL_unref(L, LUA_REGISTRYINDEX, element->draw_cbi);
 
-    free(element);
+    egoverlay_free(element);
 
     return 0;
 }

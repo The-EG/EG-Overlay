@@ -44,7 +44,7 @@ void ui_polyline_cleanup() {
 }
 
 ui_polyline_t *ui_polyline_new() {
-    ui_polyline_t *p = calloc(1, sizeof(ui_polyline_t));
+    ui_polyline_t *p = egoverlay_calloc(1, sizeof(ui_polyline_t));
 
     p->element.draw = &ui_polyline_draw;
 
@@ -65,12 +65,12 @@ ui_polyline_t *ui_polyline_new() {
 }
 
 void ui_polyline_free(ui_polyline_t *line) {
-    if (line->verts) free(line->verts);
+    if (line->verts) egoverlay_free(line->verts);
 
     glDeleteBuffers(1, &line->vbo);
     glDeleteVertexArrays(1, &line->vao);
 
-    free(line);
+    egoverlay_free(line);
 }
 
 void ui_polyline_set_color(ui_polyline_t *line, ui_color_t color) {
@@ -84,7 +84,7 @@ void ui_polyline_set_width(ui_polyline_t *line, uint8_t width) {
 void ui_polyline_add_point(ui_polyline_t *line, int x, int y) {
     size_t new_size = line->vert_count+1;
 
-    line->verts = realloc(line->verts, sizeof(vec2f_t) * new_size);
+    line->verts = egoverlay_realloc(line->verts, sizeof(vec2f_t) * new_size);
     line->verts [line->vert_count].x = (float)x;
     line->verts [line->vert_count].y = (float)y;
     
@@ -94,7 +94,7 @@ void ui_polyline_add_point(ui_polyline_t *line, int x, int y) {
 void ui_polyline_clear_points(ui_polyline_t *line) {
     if (line->verts==NULL) return;
 
-    free(line->verts);
+    egoverlay_free(line->verts);
     line->verts = NULL;
     line->vert_count = 0;
 }
@@ -103,7 +103,7 @@ void update_vbo(ui_polyline_t *line) {
     if (line->vert_count<2) return;
 
     size_t vbo_size = sizeof(vec2f_t) * 6 * (line->vert_count - 1);
-    vec2f_t *vbo_verts = calloc(1, vbo_size);
+    vec2f_t *vbo_verts = egoverlay_calloc(1, vbo_size);
     size_t vv = 0;
 
     for (size_t v=1;v<line->vert_count;v++) {

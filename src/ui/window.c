@@ -9,6 +9,7 @@
 #include "../app.h"
 #include "../logging/logger.h"
 #include "../settings.h"
+#include "../utils.h"
 
 struct ui_window_s {
     ui_element_t element;
@@ -102,9 +103,9 @@ static void ui_window_draw_decorations(ui_window_t *win, int offset_x, int offse
 }
 
 ui_window_t *ui_window_new(const char *caption, int x, int y) {
-    ui_window_t *win = calloc(1, sizeof(ui_window_t));
+    ui_window_t *win = egoverlay_calloc(1, sizeof(ui_window_t));
 
-    win->caption = calloc(strlen(caption)+1, sizeof(char));
+    win->caption = egoverlay_calloc(strlen(caption)+1, sizeof(char));
     memcpy(win->caption, caption, strlen(caption));
 
     win->element.draw = &ui_window_draw;
@@ -137,13 +138,13 @@ ui_window_t *ui_window_new(const char *caption, int x, int y) {
 }
 
 void ui_window_free(ui_window_t *window) {
-    ui_remove_top_level_element(window);
     if (window->child) ui_element_unref(window->child);
 
     if (window->settings) settings_unref(window->settings);
+    if (window->settings_path) egoverlay_free(window->settings_path);
 
-    free(window->caption);
-    free(window);
+    egoverlay_free(window->caption);
+    egoverlay_free(window);
 }
 
 void ui_window_draw(ui_window_t *win, int offset_x, int offset_y, mat4f_t *proj) {
@@ -300,10 +301,10 @@ void ui_window_set_autosize(ui_window_t *window, int autosize) {
 void ui_window_update_from_settings(ui_window_t *win) {
     if (!win->settings) return;
 
-    char *x_path = calloc(strlen(win->settings_path) + strlen(".x") + 1, sizeof(char));
-    char *y_path = calloc(strlen(win->settings_path) + strlen(".y") + 1, sizeof(char));
-    char *w_path = calloc(strlen(win->settings_path) + strlen(".width") + 1, sizeof(char));
-    char *h_path = calloc(strlen(win->settings_path) + strlen(".height") + 1, sizeof(char));
+    char *x_path = egoverlay_calloc(strlen(win->settings_path) + strlen(".x") + 1, sizeof(char));
+    char *y_path = egoverlay_calloc(strlen(win->settings_path) + strlen(".y") + 1, sizeof(char));
+    char *w_path = egoverlay_calloc(strlen(win->settings_path) + strlen(".width") + 1, sizeof(char));
+    char *h_path = egoverlay_calloc(strlen(win->settings_path) + strlen(".height") + 1, sizeof(char));
 
     memcpy(x_path, win->settings_path, strlen(win->settings_path));
     memcpy(x_path + strlen(win->settings_path), ".x", 2);
@@ -322,19 +323,19 @@ void ui_window_update_from_settings(ui_window_t *win) {
     settings_get_int(win->settings, w_path, &win->element.width);
     settings_get_int(win->settings, h_path, &win->element.height);
 
-    free(x_path);
-    free(y_path);
-    free(w_path);
-    free(h_path);
+    egoverlay_free(x_path);
+    egoverlay_free(y_path);
+    egoverlay_free(w_path);
+    egoverlay_free(h_path);
 }
 
 void ui_window_save_to_settings(ui_window_t *win) {
     if (!win->settings) return;
 
-    char *x_path = calloc(strlen(win->settings_path) + strlen(".x") + 1, sizeof(char));
-    char *y_path = calloc(strlen(win->settings_path) + strlen(".y") + 1, sizeof(char));
-    char *w_path = calloc(strlen(win->settings_path) + strlen(".width") + 1, sizeof(char));
-    char *h_path = calloc(strlen(win->settings_path) + strlen(".height") + 1, sizeof(char));
+    char *x_path = egoverlay_calloc(strlen(win->settings_path) + strlen(".x") + 1, sizeof(char));
+    char *y_path = egoverlay_calloc(strlen(win->settings_path) + strlen(".y") + 1, sizeof(char));
+    char *w_path = egoverlay_calloc(strlen(win->settings_path) + strlen(".width") + 1, sizeof(char));
+    char *h_path = egoverlay_calloc(strlen(win->settings_path) + strlen(".height") + 1, sizeof(char));
 
     memcpy(x_path, win->settings_path, strlen(win->settings_path));
     memcpy(x_path + strlen(win->settings_path), ".x", 2);
@@ -353,10 +354,10 @@ void ui_window_save_to_settings(ui_window_t *win) {
     settings_set_int(win->settings, w_path, win->element.width);
     settings_set_int(win->settings, h_path, win->element.height);
 
-    free(x_path);
-    free(y_path);
-    free(w_path);
-    free(h_path);
+    egoverlay_free(x_path);
+    egoverlay_free(y_path);
+    egoverlay_free(w_path);
+    egoverlay_free(h_path);
 }
 
 static int ui_window_lua_new(lua_State *L);
@@ -607,8 +608,8 @@ static int ui_window_lua_settings(lua_State *L) {
 
     win->settings = settings;
 
-    if (win->settings_path) free(win->settings_path);
-    win->settings_path = calloc(strlen(path)+1, sizeof(char));
+    if (win->settings_path) egoverlay_free(win->settings_path);
+    win->settings_path = egoverlay_calloc(strlen(path)+1, sizeof(char));
     memcpy(win->settings_path, path, strlen(path));
 
     settings_ref(settings);

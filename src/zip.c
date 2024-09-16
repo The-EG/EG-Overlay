@@ -94,27 +94,27 @@ zip_t *zip_open(const char *path) {
         return NULL;
     }
 
-    zip_t *zip = calloc(1, sizeof(zip_t));
+    zip_t *zip = egoverlay_calloc(1, sizeof(zip_t));
     zip->fstream = f;
 
     // start reading the central directory file entries
     if (fseek(f, cd_offset, SEEK_SET)) {
         fclose(f);
         logger_error(log, "%s : Couldn't seek to central directory file entries.", path);
-        free(zip);
+        egoverlay_free(zip);
         return NULL;
     }
 
     size_t cd_read_size = 0;
     zip_file_header_t *prev = NULL;
     while (cd_read_size < cd_size) {
-        zip_file_header_t *fh = calloc(1, sizeof(zip_file_header_t));
+        zip_file_header_t *fh = egoverlay_calloc(1, sizeof(zip_file_header_t));
 
         size_t cdfh_size = zip_read_central_directory_file_header(f, &fh->cdfh);
         if (cdfh_size<0) {
             fclose(f);
             logger_error(log, "%s : Couldn't read central directory file header.", path);
-            free(fh);
+            egoverlay_free(fh);
             zip_free(zip);
             return NULL;
         }
@@ -142,12 +142,12 @@ void zip_free(zip_t *zip) {
     zip_file_header_t *next = NULL;
     while (h) {
         next = h->next;
-        free(h->cdfh.file_name);
-        free(h);
+        egoverlay_free(h->cdfh.file_name);
+        egoverlay_free(h);
         h = next;
     }
     fclose(zip->fstream);
-    free(zip);
+    egoverlay_free(zip);
 }
 
 void zip_ref(zip_t *zip) {
@@ -180,8 +180,7 @@ int zip_lua_open_module(lua_State *L) {
 }
 
 char *read_string(FILE *zip, size_t len) {
-    //char *str = calloc(len + 1, sizeof(char));
-    char *str = malloc(sizeof(char) * (len + 1));
+    char *str = egoverlay_malloc(sizeof(char) * (len + 1));
     _fread_nolock(str, sizeof(char), len, zip);
     str[len] = 0;
 
@@ -393,7 +392,7 @@ int zip_lua_file_content(lua_State *L) {
         }
     }
 
-    free(file_path);
+    egoverlay_free(file_path);
 
     if (!cdfh) return 0;
 
@@ -417,12 +416,12 @@ int zip_lua_file_content(lua_State *L) {
     }
 
     if (compression==0) { // no compression, just stored
-        uint8_t *data = calloc(cdfh->file_compressed_size, sizeof(uint8_t));
+        uint8_t *data = egoverlay_calloc(cdfh->file_compressed_size, sizeof(uint8_t));
         _fread_nolock(data, sizeof(uint8_t), cdfh->file_compressed_size, zip->fstream);
 
         lua_pushlstring(L, (char*)data, cdfh->file_compressed_size);
     
-        free(data);
+        egoverlay_free(data);
         return 1;
     }
 
@@ -438,9 +437,9 @@ int zip_lua_file_content(lua_State *L) {
         return luaL_error(L, "Couldn't initialize zlib.");
     }
 
-    uint8_t *compressed_data = calloc(cdfh->file_compressed_size, sizeof(uint8_t));
+    uint8_t *compressed_data = egoverlay_calloc(cdfh->file_compressed_size, sizeof(uint8_t));
     _fread_nolock(compressed_data, sizeof(uint8_t), cdfh->file_compressed_size, zip->fstream);
-    uint8_t *uncompressed_data = calloc(cdfh->file_uncompressed_size, sizeof(uint8_t));
+    uint8_t *uncompressed_data = egoverlay_calloc(cdfh->file_uncompressed_size, sizeof(uint8_t));
 
     strm.avail_out = cdfh->file_uncompressed_size;
     strm.next_out = uncompressed_data;
@@ -449,8 +448,8 @@ int zip_lua_file_content(lua_State *L) {
 
     int ret = inflate(&strm, Z_FINISH); // uncompress in a single run
     if (ret != Z_STREAM_END) {
-        free(compressed_data);
-        free(uncompressed_data);
+        egoverlay_free(compressed_data);
+        egoverlay_free(uncompressed_data);
         return luaL_error(L, "expected stream end.");
     }
 
@@ -458,8 +457,8 @@ int zip_lua_file_content(lua_State *L) {
     lua_pushlstring(L, (char*)uncompressed_data, cdfh->file_uncompressed_size);
     inflateEnd(&strm);
     
-    free(compressed_data);
-    free(uncompressed_data);
+    egoverlay_free(compressed_data);
+    egoverlay_free(uncompressed_data);
 
     return 1;
 }

@@ -6,7 +6,7 @@
 #include <stdarg.h>
 #include <string.h>
 #include "logger.h"
-#include "utils.h"
+#include "../utils.h"
 
 struct sink_list_node {
     log_sink_t *sink;
@@ -29,22 +29,22 @@ struct logging_s {
 struct logging_s *logging = NULL;
 
 void logger_init() {
-    logging = calloc(1, sizeof(struct logging_s));
-    logging->hash_map = calloc(LOGGER_HASHMAP_SIZE, sizeof(char *));
-    logging->loggers = calloc(LOGGER_HASHMAP_SIZE, sizeof(logger_t *));
+    logging = egoverlay_calloc(1, sizeof(struct logging_s));
+    logging->hash_map = egoverlay_calloc(LOGGER_HASHMAP_SIZE, sizeof(char *));
+    logging->loggers = egoverlay_calloc(LOGGER_HASHMAP_SIZE, sizeof(logger_t *));
 }
 
 void logger_cleanup() {
     for (size_t h=0;h<LOGGER_HASHMAP_SIZE;h++) {
         if (logging->hash_map[h]) {
             logger_free(logging->loggers[h]);
-            free(logging->hash_map[h]);
+            egoverlay_free(logging->hash_map[h]);
         }
     }
 
-    free(logging->hash_map);
-    free(logging->loggers);
-    free(logging);
+    egoverlay_free(logging->hash_map);
+    egoverlay_free(logging->loggers);
+    egoverlay_free(logging);
 }
 
 void logger_set_default(logger_t *logger) {
@@ -75,7 +75,7 @@ logger_t *logger_get(const char *name) {
 
     // at this point we know the logger doesn't exist yet, so create it from
     // the default logger
-    logger_t *new_logger = calloc(1, sizeof(logger_t));
+    logger_t *new_logger = egoverlay_calloc(1, sizeof(logger_t));
     new_logger->level = logging->default_logger->level;
 
     struct sink_list_node *s = logging->default_logger->sinks;
@@ -89,7 +89,7 @@ logger_t *logger_get(const char *name) {
     hash_ind = hash % LOGGER_HASHMAP_SIZE;
     while (1) {
         if (logging->hash_map[hash_ind]==NULL) {
-            logging->hash_map[hash_ind] = calloc(strlen(name)+1, sizeof(char));
+            logging->hash_map[hash_ind] = egoverlay_calloc(strlen(name)+1, sizeof(char));
             memcpy(logging->hash_map[hash_ind], name, strlen(name));
             new_logger->name = logging->hash_map[hash_ind];
             logging->loggers[hash_ind] = new_logger;
@@ -108,8 +108,7 @@ logger_t *logger_get(const char *name) {
 }
 
 logger_t *logger_new(const char *name) {
-    logger_t *new = malloc(sizeof(logger_t));
-    memset(new, 0, sizeof(logger_t));
+    logger_t *new = egoverlay_calloc(1, sizeof(logger_t));
 
     new->level = LOGGER_LEVEL_INFO;
     new->name = name;
@@ -124,10 +123,10 @@ void logger_free(logger_t *log) {
         log_sink_free(s->sink);
         struct sink_list_node *prev_s = s;
         s = s->next;
-        free(prev_s);
+        egoverlay_free(prev_s);
     }
 
-    free(log);
+    egoverlay_free(log);
 }
 
 void logger_set_level(logger_t *log, enum LOGGER_LEVEL level) {
@@ -165,7 +164,7 @@ void logger_log(logger_t *log, enum LOGGER_LEVEL level, const char *message, ...
     va_end(args);
 
     // now allocate it and do the actual format
-    msgbuf = calloc(msglen, sizeof(char));
+    msgbuf = egoverlay_calloc(msglen, sizeof(char));
     
     va_start(args, message);
     vsnprintf(msgbuf, msglen, message, args);
@@ -182,10 +181,10 @@ void logger_log(logger_t *log, enum LOGGER_LEVEL level, const char *message, ...
     char *outbuf;
     size_t outlen = 0;
     outlen = snprintf(NULL, 0, "%s.%03d | % -20s | % -7s | %s", timebuf, tb.millitm, log->name, level_str, msgbuf) + 1;
-    outbuf = calloc(outlen, sizeof(char));
+    outbuf = egoverlay_calloc(outlen, sizeof(char));
     snprintf(outbuf, outlen, "%s.%03d | % -20s | % -7s | %s", timebuf, tb.millitm, log->name, level_str, msgbuf);
 
-    free(msgbuf);
+    egoverlay_free(msgbuf);
 
     struct sink_list_node *s = log->sinks;
     while (s) {
@@ -193,11 +192,11 @@ void logger_log(logger_t *log, enum LOGGER_LEVEL level, const char *message, ...
         s = s->next;
     }
 
-    free(outbuf);
+    egoverlay_free(outbuf);
 }
 
 void logger_add_sink(logger_t *log, log_sink_t *sink) {
-    struct sink_list_node *node = calloc(1, sizeof(struct sink_list_node));
+    struct sink_list_node *node = egoverlay_calloc(1, sizeof(struct sink_list_node));
     node->next = NULL;
     node->sink = sink;
 

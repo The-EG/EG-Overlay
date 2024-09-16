@@ -45,7 +45,7 @@ void ui_image_cleanup() {
 ui_image_t *ui_image_new_from_file(const char *path) {
     logger_debug(logger, "Loading image from %s", path);
 
-    ui_image_t *img = calloc(1, sizeof(ui_image_t));
+    ui_image_t *img = egoverlay_calloc(1, sizeof(ui_image_t));
 
     int n;
 
@@ -69,7 +69,7 @@ ui_image_t *ui_image_new_from_file(const char *path) {
     img->tex_max_u = (float)img->img_width / (float)texsize;
     img->tex_max_v = (float)img->img_height / (float)texsize;
 
-    uint8_t *tex_pixels = calloc((texsize * texsize * 4), sizeof(uint8_t));
+    uint8_t *tex_pixels = egoverlay_calloc((texsize * texsize * 4), sizeof(uint8_t));
     for (size_t r=0;r<img->img_height;r++) {
         size_t tex_row_offset = r * texsize * 4;
         size_t img_row_offset = r * img->img_width * 4;
@@ -88,7 +88,7 @@ ui_image_t *ui_image_new_from_file(const char *path) {
 
     glBindTexture(GL_TEXTURE_2D, 0);
 
-    free(tex_pixels);
+    egoverlay_free(tex_pixels);
     stbi_image_free(pixels);
 
     return img;
@@ -97,7 +97,7 @@ ui_image_t *ui_image_new_from_file(const char *path) {
 void ui_image_free(ui_image_t *image) {
 
     glDeleteTextures(1, &image->texture);
-    free(image);
+    egoverlay_free(image);
 }
 
 void ui_image_draw(ui_image_t *image, mat4f_t *proj, int x, int y, int width, int height, float saturation_f, float value_f) {

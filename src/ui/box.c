@@ -3,6 +3,8 @@
 #include <lauxlib.h>
 #include <string.h>
 #include "rect.h"
+#include "../utils.h"
+#include "../logging/logger.h"
 
 typedef struct ui_box_item_t {
     ui_element_t *item;
@@ -35,7 +37,7 @@ static void ui_box_draw(ui_box_t *box, int offset_x, int offset_y, mat4f_t *proj
 static int ui_box_get_preferred_size(ui_box_t *box, int *width, int *height);
 
 ui_box_t *ui_box_new(ui_box_orientation_e orientation) {
-    ui_box_t *box = calloc(1, sizeof(ui_box_t));
+    ui_box_t *box = egoverlay_calloc(1, sizeof(ui_box_t));
     box->element.draw = &ui_box_draw;
     box->element.get_preferred_size = &ui_box_get_preferred_size;
     box->element.free = &ui_box_free;
@@ -52,17 +54,17 @@ void ui_box_free(ui_box_t *box) {
     while (i) {
         ui_box_item_t *n = i->next;
         ui_element_unref(i->item);
-        free(i);
+        egoverlay_free(i);
         i = n;
     }
 
-    free(box);
+    egoverlay_free(box);
 }
 
 void ui_box_pack_end(ui_box_t *box, ui_element_t *element, int expand, int align) {
     ui_element_ref(element);
     
-    ui_box_item_t *i = calloc(1, sizeof(ui_box_item_t));
+    ui_box_item_t *i = egoverlay_calloc(1, sizeof(ui_box_item_t));
     i->item = element;
     i->align = align;
     i->expand = expand;
@@ -492,7 +494,7 @@ static int ui_box_lua_pop_start(lua_State *L) {
     if (f) {
         box->items = f->next;
         ui_element_unref(f->item);
-        free(f);
+        egoverlay_free(f);
     }
 
     return 0;

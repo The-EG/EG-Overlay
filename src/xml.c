@@ -81,10 +81,10 @@ void xml_error_handler(error_handler_data_t *data, const xmlError *error) {
         }
     }
 
-    char *msg = calloc(strlen(error->message), sizeof(char));
+    char *msg = egoverlay_calloc(strlen(error->message), sizeof(char));
     memcpy(msg, error->message, strlen(error->message)-1); // strip the trailing \n
     logger_log(log, level, "XML parsing error: %s:%d : %s", error->file, error->line, msg);
-    free(msg);
+    egoverlay_free(msg);
     
     if (line_len) {
         size_t context_begin = line_start + error->int2 - 20;
@@ -93,11 +93,11 @@ void xml_error_handler(error_handler_data_t *data, const xmlError *error) {
         size_t context_len = 41;
         if (context_begin - line_start + context_len > line_len) context_len = line_len - (context_begin - line_start);
 
-        char *context = calloc(context_len + 1, sizeof(char));
+        char *context = egoverlay_calloc(context_len + 1, sizeof(char));
         memcpy(context, data->file + context_begin, context_len);
 
         logger_log(log, level, "  %s", context);
-        free(context);
+        egoverlay_free(context);
 
         logger_log(log, level, "  % *s", error->int2 - (context_begin - line_start), "^");
     }
