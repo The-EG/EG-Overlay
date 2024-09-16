@@ -30,7 +30,7 @@ Command Line Options
     Run the given lua file as a script instead of running the overlay UI. This can be used to automate data updates from the API or other tasks.
 
     .. warning::
-        The :lua:mod:`overlay-ui` module will not be available in this mode.
+        The :lua:mod:`eg-overlay-ui` module will not be available in this mode.
     
     .. versionhistory::
         :0.0.1: Added

@@ -22,12 +22,12 @@ local uih = {}
 --[[ RST
 .. lua:function:: text(text[, color])
 
-    Create a :lua:class:`overlay-ui.uitext` using default font settings. If ``color`` is
+    Create a :lua:class:`eg-overlay-ui.uitext` using default font settings. If ``color`` is
     not specified, the default color will also be used.
 
     :param string text:
     :param integer color: (Optional) See :ref:`colors`.
-    :rtype: overlay-ui.uitext
+    :rtype: eg-overlay-ui.uitext
 
     .. versionhistory::
         :0.0.1: Added
@@ -44,13 +44,13 @@ end
 --[[ RST
 .. lua:function:: monospace_text(text[, color])
 
-    Create a :lua:class:`overlay-ui.uitext` using default font settings for a
+    Create a :lua:class:`eg-overlay-ui.uitext` using default font settings for a
     monospace font. If ``color`` is not specified, the default color will be
     used.
 
     :param string text:
     :param integer color: (Optional) See :ref:`colors`.
-    :rtype: overlay-ui.uitext
+    :rtype: eg-overlay-ui.uitext
 
     .. versionhistory::
         :0.0.1: Added
@@ -67,12 +67,12 @@ end
 --[[ RST
 .. lua:function:: monospace_text_menu_item(text)
 
-    Create a :lua:class:`overlay-ui.uimenuitem` containing a
-    :lua:class:`overlay-ui.text` using the default font settings for a monospace
+    Create a :lua:class:`eg-overlay-ui.uimenuitem` containing a
+    :lua:class:`eg-overlay-ui.text` using the default font settings for a monospace
     font.
 
     :param string text:
-    :rtype: overlay-ui.uimenuitem
+    :rtype: eg-overlay-ui.uimenuitem
 
     .. versionhistory::
         :0.0.1: Added
@@ -88,11 +88,11 @@ end
 --[[ RST
 .. lua:function:: text_menu_item(text)
 
-    Create a :lua:class:`overlay-ui.uimenuitem` containing a
-    :lua:class:`overlay-ui.text` using the default font settings.
+    Create a :lua:class:`eg-overlay-ui.uimenuitem` containing a
+    :lua:class:`eg-overlay-ui.text` using the default font settings.
 
     :param string text:
-    :rtype: overlay-ui.uimenuitem
+    :rtype: eg-overlay-ui.uimenuitem
 
     .. versionhistory::
         :0.0.1: Added
@@ -108,11 +108,11 @@ end
 --[[ RST
 .. lua:function:: text_button(text)
 
-    Create a :lua:class:`overlay-ui.uibutton` containing a
-    :lua:class:`overlay-ui.uitext` using the default font settings.
+    Create a :lua:class:`eg-overlay-ui.uibutton` containing a
+    :lua:class:`eg-overlay-ui.uitext` using the default font settings.
 
     :param string text:
-    :rtype: overlay-ui.uibutton
+    :rtype: eg-overlay-ui.uibutton
 
     .. versionhistory::
         :0.0.1: Added
@@ -132,10 +132,10 @@ end
 --[[ RST
 .. lua:function:: checkbox()
 
-    Create a :lua:class:`overlay-ui.uibutton` that is specialized as a checkbox
+    Create a :lua:class:`eg-overlay-ui.uibutton` that is specialized as a checkbox
     and automatically sized based on the default font settings.
 
-    :rtype: overlay-ui.uibutton
+    :rtype: eg-overlay-ui.uibutton
 
     .. versionhistory::
         :0.0.1: Added
