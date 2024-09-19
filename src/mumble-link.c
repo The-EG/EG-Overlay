@@ -230,7 +230,7 @@ float mumble_link_fov()  {
     if (ml->identity_cache==NULL || !json_is_object(ml->identity_cache)) return 0.f;
 
     json_t *fov = json_object_get(ml->identity_cache, "fov");
-    return json_number_value(fov);
+    return (float)json_number_value(fov);
 }
 
 void mumble_link_cleanup() {

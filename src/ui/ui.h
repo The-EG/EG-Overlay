@@ -139,7 +139,7 @@ int ui_element_lua_addeventhandler(lua_State *L);
 int ui_element_lua_removeeventhandler(lua_State *L);
 int ui_element_lua_background(lua_State *L);
 
-void ui_element_call_lua_event_handlers(ui_element_t *element, const char *event);
+void ui_element_call_lua_event_handlers(void *element, const char *event);
 
 void ui_init();
 void ui_cleanup();

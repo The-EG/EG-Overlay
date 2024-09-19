@@ -337,9 +337,9 @@ int statement_lua_bind(lua_State *L) {
     int r = 0;
 
     if (blob) {
-        int len = 0;
+        size_t len = 0;
         const char *data = lua_tolstring(L, 3, &len);
-        sqlite3_bind_blob(stmt->stmt, c, data, len, SQLITE_TRANSIENT);
+        sqlite3_bind_blob(stmt->stmt, c, data, (int)len, SQLITE_TRANSIENT);
     } else {
         switch (lua_type(L, 3)) {
         case LUA_TNIL:

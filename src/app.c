@@ -518,7 +518,6 @@ static DWORD WINAPI app_render_thread(LPVOID lpParam) {
 
     float fov = 0.f;
 
-    int logged = 0;
     while (!glfwWindowShouldClose(app->win)) {
         settings_get_double(app->settings, "overlay.frameTargetTime", &frame_target);        
         frame_begin = glfwGetTime();

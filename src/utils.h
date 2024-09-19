@@ -19,6 +19,8 @@ void pop_child_viewport(int *old_vp);
 int push_scissor(int x, int y, int width, int height, int *old_scissor);
 void pop_scissor(int *old_scissor);
 
+#ifndef UNUSED_PARAM
 #define UNUSED_PARAM(p) (void)p
+#endif
 
 void error_and_exit(const char *title, const char *msg_format, ...);

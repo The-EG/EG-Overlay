@@ -196,7 +196,7 @@ int sprite_collection_lua_new(lua_State *L) {
     glBindVertexArray(sprite->vao);
     glBindBuffer(GL_ARRAY_BUFFER, sprite->vbo);
 
-    size_t loc_size = sizeof(sprite_collection_location_t);
+    GLsizei loc_size = sizeof(sprite_collection_location_t);
     
     // location 0 = vec3 position
     glEnableVertexAttribArray(0);
@@ -255,6 +255,8 @@ int sprite_collection_lua_del(lua_State *L) {
     glDeleteBuffers(1, &sprite->vbo);
     glDeleteVertexArrays(1, &sprite->vao);
     luaL_unref(L, LUA_REGISTRYINDEX, sprite->texture_cbi);
+
+    return 0;
 }
 
 /*** RST
@@ -263,7 +265,7 @@ int sprite_collection_lua_del(lua_State *L) {
 int texture_lua_new(lua_State *L) {
     texture_t *tex = lua_newuserdata(L, sizeof(texture_t));
     size_t texdatalen = 0;
-    uint8_t *texdata = luaL_checklstring(L, 1, &texdatalen);
+    const uint8_t *texdata = (const uint8_t*)luaL_checklstring(L, 1, &texdatalen);
 
     memset(tex, 0, sizeof(texture_t));
 
@@ -271,7 +273,7 @@ int texture_lua_new(lua_State *L) {
     int texh = 0;
     int texc = 0;
 
-    uint8_t *pixels = stbi_load_from_memory(texdata, texdatalen, &texw, &texh, &texc, 4);
+    uint8_t *pixels = stbi_load_from_memory(texdata, (int)texdatalen, &texw, &texh, &texc, 4);
 
     if (pixels==NULL) {
         return luaL_error(L, "Could not read image data.");
@@ -332,6 +334,8 @@ int texture_lua_new(lua_State *L) {
 int texture_lua_del(lua_State *L) {
     texture_t *tex = lua_checktexture(L, 1);   
     glDeleteTextures(1, &tex->texture);
+
+    return 0;
 }
 
 
@@ -436,23 +440,22 @@ int sprite_collection_lua_updatelocations(lua_State *L) {
 
         mat4f_identity(&locs[li].rotation);
 
-        int val = lua_gettop(L);
         lua_pushnil(L);
         while (lua_next(L, -2) != 0) {
             const char *key = lua_tostring(L, -2);
 
             if (strcmp(key, "x")==0) {
                 if (lua_type(L, -1)!=LUA_TNUMBER) return luaL_error(L, "x must be a number.");
-                locs[li].x = lua_tonumber(L, -1);
+                locs[li].x = (float)lua_tonumber(L, -1);
             } else if (strcmp(key, "y")==0) {
                 if (lua_type(L, -1)!=LUA_TNUMBER) return luaL_error(L, "y must be a number.");
-                locs[li].y = lua_tonumber(L, -1);
+                locs[li].y = (float)lua_tonumber(L, -1);
             } else if (strcmp(key, "z")==0) {
                 if (lua_type(L, -1)!=LUA_TNUMBER) return luaL_error(L, "z must be a number.");
-                locs[li].z = lua_tonumber(L, -1);
+                locs[li].z = (float)lua_tonumber(L, -1);
             } else if (strcmp(key, "sizeratio")==0) {
                 if (lua_type(L, -1)!=LUA_TNUMBER) return luaL_error(L, "sizeratio must be a number.");
-                locs[li].size_ratio = lua_tonumber(L, -1);
+                locs[li].size_ratio = (float)lua_tonumber(L, -1);
             } else if (strcmp(key, "billboard")==0) {
                 if (lua_type(L, -1)!=LUA_TBOOLEAN) return luaL_error(L, "billboard must be a boolean.");
                 int billboard = lua_toboolean(L, -1);
@@ -479,15 +482,15 @@ int sprite_collection_lua_updatelocations(lua_State *L) {
                 float z = 0.0;
 
                 lua_geti(L, -1, 1);
-                x = lua_tonumber(L, -1);
+                x = (float)lua_tonumber(L, -1);
                 lua_pop(L, 1);
 
                 lua_geti(L, -1, 2);
-                y = lua_tonumber(L, -1);
+                y = (float)lua_tonumber(L, -1);
                 lua_pop(L, 1);
 
                 lua_geti(L, -1, 3);
-                z = lua_tonumber(L, -1);
+                z = (float)lua_tonumber(L, -1);
                 lua_pop(L, 1);
                 mat4f_t xr = {0};
                 mat4f_t yr = {0};
@@ -564,7 +567,7 @@ int sprite_collection_lua_draw(lua_State *L) {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, sprite->texture->texture);    
 
-    glDrawArraysInstanced(GL_TRIANGLES, 0, 6, sprite->count);
+    glDrawArraysInstanced(GL_TRIANGLES, 0, 6, (GLsizei)sprite->count);
 
     glBindTexture(GL_TEXTURE_2D, 0);
 

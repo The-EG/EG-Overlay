@@ -252,7 +252,7 @@ void mat4f_rotatex(mat4f_t *m, float radians) {
     m->i2j2 = cosf(radians);
     m->i3j2 = -sinf(radians);
     m->i2j3 = sinf(radians);
-    m->i3j3 = cos(radians);
+    m->i3j3 = cosf(radians);
 }
 
 void mat4f_rotatey(mat4f_t *m, float radians) {
