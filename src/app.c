@@ -72,7 +72,16 @@ static LRESULT CALLBACK winproc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
             // if the window isn't foreground the menu will not close if the user clicks out of it
             // https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-trackpopupmenu
             SetForegroundWindow(app->message_win); 
-            if (TrackPopupMenu(app->sys_tray_menu, TPM_RETURNCMD, GET_X_LPARAM(wParam),GET_Y_LPARAM(wParam), 0, app->message_win, NULL)==WM_SYSTRAYQUIT) {
+            int doquit = TrackPopupMenu(
+                app->sys_tray_menu,
+                TPM_RETURNCMD,
+                GET_X_LPARAM(wParam),
+                GET_Y_LPARAM(wParam),
+                0,
+                app->message_win,
+                NULL
+            );
+            if (doquit==WM_SYSTRAYQUIT) {
                 logger_debug(app->log,"Quit selected.");
                 glfwSetWindowShouldClose(app->win, GLFW_TRUE);
             }
@@ -101,7 +110,11 @@ static void register_win_class() {
 
 LRESULT CALLBACK keyboard_hook_proc(int nCode, WPARAM wParam, LPARAM lParam) {
     HWND fg_win = GetForegroundWindow();
-    if (nCode < 0 || glfwGetWindowAttrib(app->win, GLFW_VISIBLE)==GLFW_FALSE || fg_win!=app->target_hwnd) return CallNextHookEx(NULL, nCode, wParam, lParam);
+    if (
+        nCode < 0 ||
+        glfwGetWindowAttrib(app->win, GLFW_VISIBLE)==GLFW_FALSE ||
+        fg_win!=app->target_hwnd
+    ) return CallNextHookEx(NULL, nCode, wParam, lParam);
 
     // For some reason GetKeyboardState doesn't always return an updated result.
     // Calling GetKeyState first flushes the state. WTF Windows?    
@@ -152,7 +165,11 @@ LRESULT CALLBACK keyboard_hook_proc(int nCode, WPARAM wParam, LPARAM lParam) {
 
 LRESULT CALLBACK mouse_hook_proc(int nCode, WPARAM wParam, LPARAM lParam) {
     HWND fg_win = GetForegroundWindow();
-    if (nCode < 0 || glfwGetWindowAttrib(app->win, GLFW_VISIBLE)==GLFW_FALSE || fg_win!=app->target_hwnd) return CallNextHookEx(NULL, nCode, wParam, lParam);
+    if (
+        nCode < 0 ||
+        glfwGetWindowAttrib(app->win, GLFW_VISIBLE)==GLFW_FALSE ||
+        fg_win!=app->target_hwnd
+    ) return CallNextHookEx(NULL, nCode, wParam, lParam);
 
     MSLLHOOKSTRUCT *msll = (MSLLHOOKSTRUCT*)lParam;
     
@@ -163,9 +180,15 @@ LRESULT CALLBACK mouse_hook_proc(int nCode, WPARAM wParam, LPARAM lParam) {
     me.x = p.x;
     me.y = p.y;
 
-    if (wParam == WM_LBUTTONDOWN || wParam == WM_RBUTTONDOWN || wParam == WM_MBUTTONDOWN || wParam == WM_XBUTTONDOWN) {
+    if (
+        wParam == WM_LBUTTONDOWN || wParam == WM_RBUTTONDOWN ||
+        wParam == WM_MBUTTONDOWN || wParam == WM_XBUTTONDOWN
+    ) {
         me.event = UI_MOUSE_EVENT_TYPE_BTN_DOWN;
-    } else if (wParam == WM_LBUTTONUP || wParam == WM_RBUTTONUP || wParam == WM_MBUTTONUP || wParam == WM_XBUTTONUP) {
+    } else if (
+        wParam == WM_LBUTTONUP || wParam == WM_RBUTTONUP ||
+        wParam == WM_MBUTTONUP || wParam == WM_XBUTTONUP
+    ) {
         me.event = UI_MOUSE_EVENT_TYPE_BTN_UP;
     } else if (wParam == WM_MOUSEMOVE) {
         me.event = UI_MOUSE_EVENT_TYPE_MOVE;
@@ -180,10 +203,13 @@ LRESULT CALLBACK mouse_hook_proc(int nCode, WPARAM wParam, LPARAM lParam) {
         return CallNextHookEx(NULL, nCode, wParam, lParam);
     }
 
-    if (wParam==WM_LBUTTONDOWN || wParam==WM_LBUTTONUP) me.button = UI_MOUSE_EVENT_BUTTON_LEFT;
-    else if (wParam==WM_RBUTTONDOWN || wParam==WM_LBUTTONUP) me.button = UI_MOUSE_EVENT_BUTTON_RIGHT;
-    else if (wParam==WM_MBUTTONDOWN || wParam==WM_MBUTTONUP) me.button = UI_MOUSE_EVENT_BUTTON_MIDDLE;
-    else if (wParam==WM_XBUTTONDOWN || wParam==WM_XBUTTONUP){
+    if (wParam==WM_LBUTTONDOWN || wParam==WM_LBUTTONUP) {
+        me.button = UI_MOUSE_EVENT_BUTTON_LEFT;
+    } else if (wParam==WM_RBUTTONDOWN || wParam==WM_LBUTTONUP) {
+        me.button = UI_MOUSE_EVENT_BUTTON_RIGHT;
+    } else if (wParam==WM_MBUTTONDOWN || wParam==WM_MBUTTONUP) {
+        me.button = UI_MOUSE_EVENT_BUTTON_MIDDLE;
+    } else if (wParam==WM_XBUTTONDOWN || wParam==WM_XBUTTONUP) {
         if (HIWORD(msll->mouseData)==XBUTTON1) me.button = UI_MOUSE_EVENT_BUTTON_X1;
         else me.button = UI_MOUSE_EVENT_BUTTON_X2;
     }
@@ -196,7 +222,15 @@ LRESULT CALLBACK mouse_hook_proc(int nCode, WPARAM wParam, LPARAM lParam) {
     } else return CallNextHookEx(NULL, nCode, wParam, lParam);
 }
 
-void APIENTRY gl_debug_output(GLenum source, GLenum type, unsigned int id, GLenum severity, GLsizei length, const char *message, const void *userp) {
+void APIENTRY gl_debug_output(
+    GLenum source,
+    GLenum type,
+    unsigned int id,
+    GLenum severity,
+    GLsizei length,
+    const char *message,
+    const void *userp
+) {
     UNUSED_PARAM(userp);
     UNUSED_PARAM(length);
 
@@ -275,7 +309,12 @@ void app_init(HINSTANCE hinst, int argc, char **argv) {
     for (int a=1;a<argc;a++) {
         if (strcmp(argv[a], "--target-win-class")==0) {
             if (a + 1 == argc) {
-                MessageBox(NULL, "--target-win-class argument requires a string.", "Command Line Argument Error", MB_OK | MB_ICONERROR);
+                MessageBox(
+                    NULL,
+                    "--target-win-class argument requires a string.",
+                    "Command Line Argument Error",
+                    MB_OK | MB_ICONERROR
+                );
                 exit(-1);
             } else {
                 app->target_win_class = argv[++a];
@@ -293,7 +332,12 @@ void app_init(HINSTANCE hinst, int argc, char **argv) {
             no_input_hooks = 1;
         } else if (strcmp(argv[a], "--lua-script")==0) {
             if (a + 1 == argc) {
-                MessageBox(NULL, "--lua-script argument requires a path.", "Command Line Argument Error", MB_OK |MB_ICONERROR);
+                MessageBox(
+                    NULL,
+                    "--lua-script argument requires a path.",
+                    "Command Line Argument Error",
+                    MB_OK |MB_ICONERROR
+                );
                 exit(-1);
             } else {
                 app->runscript = argv[++a];
@@ -535,8 +579,9 @@ static DWORD WINAPI app_render_thread(LPVOID lpParam) {
         long frame_time = (long)((frame_end - frame_begin) * 1000);
         long sleep_time = (long)frame_target - frame_time;
 
-        // if we have extra time after rendering the frame, run the Lua coroutines again if there are any pending
-        // and keep running them until they are either done or we run out of time before the next frame
+        // if we have extra time after rendering the frame, run the Lua
+        // coroutines again if there are any pending and keep running them until
+        // they are either done or we run out of time before the next frame
         while (sleep_time > 0 && lua_manager_resume_coroutines()) {
             frame_end = glfwGetTime();
             frame_time = (long)((frame_end - frame_begin) * 1000);
@@ -639,18 +684,20 @@ int app_run() {
                 int curwiny;
                 glfwGetWindowPos(app->win, &curwinx, &curwiny);
                 
-                if (curwinx != target_pos.x || curwiny != target_pos.y) glfwSetWindowPos(app->win, target_pos.x, target_pos.y);
-                if (curwinw != target_rect.right - target_rect.left || curwinh != target_rect.bottom - target_rect.top) glfwSetWindowSize(app->win, target_rect.right - target_rect.left, target_rect.bottom - target_rect.top - 1);
+                if (curwinx != target_pos.x || curwiny != target_pos.y) {
+                    glfwSetWindowPos(app->win, target_pos.x, target_pos.y);
+                }
 
-                // int width;
-                // int height;
-                // app_get_framebuffer_size(&width, &height);
-                // mat4f_ortho(&proj, 0.f, (float)width, 0.f, (float)height,-1.f, 1.f);
-
-                // glViewport(0, 0, width, height);
-                // glScissor(0, 0, width, height);                
-
-                
+                if (
+                    curwinw != target_rect.right - target_rect.left ||
+                    curwinh != target_rect.bottom - target_rect.top
+                ) {
+                    glfwSetWindowSize(
+                        app->win,
+                        target_rect.right - target_rect.left,
+                        target_rect.bottom - target_rect.top - 1
+                    );
+                }
             }
             if (fg_win==app->target_hwnd) {
                 //logger_debug(app->log, "Overlay -> topmost");
@@ -663,7 +710,11 @@ int app_run() {
         } else {
             char target_cls[512];
             
-            if (app->target_hwnd && (GetClassName(app->target_hwnd, target_cls, 512)==0 || strcmp(target_cls, app->target_win_class)!=0)) {
+            if (
+                app->target_hwnd &&
+                (GetClassName(app->target_hwnd, target_cls, 512)==0 ||
+                 strcmp(target_cls, app->target_win_class)!=0)
+            ) {
                 logger_debug(app->log, "Target window disappeared, hiding overlay.");
                 glfwHideWindow(app->win);
                 app->target_hwnd = NULL;                

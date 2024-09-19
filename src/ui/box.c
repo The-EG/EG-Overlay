@@ -118,9 +118,13 @@ static void ui_box_draw(ui_box_t *box, int offset_x, int offset_y, mat4f_t *proj
     if (fill_items==0) extra_room = 0;
 
     if (box->orientation==UI_BOX_ORIENTATION_VERTICAL) {
-        if      (box->align< 0) y = offset_y + box->element.y + box->padding.top;
-        else if (box->align==0) y = offset_y + box->element.y + (box->element.height / 2) - ((pref_height + extra_room) / 2);
-        else                    y = offset_y + box->element.y + box->element.height - box->padding.bottom - pref_height;
+        if (box->align< 0) {
+            y = offset_y + box->element.y + box->padding.top;
+        } else if (box->align==0) {
+            y = offset_y + box->element.y + (box->element.height / 2) - ((pref_height + extra_room) / 2);
+        } else {
+            y = offset_y + box->element.y + box->element.height - box->padding.bottom - pref_height;
+        }
 
         ui_box_item_t *i = box->items;
         while (i) {
@@ -136,9 +140,13 @@ static void ui_box_draw(ui_box_t *box, int offset_x, int offset_y, mat4f_t *proj
 
             if (i->align==-999) i->item->width = box->element.width - box->padding.left - box->padding.right;
 
-            if      (i->align<0 ) x = offset_x + box->element.x + box->padding.left;
-            else if (i->align==0) x = offset_x + box->element.x + (box->element.width / 2) - (item_width / 2);
-            else                  x = offset_x + box->element.x + box->element.width - box->padding.right - item_width;
+            if (i->align<0 ) {
+                x = offset_x + box->element.x + box->padding.left;
+            } else if (i->align==0) {
+                x = offset_x + box->element.x + (box->element.width / 2) - (item_width / 2);
+            } else {
+                x = offset_x + box->element.x + box->element.width - box->padding.right - item_width;
+            }
 
             ui_element_draw(i->item, x, y, proj);
             
@@ -148,9 +156,16 @@ static void ui_box_draw(ui_box_t *box, int offset_x, int offset_y, mat4f_t *proj
             i = i->next;
         }
     } else {
-        if      (box->align< 0) x = offset_x + box->element.x + box->padding.left;
-        else if (box->align==0) x = offset_x + box->element.x + box->padding.left + (int)((float)(box->element.width - box->padding.left - box->padding.right) / 2.f) - (int)((float)(pref_width - box->padding.left - box->padding.right) / 2.f);
-        else                    x = offset_x + box->element.x + box->element.width - box->padding.right - pref_width;
+        if (box->align< 0) {
+            x = offset_x + box->element.x + box->padding.left;
+        } else if (box->align==0) {
+            x = offset_x + box->element.x +
+                box->padding.left +
+                (int)((float)(box->element.width - box->padding.left - box->padding.right) / 2.f) -
+                (int)((float)(pref_width - box->padding.left - box->padding.right) / 2.f);
+        } else {
+            x = offset_x + box->element.x + box->element.width - box->padding.right - pref_width;
+        }
 
         ui_box_item_t *i = box->items;
         while (i) {
@@ -164,9 +179,13 @@ static void ui_box_draw(ui_box_t *box, int offset_x, int offset_y, mat4f_t *proj
 
             if (i->align==-999) i->item->height = box->element.height - box->padding.top - box->padding.bottom;
 
-            if      (i->align< 0) y = offset_y + box->element.y + box->padding.top;
-            else if (i->align==0) y = offset_y + box->element.y + (box->element.height / 2) - (item_height / 2);
-            else                  y = offset_y + box->element.y + box->element.height - box->padding.bottom - item_height;
+            if (i->align< 0) {
+                y = offset_y + box->element.y + box->padding.top;
+            } else if (i->align==0) {
+                y = offset_y + box->element.y + (box->element.height / 2) - (item_height / 2);
+            } else {
+                y = offset_y + box->element.y + box->element.height - box->padding.bottom - item_height;
+            }
 
             //ui_rect_draw(x, y, item_width, item_height, 0xFF0000FF, proj);
 
@@ -231,17 +250,17 @@ static int ui_box_get_preferred_size(ui_box_t *box, int *width, int *height) {
     return 1;    
 }
 
-static int ui_box_lua_new(lua_State *L);
-static int ui_box_lua_del(lua_State *L);
-static int ui_box_lua_set_padding(lua_State *L);
-static int ui_box_lua_pack_end(lua_State *L);
-static int ui_box_lua_set_align(lua_State *L);
-static int ui_box_lua_spacing(lua_State *L);
-static int ui_box_lua_item_count(lua_State *L);
-static int ui_box_lua_pop_start(lua_State *L);
-static int ui_box_lua_events(lua_State *L);
+int ui_box_lua_new(lua_State *L);
+int ui_box_lua_del(lua_State *L);
+int ui_box_lua_set_padding(lua_State *L);
+int ui_box_lua_pack_end(lua_State *L);
+int ui_box_lua_set_align(lua_State *L);
+int ui_box_lua_spacing(lua_State *L);
+int ui_box_lua_item_count(lua_State *L);
+int ui_box_lua_pop_start(lua_State *L);
+int ui_box_lua_events(lua_State *L);
 
-static luaL_Reg ui_box_funcs[] = {
+luaL_Reg ui_box_funcs[] = {
     "__gc"              , &ui_box_lua_del,
     "padding"           , &ui_box_lua_set_padding,
     "pack_end"          , &ui_box_lua_pack_end,
@@ -304,7 +323,7 @@ Functions
     .. versionhistory::
         :0.0.1: Added
 */
-static int ui_box_lua_new(lua_State *L) {
+int ui_box_lua_new(lua_State *L) {
     const char *orient = luaL_checkstring(L, 1);
     ui_box_orientation_e o;
 
@@ -323,7 +342,7 @@ static int ui_box_lua_new(lua_State *L) {
 
 #define CHECK_UI_BOX(L, ind) *(ui_box_t**)luaL_checkudata(L, ind, "UIBoxMetaTable")
 
-static int ui_box_lua_del(lua_State *L) {
+int ui_box_lua_del(lua_State *L) {
     ui_box_t *box = CHECK_UI_BOX(L, 1);
 
     ui_element_unref(box); // release Lua's ref, that will free it if no other refs exist
@@ -360,7 +379,7 @@ Classes
             :0.0.1: Added
 
 */
-static int ui_box_lua_set_padding(lua_State *L) {
+int ui_box_lua_set_padding(lua_State *L) {
     ui_box_t *box = CHECK_UI_BOX(L, 1);
     int left = (int)luaL_checkinteger(L, 2);
     int right = (int)luaL_checkinteger(L, 3);
@@ -390,7 +409,7 @@ static int ui_box_lua_set_padding(lua_State *L) {
         .. versionhistory::
             :0.0.1: Added
 */
-static int ui_box_lua_pack_end(lua_State *L) {
+int ui_box_lua_pack_end(lua_State *L) {
     int args = lua_gettop(L);
 
     if (args <2 || args >4) 
@@ -430,7 +449,7 @@ static int ui_box_lua_pack_end(lua_State *L) {
         .. versionhistory::
             :0.0.1: Added
 */
-static int ui_box_lua_set_align(lua_State *L) {
+int ui_box_lua_set_align(lua_State *L) {
     ui_box_t *box = CHECK_UI_BOX(L, 1);
 
     box->align = ui_lua_check_align(L, 2);
@@ -449,7 +468,7 @@ static int ui_box_lua_set_align(lua_State *L) {
         .. versionhistory::
             :0.0.1: Added
 */
-static int ui_box_lua_spacing(lua_State *L) {
+int ui_box_lua_spacing(lua_State *L) {
     ui_box_t *box = CHECK_UI_BOX(L, 1);
     int spacing = (int)luaL_checkinteger(L, 2);
 
@@ -468,7 +487,7 @@ static int ui_box_lua_spacing(lua_State *L) {
         .. versionhistory::
                 :0.0.1: Added
 */
-static int ui_box_lua_item_count(lua_State *L) {
+int ui_box_lua_item_count(lua_State *L) {
     ui_box_t *box = CHECK_UI_BOX(L, 1);
     int count = 0;
     for (ui_box_item_t *i=box->items;i;i=i->next) count++;
@@ -486,7 +505,7 @@ static int ui_box_lua_item_count(lua_State *L) {
         .. versionhistory::
             :0.0.1: Added
 */
-static int ui_box_lua_pop_start(lua_State *L) {
+int ui_box_lua_pop_start(lua_State *L) {
     ui_box_t *box = CHECK_UI_BOX(L, 1);
 
     ui_box_item_t *f = box->items;
@@ -513,7 +532,7 @@ static int ui_box_lua_pop_start(lua_State *L) {
         .. versionhistory::
             :0.1.0: Added
 */
-static int ui_box_lua_events(lua_State *L) {
+int ui_box_lua_events(lua_State *L) {
     if (lua_gettop(L)!=2) return luaL_error(L, "events takes a boolean parameter.");
 
     ui_box_t *box = CHECK_UI_BOX(L, 1);

@@ -78,15 +78,6 @@ void ui_text_update_size(ui_text_t *text) {
 
     if (text->wrap_indices) egoverlay_free(text->wrap_indices);
     text->wrap_indices_count = 0;
-
-    /*
-    if (text->element.width > 0 && text->pref_width > text->element.width) {
-        text->wrap_indices_count = ui_font_get_text_wrap_indices(text->font, text->text, text->element.width, &text->wrap_indices);
-
-        text->pref_height = ui_font_get_line_spacing(text->font) * (text->wrap_indices_count + 1);
-        text->pref_width = text->element.width;
-    }
-    */
 }
 
 
@@ -139,7 +130,10 @@ void ui_text_draw(ui_text_t *text, int offset_x, int offset_y,  mat4f_t *proj) {
             y += ui_font_get_line_spacing(text->font);
         }
         pop_scissor(old_scissor);
-        if (text->events) ui_add_input_element(offset_x, offset_y, text->element.x, text->element.y, text->element.width, text->element.height, (ui_element_t*)text);
+        if (text->events) {
+            ui_add_input_element(offset_x, offset_y, text->element.x, text->element.y,
+                                 text->element.width, text->element.height, (ui_element_t*)text);
+        }
     }
 }
 
@@ -154,14 +148,14 @@ void ui_text_set_size(ui_text_t *text, int width, int height) {
 }
 
 
-static int ui_text_lua_new(lua_State *L);
+int ui_text_lua_new(lua_State *L);
 
-static int ui_text_lua_del(lua_State *L);
-static int ui_text_lua_update_text(lua_State *L);
-static int ui_text_lua_draw(lua_State *L);
-static int ui_text_lua_events(lua_State *L);
+int ui_text_lua_del(lua_State *L);
+int ui_text_lua_update_text(lua_State *L);
+int ui_text_lua_draw(lua_State *L);
+int ui_text_lua_events(lua_State *L);
 
-static luaL_Reg ui_text_funcs[] = {
+luaL_Reg ui_text_funcs[] = {
     "update_text"       , &ui_text_lua_update_text,
     "draw"              , &ui_text_lua_draw,
     "__gc"              , &ui_text_lua_del,
@@ -172,14 +166,14 @@ static luaL_Reg ui_text_funcs[] = {
     NULL                , NULL
 };
 
-static void ui_text_lua_register_metatable(lua_State *L);
+void ui_text_lua_register_metatable(lua_State *L);
 
 void ui_text_lua_register_ui_funcs(lua_State *L) {
     lua_pushcfunction(L, &ui_text_lua_new);
     lua_setfield(L, -2, "text");
 }
 
-static void ui_text_lua_register_metatable(lua_State *L) {
+void ui_text_lua_register_metatable(lua_State *L) {
     if (luaL_newmetatable(L, "UITextMetaTable")) {
         lua_pushvalue(L, -1);
         lua_setfield(L, -2, "__index");
@@ -236,7 +230,7 @@ Functions
     .. versionhistory::
         :0.0.1: Added
 */
-static int ui_text_lua_new(lua_State *L) {
+int ui_text_lua_new(lua_State *L) {
     const char *text = luaL_checkstring(L, 1);
     ui_color_t color = (ui_color_t)luaL_checkinteger(L, 2);
     const char *font_path = luaL_checkstring(L, 3);
@@ -262,7 +256,7 @@ static int ui_text_lua_new(lua_State *L) {
     return 1;
 }
 
-static int ui_text_lua_del(lua_State *L) {
+int ui_text_lua_del(lua_State *L) {
     ui_text_t *text = *(ui_text_t**)luaL_checkudata(L, 1, "UITextMetaTable");
 
     ui_element_unref(text);
@@ -289,7 +283,7 @@ Classes
         .. versionhistory::
             :0.0.1: Added
 */
-static int ui_text_lua_update_text(lua_State *L) {
+int ui_text_lua_update_text(lua_State *L) {
     ui_text_t *text = *(ui_text_t**)luaL_checkudata(L, 1, "UITextMetaTable");
     const char *new_text = luaL_checkstring(L, 2);
 
@@ -298,8 +292,7 @@ static int ui_text_lua_update_text(lua_State *L) {
     return 0;
 }
 
-
-static int ui_text_lua_draw(lua_State *L) {
+int ui_text_lua_draw(lua_State *L) {
     ui_text_t *text = *(ui_text_t**)luaL_checkudata(L, 1, "UITextMetaTable");
     int x = (int)luaL_checkinteger(L, 2);
     int y = (int)luaL_checkinteger(L, 3);
@@ -323,7 +316,7 @@ static int ui_text_lua_draw(lua_State *L) {
         .. versionhistory::
             :0.1.0: Added
 */
-static int ui_text_lua_events(lua_State *L) {
+int ui_text_lua_events(lua_State *L) {
     if (lua_gettop(L)!=2) return luaL_error(L, "events takes a boolean parameter.");
 
     ui_text_t *text = *(ui_text_t**)luaL_checkudata(L, 1, "UITextMetaTable");

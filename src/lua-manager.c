@@ -302,7 +302,8 @@ eg-overlay
 
     local overlay = require 'eg-overlay'
 
-The :lua:mod:`eg-overlay` module contains core functions that other modules use to communicate with the overlay.
+The :lua:mod:`eg-overlay` module contains core functions that other modules use
+to communicate with the overlay.
 
 Functions
 ---------
@@ -313,7 +314,9 @@ Functions
 
     Add an event handler for the given event name.
     
-    The handler function will be called every time that particular event is posted with two arguments: the event name and event data. The may be ``nil``, any Lua data type or a :lua:class:`JSON.json` object.
+    The handler function will be called every time that particular event is
+    posted with two arguments: the event name and event data. The may be
+    ``nil``, any Lua data type or a :lua:class:`JSON.json` object.
 
     :param event: Event type
     :type event: string
@@ -375,7 +378,8 @@ static int overlay_add_event_handler(lua_State *L) {
 /*** RST
 .. lua:function:: remove_event_handler(event, cbi)
 
-    Remove an event handler for the given event name. The callback ID is returned by :lua:func:`add_event_handler`.
+    Remove an event handler for the given event name. The callback ID is
+    returned by :lua:func:`add_event_handler`.
 
     :param event: Event type
     :type event: string
@@ -439,7 +443,9 @@ static int overlay_remove_event_handler(lua_State *L) {
     :return: none
 
     .. note::
-        Events are dispatched in the order they are queued each render frame. Events that are queued during an event callback will be dispatched on the following frame.
+        Events are dispatched in the order they are queued each render frame.
+        Events that are queued during an event callback will be dispatched on
+        the following frame.
 
     .. versionhistory::
         :0.0.1: Added
@@ -485,7 +491,8 @@ static int overlay_log(lua_State *L) {
 /*** RST
 .. lua:function:: time()
 
-    Returns the fractional number of seconds since the overlay was started. This can be used to time animations, events, etc.
+    Returns the fractional number of seconds since the overlay was started.
+    This can be used to time animations, events, etc.
 
     :return: Time value
     :rtype: number
@@ -502,7 +509,8 @@ static int overlay_time(lua_State *L) {
 /*** RST
 .. lua:function:: settings()
 
-    Returns a :lua:class:`settings` object for the overlay itself, which holds core settings and defaults.
+    Returns a :lua:class:`settings` object for the overlay itself, which holds
+    core settings and defaults.
 
     :rtype: settings
 
@@ -574,7 +582,8 @@ static lua_event_handler_t *get_event_handlers(const char *event) {
 }
 
 void lua_manager_add_coroutine_thread(lua_State *thread, int threadi) {
-    lua_manager_coroutine_thread_list_t *coroutine = egoverlay_calloc(1, sizeof(lua_manager_coroutine_thread_list_t));
+    size_t cosize = sizeof(lua_manager_coroutine_thread_list_t);
+    lua_manager_coroutine_thread_list_t *coroutine = egoverlay_calloc(1, cosize);
     coroutine->thread = thread;
     coroutine->threadi = threadi;
 
@@ -803,14 +812,16 @@ void lua_manager_queue_event(const char *event, json_t *data) {
 /*** RST
 .. lua:function:: mem_usage()
 
-    Returns a table containing the memory usage of the overlay. These statistics are for the application as a whole, and not just Lua.
+    Returns a table containing the memory usage of the overlay. These statistics
+    are for the application as a whole, and not just Lua.
 
     :return: Memory usage
     :rtype: table
 
     .. luatablefields::
         :working_set: The current memory in use by the overlay, in bytes.
-        :peak_working_set: The maximum amount of memory the overlay has used since starting, in bytes.
+        :peak_working_set: The maximum amount of memory the overlay has used
+            since starting, in bytes.
 
     .. versionhistory::
         :0.0.1: Added
@@ -836,7 +847,8 @@ static int overlay_mem_usage(lua_State *L) {
 /*** RST
 .. lua:function:: process_time()
 
-    Returns a table containing the CPU time and uptime of the overlay. This can be used to calculate the overlay's CPU usage.
+    Returns a table containing the CPU time and uptime of the overlay. This can
+    be used to calculate the overlay's CPU usage.
 
     :return: Process time
     :rtype: table
@@ -931,7 +943,8 @@ static int overlay_process_time(lua_State *L) {
 
     Returns the full path to the data folder for the given module. 
     
-    Modules should store any data other than settings in this folder. The folder will be created by this function if it does not already exist.
+    Modules should store any data other than settings in this folder. The folder
+    will be created by this function if it does not already exist.
 
     :param name: The name of the module and corresponding folder.
     :type name: string
@@ -1021,7 +1034,8 @@ static int overlay_clipboard_text(lua_State *L) {
     Exit EG-Overlay.
 
     .. danger::
-        This will unconditionally and immediately cause the overlay to shutdown. Most modules will not use this function.
+        This will unconditionally and immediately cause the overlay to shutdown.
+        Most modules will not use this function.
 
     .. versionhistory::
         :0.0.1: Added
@@ -1109,7 +1123,8 @@ Events
 
 .. overlay:event:: startup
 
-    The startup event is sent once before the start of the render thread. Modules can use this event to initialize or load data.
+    The startup event is sent once before the start of the render thread.
+    Modules can use this event to initialize or load data.
 
     .. versionhistory::
         :0.0.1: Added
@@ -1123,7 +1138,8 @@ Events
 
 .. overlay:event:: draw-3d
 
-    Sent once per frame, after :overlay:event:`update` but before the UI has been drawn. Modules should use this event to draw 3D information below the UI.
+    Sent once per frame, after :overlay:event:`update` but before the UI has
+    been drawn. Modules should use this event to draw 3D information below the UI.
 
     .. versionhistory::
         :0.0.1: Added

@@ -204,8 +204,9 @@ static void web_request_perform(web_request_list_t *req) {
         }
 
         if (req->cb) req->cb(http_code, data, request);
-        if (req->cbi){
-            struct web_request_lua_callback_data *ld = egoverlay_calloc(1, sizeof(struct web_request_lua_callback_data));
+        if (req->cbi) {
+            size_t ldsize = sizeof(struct web_request_lua_callback_data);
+            struct web_request_lua_callback_data *ld = egoverlay_calloc(1, ldsize);
             ld->cbi = req->cbi;
             ld->data = egoverlay_calloc(strlen(data)+1, sizeof(char));
             memcpy(ld->data, data, strlen(data));
@@ -326,7 +327,13 @@ void web_request_add_query_parameter(web_request_t *request, const char *name, c
     web_request_value_list_add_item(&request->query_params, v);
 }
 
-void web_request_queue(web_request_t *request, web_request_callback *callback, int free_after, const char *source, int cbi) {
+void web_request_queue(
+    web_request_t *request,
+    web_request_callback *callback,
+    int free_after,
+    const char *source,
+    int cbi
+) {
     web_request_list_t *w = egoverlay_calloc(1, sizeof(web_request_list_t));
     w->request = request;
     w->cb = callback;
@@ -352,11 +359,11 @@ void web_request_queue(web_request_t *request, web_request_callback *callback, i
     ReleaseMutex(queue_mutex);
 }
 
-static int web_request_lua_new(lua_State *L);
-static int web_request_lua_del(lua_State *L);
-static int web_request_lua_add_header(lua_State *L);
-static int web_request_lua_add_query_parameter(lua_State *L);
-static int web_request_lua_queue(lua_State *L);
+int web_request_lua_new(lua_State *L);
+int web_request_lua_del(lua_State *L);
+int web_request_lua_add_header(lua_State *L);
+int web_request_lua_add_query_parameter(lua_State *L);
+int web_request_lua_queue(lua_State *L);
 
 /*** RST
 web-request
@@ -395,7 +402,7 @@ int web_request_lua_open_module(lua_State *L) {
     return 1;
 }
 
-static luaL_Reg web_request_lua_funcs[] = {
+luaL_Reg web_request_lua_funcs[] = {
     "__gc",                &web_request_lua_del,
     "add_header",          &web_request_lua_add_header,
     "add_query_parameter", &web_request_lua_add_query_parameter,
@@ -403,7 +410,7 @@ static luaL_Reg web_request_lua_funcs[] = {
     NULL,                   NULL
 };
 
-static void web_request_lua_register_metatable(lua_State *L) {
+void web_request_lua_register_metatable(lua_State *L) {
     if (luaL_newmetatable(L, "WebRequestMetaTable")) {
         lua_pushvalue(L, -1);
         lua_setfield(L, -2, "__index");
@@ -414,7 +421,7 @@ static void web_request_lua_register_metatable(lua_State *L) {
 
 #define LUA_CHECK_WEBREQUEST(L, i) *(web_request_t**)luaL_checkudata(L, i, "WebRequestMetaTable")
 
-static void web_request_push_to_lua(lua_State *L, web_request_t *request, int lua_managed) {
+void web_request_push_to_lua(lua_State *L, web_request_t *request, int lua_managed) {
     web_request_t **req = (web_request_t**)lua_newuserdata(L, sizeof(web_request_t*));
 
     *req = request;
@@ -440,7 +447,7 @@ Functions
     .. versionhistory::
         :0.0.1: Added
 */
-static int web_request_lua_new(lua_State *L) {
+int web_request_lua_new(lua_State *L) {
     const char *url = luaL_checkstring(L, 1);
     web_request_t *req = web_request_new(url);
 
@@ -449,7 +456,7 @@ static int web_request_lua_new(lua_State *L) {
     return 1;
 }
 
-static int web_request_lua_del(lua_State *L) {
+int web_request_lua_del(lua_State *L) {
     web_request_t *r = LUA_CHECK_WEBREQUEST(L, 1);
 
     lua_getiuservalue(L, -1, 1);
@@ -469,11 +476,13 @@ Classes
 
 .. lua:class:: web_request
 
-    A web request object. A single web request object can be used to make multiple requests to the same URL.
+    A web request object. A single web request object can be used to make
+    multiple requests to the same URL.
 
     .. lua:method:: add_header(name, value)
 
-        Add a custom header to this request. All subsequent requests made by this web_request will include the header.
+        Add a custom header to this request. All subsequent requests made by
+        this web_request will include the header.
 
         :param name: The header name, ie. ``'Authorization'``
         :type name: string
@@ -489,7 +498,7 @@ Classes
         .. versionhistory::
             :0.0.1: Added
 */
-static int web_request_lua_add_header(lua_State *L) {
+int web_request_lua_add_header(lua_State *L) {
     web_request_t *r = LUA_CHECK_WEBREQUEST(L, 1);
     const char *name = luaL_checkstring(L, 2);
     const char *value = luaL_checkstring(L, 3);
@@ -502,7 +511,8 @@ static int web_request_lua_add_header(lua_State *L) {
 /*** RST
     .. lua:method:: add_query_parameter(name, value)
 
-        Add a query parameter that will be appended to the URL when making the request.
+        Add a query parameter that will be appended to the URL when making the
+        request.
 
         :param name: The parameter name.
         :type name: string
@@ -513,7 +523,7 @@ static int web_request_lua_add_header(lua_State *L) {
         .. versionhistory::
             :0.0.1: Added
 */
-static int web_request_lua_add_query_parameter(lua_State *L) {
+int web_request_lua_add_query_parameter(lua_State *L) {
     web_request_t *r = LUA_CHECK_WEBREQUEST(L, 1);
     const char *name = luaL_checkstring(L, 2);
     const char *value = luaL_checkstring(L, 3);
@@ -526,15 +536,18 @@ static int web_request_lua_add_query_parameter(lua_State *L) {
 /*** RST
     .. lua:method:: queue(callback_function)
 
-        Queue the request to be performed. A :lua:class:`web_request` can be queued multiple times to perform the request multiple times to the same URL.
+        Queue the request to be performed. A :lua:class:`web_request` can be
+        queued multiple times to perform the request multiple times to the same URL.
 
-        ``callback_function`` is a :lua:alias:`request_completed` function that is called when the request is completed.
+        ``callback_function`` is a :lua:alias:`request_completed` function that
+        is called when the request is completed.
 
-        :param callback_function: A function that will be called when the request has been completed.
+        :param callback_function: A function that will be called when the
+            request has been completed.
         :type callback_function: request_completed
         :return: none
 */
-static int web_request_lua_queue(lua_State *L) {
+int web_request_lua_queue(lua_State *L) {
     web_request_t *r = LUA_CHECK_WEBREQUEST(L, 1);
 
     web_request_list_t *w = egoverlay_calloc(1, sizeof(web_request_list_t));
@@ -587,11 +600,15 @@ Callback Functions
 
 .. lua:function:: request_completed(code, data, request)
 
-    A callback function provided to :lua:meth:`web-request.web_request.queue`, called when the request is completed.
+    A callback function provided to :lua:meth:`web-request.web_request.queue`,
+    called when the request is completed.
 
-    :param code: The HTTP response code or 0 if an error occurred before the request could be made.
+    :param code: The HTTP response code or 0 if an error occurred before the
+        request could be made.
     :type code: integer
-    :param data: The response body returned by the request. For responses that resulted in HTTP error codes this will contain the error text returned by the server.
+    :param data: The response body returned by the request. For responses that
+        resulted in HTTP error codes this will contain the error text returned
+        by the server.
     :type data: string
     :param request: The :lua:class:`web-request.web_request` that made the request.
     :type request: web-request.web_request

@@ -213,7 +213,7 @@ int zip_find_central_directory(FILE *zip, uint32_t *cd_offset, uint32_t *cd_size
     uint32_t eocd_sig = 0;
     while ((eocd_start * -1) < (file_size -22) && (eocd_sig=read_uint32(zip))!=0x06054b50) {
         eocd_start--;
-        fseek(zip, eocd_start - 4, SEEK_END); // -4 because we read 4 bytes for the sigature each time
+        fseek(zip, eocd_start - 4, SEEK_END); // -4 because we read 4 bytes for the signature each time
     }
 
     if ((eocd_start * -1) >= (file_size - 22)) {
@@ -234,7 +234,13 @@ int zip_find_central_directory(FILE *zip, uint32_t *cd_offset, uint32_t *cd_size
     *cd_size = read_uint32(zip);
     *cd_offset = read_uint32(zip);
 
-    if (cd_start_disk==0xFFFF || cd_disk_records==0xFFFF || cd_records==0xFFFFFFFF || *cd_size==0xFFFFFFFF || *cd_offset==0xFFFFFFFF) {
+    if (
+        cd_start_disk==0xFFFF ||
+        cd_disk_records==0xFFFF ||
+        cd_records==0xFFFFFFFF ||
+        *cd_size==0xFFFFFFFF ||
+        *cd_offset==0xFFFFFFFF
+    ) {
         abort();
     }
 

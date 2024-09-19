@@ -22,8 +22,8 @@ local uih = {}
 --[[ RST
 .. lua:function:: text(text[, color])
 
-    Create a :lua:class:`eg-overlay-ui.uitext` using default font settings. If ``color`` is
-    not specified, the default color will also be used.
+    Create a :lua:class:`eg-overlay-ui.uitext` using default font settings. If
+    ``color`` is not specified, the default color will also be used.
 
     :param string text:
     :param integer color: (Optional) See :ref:`colors`.
@@ -68,8 +68,8 @@ end
 .. lua:function:: monospace_text_menu_item(text)
 
     Create a :lua:class:`eg-overlay-ui.uimenuitem` containing a
-    :lua:class:`eg-overlay-ui.text` using the default font settings for a monospace
-    font.
+    :lua:class:`eg-overlay-ui.text` using the default font settings for a
+    monospace font.
 
     :param string text:
     :rtype: eg-overlay-ui.uimenuitem
@@ -132,8 +132,8 @@ end
 --[[ RST
 .. lua:function:: checkbox()
 
-    Create a :lua:class:`eg-overlay-ui.uibutton` that is specialized as a checkbox
-    and automatically sized based on the default font settings.
+    Create a :lua:class:`eg-overlay-ui.uibutton` that is specialized as a
+    checkbox and automatically sized based on the default font settings.
 
     :rtype: eg-overlay-ui.uibutton
 

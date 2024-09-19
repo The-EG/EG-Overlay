@@ -5,14 +5,6 @@
 #include <lauxlib.h>
 
 void mat4f_ortho(mat4f_t *m, float left, float right, float top, float bottom, float near_, float far_) {
-    /*
-     mat4f_t m = {
-        2.f / (right - left), 0.f, 0.f, ((right + left) / (right - left)) * -1.f,
-        0.f, 2.f / (top - bottom), 0, ((top + bottom) / (top - bottom)) * -1.f,
-        0.f, 0.f, -2 / (far_ - near_), ((far_ + near_) / (far_ - near_)) * -1.f,
-        0.f, 0.f, 0.f, 1.f 
-    };
-    */
     m->i1j1 = 2.f / (right - left);
     m->i2j1 = 0.f;
     m->i3j1 = 0.f;

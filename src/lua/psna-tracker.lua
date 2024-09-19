@@ -92,33 +92,129 @@ end
 psna.agents = {
     mehem = new_agent(
         'Mehem the Traveled',
-        {"Azarr's Arbor", "Restoration Refuge", "Camp Resolve Waypoint", "Town of Prosperity", "Blue Oasis" , "Repair Station", "Camp Resolve Waypoint"},
-        {'[&BIkHAAA=]'  , '[&BIcHAAA=]'       , '[&BH8HAAA=]'          , '[&BH4HAAA=]'       , '[&BKsHAAA=]', '[&BJQHAAA=]'   , '[&BH8HAAA=]'}
+        {
+            "Azarr's Arbor",
+            "Restoration Refuge",
+            "Camp Resolve Waypoint",
+            "Town of Prosperity",
+            "Blue Oasis",
+            "Repair Station",
+            "Camp Resolve Waypoint"
+        },
+        {
+            '[&BIkHAAA=]',
+            '[&BIcHAAA=]',
+            '[&BH8HAAA=]',
+            '[&BH4HAAA=]',
+            '[&BKsHAAA=]',
+            '[&BJQHAAA=]',
+            '[&BH8HAAA=]'
+        }
     ),
     thefox = new_agent(
         'The Fox',
-        {"Mabon Waypoint", "Lionguard Waystation Waypoint", "Desider Atum Waypoint", "Swapwatch Post", "Seraph Protectors", "Breth Ayahusasca", "Gallant's Folly"},
-        {'[&BDoBAAA=]'   , '[&BEwDAAA=]'                  , '[&BEgAAAA=]'          , '[&BMIBAAA=]'   , '[&BE8AAAA=]'      , '[&BMMCAAA=]'     , '[&BLkCAAA=]' }
+        {
+            "Mabon Waypoint",
+            "Lionguard Waystation Waypoint",
+            "Desider Atum Waypoint",
+            "Swapwatch Post",
+            "Seraph Protectors",
+            "Breth Ayahusasca",
+            "Gallant's Folly"
+        },
+        {
+            '[&BDoBAAA=]',
+            '[&BEwDAAA=]',
+            '[&BEgAAAA=]',
+            '[&BMIBAAA=]',
+            '[&BE8AAAA=]',
+            '[&BMMCAAA=]',
+            '[&BLkCAAA=]'
+        }
     ),
     yana = new_agent(
         'Specialist Yana',
-        {"Fort Trinity Waypoint", "Rally Waypoint", "Waste Hollows Waypoint", "Caer Shadowfain", "Armada Harbor", "Shelter Docks", "Augur's Torch"},
-        {'[&BO4CAAA=]'          , '[&BNIEAAA=]'   , '[&BKgCAAA=]'           , '[&BP0CAAA=]'    , '[&BP0DAAA=]'  , '[&BJsCAAA=]'  , '[&BBEDAAA=]'}
+        {
+            "Fort Trinity Waypoint",
+            "Rally Waypoint",
+            "Waste Hollows Waypoint",
+            "Caer Shadowfain",
+            "Armada Harbor",
+            "Shelter Docks",
+            "Augur's Torch"
+        },
+        {
+            '[&BO4CAAA=]',
+            '[&BNIEAAA=]',
+            '[&BKgCAAA=]',
+            '[&BP0CAAA=]',
+            '[&BP0DAAA=]',
+            '[&BJsCAAA=]',
+            '[&BBEDAAA=]'
+        }
     ),
     derwena = new_agent(
         'Lady Derwena',
-        {"Mudflat Camp", "Marshwatch Haven Waypoint", "Garenhoff"  , "Shieldbluff Waypoint", "Altar Brook Trading Post", "Pearl Islet Waypoint", "Vigil Keep Waypoint"},
-        {'[&BC0AAAA=]' , '[&BKYBAAA=]'              , '[&BBkAAAA=]', '[&BKYAAAA=]'         , '[&BIMAAAA=]'             , '[&BNUGAAA=]'         , '[&BJIBAAA=]'}
+        {
+            "Mudflat Camp",
+            "Marshwatch Haven Waypoint",
+            "Garenhoff",
+            "Shieldbluff Waypoint",
+            "Altar Brook Trading Post",
+            "Pearl Islet Waypoint",
+            "Vigil Keep Waypoint"
+        },
+        {
+            '[&BC0AAAA=]',
+            '[&BKYBAAA=]',
+            '[&BBkAAAA=]',
+            '[&BKYAAAA=]',
+            '[&BIMAAAA=]',
+            '[&BNUGAAA=]',
+            '[&BJIBAAA=]'
+        }
     ),
     despina = new_agent(
         'Despina Katelyn',
-        {"Blue Ice Shining Waypoint", "Ridgerock Camp Waypoint", "Travelen's Waypoint", "Mennerheim" , "Rocklair"   , "Dolyak Pass Waypoint", "Balddistead"},
-        {'[&BIUCAAA=]'              , '[&BIMCAAA=]'            , '[&BGQCAAA=]'        , '[&BDgDAAA=]', '[&BF0GAAA=]', '[&BHsBAAA=]'         , '[&BEICAAA=]'}
+        {
+            "Blue Ice Shining Waypoint",
+            "Ridgerock Camp Waypoint",
+            "Travelen's Waypoint",
+            "Mennerheim",
+            "Rocklair",
+            "Dolyak Pass Waypoint",
+            "Balddistead"
+        },
+        {
+            '[&BIUCAAA=]',
+            '[&BIMCAAA=]',
+            '[&BGQCAAA=]',
+            '[&BDgDAAA=]',
+            '[&BF0GAAA=]',
+            '[&BHsBAAA=]',
+            '[&BEICAAA=]'
+        }
     ),
     verma = new_agent(
         'Verma Giftrender',
-        {"Snow Ridge Camp Waypoint", "Haymal Gore", "Temperus Point Waypoint", "Ferrusatos Village", "Village of Scalecatch Waypoint", "Hawkgates Waypoint", "Bovarin Estate"},
-        {'[&BCECAAA=]'             , '[&BA8CAAA=]', '[&BIMBAAA=]'            , '[&BPEBAAA=]'       , '[&BOcBAAA=]'                   , '[&BNMAAAA=]'       , '[&BBABAAA=]'}
+        {
+            "Snow Ridge Camp Waypoint",
+            "Haymal Gore",
+            "Temperus Point Waypoint",
+            "Ferrusatos Village",
+            "Village of Scalecatch Waypoint",
+            "Hawkgates Waypoint",
+            "Bovarin Estate"
+        },
+        {
+            '[&BCECAAA=]',
+            '[&BA8CAAA=]',
+            '[&BIMBAAA=]',
+            '[&BPEBAAA=]',
+            '[&BOcBAAA=]',
+            '[&BNMAAAA=]',
+            '[&BBABAAA=]'
+        }
     )
 }
 

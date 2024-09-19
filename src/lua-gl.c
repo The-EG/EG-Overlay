@@ -27,8 +27,16 @@ void overlay_3d_init() {
     overlay_3d = egoverlay_calloc(1, sizeof(overlay_3d_t));
 
     overlay_3d->sprite_program = gl_shader_program_new();
-    gl_shader_program_attach_shader_file(overlay_3d->sprite_program, "shaders/sprite-collection.vert", GL_VERTEX_SHADER);
-    gl_shader_program_attach_shader_file(overlay_3d->sprite_program, "shaders/sprite-collection.frag", GL_FRAGMENT_SHADER);
+    gl_shader_program_attach_shader_file(
+        overlay_3d->sprite_program,
+        "shaders/sprite-collection.vert",
+        GL_VERTEX_SHADER
+    );
+    gl_shader_program_attach_shader_file(
+        overlay_3d->sprite_program,
+        "shaders/sprite-collection.frag",
+        GL_FRAGMENT_SHADER
+    );
     gl_shader_program_link(overlay_3d->sprite_program);
 
     lua_manager_add_module_opener("overlay-3d", &overlay_3d_lua_open_module);
@@ -187,40 +195,42 @@ int sprite_collection_lua_new(lua_State *L) {
 
     glBindVertexArray(sprite->vao);
     glBindBuffer(GL_ARRAY_BUFFER, sprite->vbo);
+
+    size_t loc_size = sizeof(sprite_collection_location_t);
     
     // location 0 = vec3 position
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(sprite_collection_location_t), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, loc_size, (void*)0);
     glVertexAttribDivisor(0, 1);
 
     // location 1 = float size_ratio
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, sizeof(sprite_collection_location_t), (void*)(3 * sizeof(float)));
+    glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, loc_size, (void*)(3 * sizeof(float)));
     glVertexAttribDivisor(1, 1);
 
     // location 2 = vec4 color
     glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(sprite_collection_location_t), (void*)(4 * sizeof(float)));
+    glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, loc_size, (void*)(4 * sizeof(float)));
     glVertexAttribDivisor(2, 1);
 
     // location 3 = uint flags
     glEnableVertexAttribArray(3);
-    glVertexAttribIPointer(3, 1, GL_UNSIGNED_INT, sizeof(sprite_collection_location_t), (void*)(8 * sizeof(float)));
+    glVertexAttribIPointer(3, 1, GL_UNSIGNED_INT, loc_size, (void*)(8 * sizeof(float)));
     glVertexAttribDivisor(3, 1);
 
     // location4 = mat4 rotation
     // rotation matrix. this is sent as 4 vec4s
     glEnableVertexAttribArray(4);
-    glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(sprite_collection_location_t), (void*)(8 * sizeof(float) + sizeof(uint32_t)));
+    glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, loc_size, (void*)(8 * sizeof(float) + sizeof(uint32_t)));
     glVertexAttribDivisor(4, 1);
     glEnableVertexAttribArray(5);
-    glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, sizeof(sprite_collection_location_t), (void*)(12 * sizeof(float) + sizeof(uint32_t)));
+    glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, loc_size, (void*)(12 * sizeof(float) + sizeof(uint32_t)));
     glVertexAttribDivisor(5, 1);
     glEnableVertexAttribArray(6);
-    glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(sprite_collection_location_t), (void*)(16 * sizeof(float) + sizeof(uint32_t)));
+    glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, loc_size, (void*)(16 * sizeof(float) + sizeof(uint32_t)));
     glVertexAttribDivisor(6, 1);
     glEnableVertexAttribArray(7);
-    glVertexAttribPointer(7, 4, GL_FLOAT, GL_FALSE, sizeof(sprite_collection_location_t), (void*)(20 * sizeof(float) + sizeof(uint32_t)));
+    glVertexAttribPointer(7, 4, GL_FLOAT, GL_FALSE, loc_size, (void*)(20 * sizeof(float) + sizeof(uint32_t)));
     glVertexAttribDivisor(7, 1);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);    
@@ -404,7 +414,10 @@ int sprite_collection_lua_updatelocations(lua_State *L) {
         return 0;
     }
 
-    if (!lua_istable(L, 2)) return luaL_error(L, "updateloctions(locations): locations must be a sequence of location details.");
+    if (!lua_istable(L, 2)) {
+        return luaL_error(L, "updateloctions(locations): locations must be a "
+                             "sequence of location details.");
+    }
 
     size_t len = luaL_len(L, 2);
     if (len==0) return luaL_error(L, "updateloctions(locations): locations is empty.");
@@ -445,7 +458,9 @@ int sprite_collection_lua_updatelocations(lua_State *L) {
                 int billboard = lua_toboolean(L, -1);
                 locs[li].flags = (locs[li].flags & ~0x1) | billboard;
             } else if (strcmp(key, "color")==0) {
-                if (lua_type(L, -1)!=LUA_TNUMBER || !lua_isinteger(L, -1))  return luaL_error(L, "color must be an integer.");
+                if (lua_type(L, -1)!=LUA_TNUMBER || !lua_isinteger(L, -1)) {
+                    return luaL_error(L, "color must be an integer.");
+                }
                 ui_color_t color = (ui_color_t)lua_tointeger(L, -1);
                 locs[li].r = UI_COLOR_R(color);
                 locs[li].g = UI_COLOR_G(color);
@@ -456,7 +471,9 @@ int sprite_collection_lua_updatelocations(lua_State *L) {
                 int centerfade = (lua_toboolean(L, -1) << 1);
                 locs[li].flags = (locs[li].flags & ~(0x01 << 1)) | centerfade;
             } else if (strcmp(key, "rotation")==0) {
-                if (lua_type(L, -1)!=LUA_TTABLE || luaL_len(L, -1)!=3) return luaL_error(L, "rotation must be a sequence of 3 numbers.");
+                if (lua_type(L, -1)!=LUA_TTABLE || luaL_len(L, -1)!=3) {
+                    return luaL_error(L, "rotation must be a sequence of 3 numbers.");
+                }
                 float x = 0.0;
                 float y = 0.0;
                 float z = 0.0;

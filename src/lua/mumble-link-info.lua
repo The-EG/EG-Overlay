@@ -121,7 +121,8 @@ end
 local function on_map_changed()
     map_id = mumble_link.map_id
     local map = gw2static.map(map_id)
-    map_idlbl:update_text('Map: ' .. map.name .. ' (' .. tostring(mumble_link.map_id) .. ') ['..mumble_link.map_type..']', true)
+    map_idlbl:update_text('Map: ' .. map.name .. ' (' .. tostring(mumble_link.map_id) ..
+                          ') ['..mumble_link.map_type..']', true)
 end
 
 local function on_available()

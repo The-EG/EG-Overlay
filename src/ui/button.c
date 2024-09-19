@@ -82,11 +82,6 @@ void ui_button_free(ui_button_t *button) {
 void ui_button_draw(ui_button_t *button, int offset_x, int offset_y, mat4f_t *proj) {
     int cw = button->element.width - (button->border_width * 2);;
     int ch = ch = button->element.height - (button->border_width * 2);
-    //if (!button->child || !button->child->get_preferred_size || !button->child->get_preferred_size(button->child, &cw, &ch)) return;
-
-    //if (cw > button->element.width - (button->border_width * 2)) cw = button->element.width - (button->border_width * 2);
-    //if (ch > button->element.height - (button->border_width * 2)) ch = button->element.height - (button->border_width * 2);
-
     if (button->child) button->child->width = cw;
     if (button->child) button->child->height = ch;
 
@@ -127,24 +122,57 @@ void ui_button_draw(ui_button_t *button, int offset_x, int offset_y, mat4f_t *pr
         );
     }
 
+    ui_color_t bg = button->background;
+
+    if (button->bg_highlight) {
+        bg = button->background_highlight;
+    } else if (button->bg_hover) {
+        bg = button->background_hover;
+    }
+
     // background
     ui_rect_draw(
         offset_x + button->element.x + button->border_width,
         offset_y + button->element.y + button->border_width,
         button_width - (button->border_width * 2),
         button_height - (button->border_width * 2),
-        button->bg_highlight ? button->background_highlight : (button->bg_hover ? button->background_hover : button->background),
+        bg,
         proj
     );
 
-    if (button->lua_bind_table && button->draw_state) button->state = lua_manager_gettableref_bool(button->lua_bind_table, button->lua_bind_field);
+    if (button->lua_bind_table && button->draw_state) {
+        button->state = lua_manager_gettableref_bool(button->lua_bind_table, button->lua_bind_field);
+    }
 
-    if (button->draw_state && button->state) ui_rect_draw(offset_x + button->element.x + button->border_width, offset_y + button->element.y + button->border_width, button->element.width - (button->border_width * 2), button->element.height - (button->border_width * 2), button->state_color, proj);
+    if (button->draw_state && button->state) {
+        ui_rect_draw(
+            offset_x + button->element.x + button->border_width,
+            offset_y + button->element.y + button->border_width,
+            button->element.width - (button->border_width * 2),
+            button->element.height - (button->border_width * 2),
+            button->state_color,
+            proj
+        );
+    }
 
-    if (button->child) ui_element_draw(button->child, offset_x + button->element.x + button->border_width, offset_y + button->element.y + button->border_width, proj);
-    //if (button->child && button->child->draw) button->child->draw(button->child, offset_x + button->element.x + button->border_width, offset_y + button->element.y + button->border_width, proj);
+    if (button->child) {
+        ui_element_draw(
+            button->child,
+            offset_x + button->element.x + button->border_width,
+            offset_y + button->element.y + button->border_width,
+            proj
+        );
+    }
 
-    ui_add_input_element(offset_x, offset_y, button->element.x, button->element.y, button->element.width, button->element.height, (ui_element_t*)button);
+    ui_add_input_element(
+        offset_x,
+        offset_y,
+        button->element.x,
+        button->element.y,
+        button->element.width,
+        button->element.height,
+        (ui_element_t*)button
+    );
 }
 
 int ui_button_get_preferred_size(ui_button_t *button, int *width, int *height) {
@@ -175,7 +203,14 @@ int ui_button_process_mouse_event(ui_button_t *button, ui_mouse_event_t *event, 
         ui_capture_mouse_events((ui_element_t*)button, offset_x, offset_y);
         button->bg_highlight = 1;
     } else if (event->event==UI_MOUSE_EVENT_TYPE_BTN_UP && button->bg_highlight==1) {
-        if (MOUSE_POINT_IN_RECT(event->x, event->y, offset_x + button->element.x, offset_y + button->element.y, button->element.width, button->element.height)) {
+        if (MOUSE_POINT_IN_RECT(
+                event->x,
+                event->y,
+                offset_x + button->element.x,
+                offset_y + button->element.y,
+                button->element.width,
+                button->element.height
+        )) {
             // the up happened while still over the button, this is a 'click'
             if (event->button==UI_MOUSE_EVENT_BUTTON_LEFT) {
                 ui_element_call_lua_event_handlers(button, "click-left");
@@ -227,49 +262,6 @@ luaL_Reg ui_mod_button_funcs[] = {
 void ui_button_lua_register_ui_funcs(lua_State *L) {
     luaL_setfuncs(L, ui_mod_button_funcs, 0);
 }
-
-/*
-static int ui_image_button_process_mouse_event(ui_image_button_t *btn, ui_mouse_event_t *me, int offset_x, int offset_y) {
-    if (me->event==UI_MOUSE_EVENT_TYPE_ENTER) {
-        btn->mouse_over = 1;
-        btn->img_sat = 1.f;
-        return 0;
-    } else if (me->event==UI_MOUSE_EVENT_TYPE_LEAVE) {
-        btn->mouse_over = 0;
-        btn->img_sat = 0.f;
-        return 0;
-    }
-    
-    if (MOUSE_EVENT_IS_LEFT_DN(me)) {
-        btn->img_val = 1.5f;
-        btn->mouse_down = 1;
-        ui_capture_mouse_events((ui_element_t*)btn, offset_x, offset_y);
-    }
-    if (MOUSE_EVENT_IS_LEFT_UP(me) && btn->mouse_down) {
-        btn->mouse_down = 0;
-        if (btn->mouse_over) {
-
-            // first call callbacks here in C
-            ui_button_event_callback_list_t *c_cb = btn->event_callbacks;
-            while (c_cb) {
-                c_cb->callback(UI_BUTTON_EVENT_TYPE_LEFT_CLICK);
-                c_cb = c_cb->next;
-            }
-
-            // then Lua callbacks
-            ui_button_lua_event_callback_list_t *l_cb = btn->lua_event_callbacks;
-            while (l_cb) {
-                lua_manager_add_event_callback(&lua_event_run_callback, l_cb);
-                l_cb = l_cb->next;
-            }
-        }
-        btn->img_val = 1.f;
-        ui_release_mouse_events();            
-    }
-
-    return 1;
-}
-*/
 
 luaL_Reg ui_button_funcs[] = {
     "__gc"              , &ui_button_lua_del,

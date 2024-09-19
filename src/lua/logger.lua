@@ -8,7 +8,8 @@ logger
 
     local logger = require 'logger'
 
-Logging utilities. Modules should use this for any output instead of ``print`` or directly writing to the console, etc.
+Logging utilities. Modules should use this for any output instead of ``print``
+or directly writing to the console, etc.
 ]]--
 
 local overlay = require 'eg-overlay'
@@ -34,11 +35,14 @@ logger.logger = {}
 --[[ RST
     .. lua:method:: new(name)
 
-        Create a new :lua:class:`logger`. The provided name should be informative and match the name of the module in most cases.
+        Create a new :lua:class:`logger`. The provided name should be
+        informative and match the name of the module in most cases.
 
-        The underlying logging options, such as log file name and log level are controlled by the overlay. 
+        The underlying logging options, such as log file name and log level are
+        controlled by the overlay. 
 
-        :param name: The name for the logger. This will be displayed next to any messages this logger creates.
+        :param name: The name for the logger. This will be displayed next to any
+            messages this logger creates.
         :type name: string
         :rtype: logger
 
@@ -56,7 +60,8 @@ end
 --[[ RST
     .. lua:method:: error(...)
 
-        Log an ``ERROR`` message. The function parameters work exactly the same as ``string.format``.
+        Log an ``ERROR`` message. The function parameters work exactly the same
+        as ``string.format``.
 
         .. versionhistory::
             :0.0.1: Added
@@ -68,7 +73,8 @@ end
 --[[ RST
     .. lua:method:: warn(...)
 
-        Log a ``WARNING`` message. The function parameters work exactly the same as ``string.format``.
+        Log a ``WARNING`` message. The function parameters work exactly the same
+        as ``string.format``.
 
         .. versionhistory::
             :0.0.1: Added
@@ -80,7 +86,8 @@ end
 --[[ RST
     .. lua:method:: info(...)
 
-        Log a ``INFO`` message. The function parameters work exactly the same as ``string.format``.
+        Log a ``INFO`` message. The function parameters work exactly the same as
+        ``string.format``.
 
         .. versionhistory::
             :0.0.1: Added
@@ -92,7 +99,8 @@ end
 --[[ RST
     .. lua:method:: debug(...)
 
-        Log a ``DEBUG`` message. The function parameters work exactly the same as ``string.format``.
+        Log a ``DEBUG`` message. The function parameters work exactly the same as
+        ``string.format``.
 
         .. versionhistory::
             :0.0.1: Added

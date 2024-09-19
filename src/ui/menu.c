@@ -45,12 +45,12 @@ struct ui_menu_t {
 
 void ui_menu_free(ui_menu_t *menu);
 
-static void ui_menu_item_draw(ui_menu_item_t *item, int offset_x, int offset_y, mat4f_t *proj);
-static void ui_menu_item_free(ui_menu_item_t *item);
-static int ui_menu_item_get_preferred_size(ui_menu_item_t *item, int *width, int *height);
-static int ui_menu_item_process_mouse_event(ui_menu_item_t *item, ui_mouse_event_t *event, int offset_x, int offset_y);
+void ui_menu_item_draw(ui_menu_item_t *item, int offset_x, int offset_y, mat4f_t *proj);
+void ui_menu_item_free(ui_menu_item_t *item);
+int ui_menu_item_get_preferred_size(ui_menu_item_t *item, int *width, int *height);
+int ui_menu_item_process_mouse_event(ui_menu_item_t *item, ui_mouse_event_t *event, int offset_x, int offset_y);
 
-static int ui_menu_process_mouse_event(ui_menu_t *menu, ui_mouse_event_t *event, int offset_x, int offset_y);
+int ui_menu_process_mouse_event(ui_menu_t *menu, ui_mouse_event_t *event, int offset_x, int offset_y);
 
 ui_menu_item_t *ui_menu_item_new() {
     ui_menu_item_t *mi = egoverlay_calloc(1, sizeof(ui_menu_item_t));
@@ -68,32 +68,13 @@ ui_menu_item_t *ui_menu_item_new() {
     return mi;
 }
 
-static int ui_menu_item_lua_clicked_callback(lua_State *L, ui_menu_item_t *data) {
+int ui_menu_item_lua_clicked_callback(lua_State *L, ui_menu_item_t *data) {
     lua_rawgeti(L, LUA_REGISTRYINDEX, data->clicked_cbi);
-
-
-    /*
-    if (lua_pcall(L, 0, 1, 0)!=LUA_OK) {
-        const char *err = luaL_checkstring(L, -1);
-        logger_t *log = logger_get("ui-menu-item");
-        logger_error(log, "Error while running clicked event handler: %s", err);
-        lua_pop(L, 1);
-
-        ui_menu_hide(data->parent_menu);
-    } else {
-        if (!lua_isboolean(L, -1) || !lua_toboolean(L, -1)) {
-            
-        }
-        lua_pop(L, 1);
-    }
-    */
-
-    //ui_menu_hide(data->parent_menu);
 
     return 0;
 }
 
-static void ui_menu_item_draw(ui_menu_item_t *item, int offset_x, int offset_y, mat4f_t *proj) {
+void ui_menu_item_draw(ui_menu_item_t *item, int offset_x, int offset_y, mat4f_t *proj) {
     if (!item->child || !item->child->get_preferred_size) return;
     
     if (item->child) {
@@ -106,13 +87,21 @@ static void ui_menu_item_draw(ui_menu_item_t *item, int offset_x, int offset_y, 
         ui_color_t bg_color;
         settings_t *app_settings = app_get_settings();
         settings_get_int(app_settings, "overlay.ui.colors.menuItemHover", (int*)&bg_color);
-        ui_rect_draw(offset_x + item->element.x, offset_y + item->element.y, item->element.width, item->element.height, bg_color, proj);
+        ui_rect_draw(offset_x + item->element.x, offset_y + item->element.y,
+                     item->element.width, item->element.height, bg_color, proj);
     }
 
-    ui_add_input_element(offset_x, offset_y, item->element.x, item->element.y, item->element.width, item->element.height, &item->element);
+    ui_add_input_element(offset_x, offset_y, item->element.x, item->element.y,
+                         item->element.width, item->element.height, &item->element);
 
-    if (item->child) ui_element_draw(item->child, offset_x + item->element.x + 5 + item->pre_size, offset_y + item->element.y + 2, proj);
-    if (item->pre) ui_element_draw(item->pre, offset_x + item->element.x + 5, offset_y + item->element.y + 2, proj);
+    if (item->child) {
+        ui_element_draw(item->child, offset_x + item->element.x + 5 + item->pre_size,
+                        offset_y + item->element.y + 2, proj);
+    }
+
+    if (item->pre) {
+        ui_element_draw(item->pre, offset_x + item->element.x + 5, offset_y + item->element.y + 2, proj);
+    }
 
     if (item->sub_menu) {
         char *font_path;
@@ -121,11 +110,12 @@ static void ui_menu_item_draw(ui_menu_item_t *item, int offset_x, int offset_y, 
         GET_APP_SETTING_STR("overlay.ui.font.path", &font_path);
         GET_APP_SETTING_INT("overlay.ui.font.size", &font_size);
         ui_font_t *post_font = ui_font_get(font_path, font_size, 900, INT_MIN, INT_MIN);
-        ui_font_render_text(post_font, proj, offset_x + item->element.x + item->element.width - item->post_size, offset_y + item->element.y + 2, "\u21b4", 4, 0xFFFFFFFF);
+        ui_font_render_text(post_font, proj, offset_x + item->element.x + item->element.width - item->post_size,
+                            offset_y + item->element.y + 2, "\u21b4", 4, 0xFFFFFFFF);
     }
 }
 
-static int ui_menu_item_get_preferred_size(ui_menu_item_t *item, int *width, int *height) {
+int ui_menu_item_get_preferred_size(ui_menu_item_t *item, int *width, int *height) {
     if (!item->child || !item->child->get_preferred_size) return 0;
 
     int w, h;
@@ -137,7 +127,7 @@ static int ui_menu_item_get_preferred_size(ui_menu_item_t *item, int *width, int
     return 1;
 }
 
-static void ui_menu_item_free(ui_menu_item_t *item) {
+void ui_menu_item_free(ui_menu_item_t *item) {
     if (item->clicked_cbi) lua_manager_unref(item->clicked_cbi);
     if (item->child) ui_element_unref(item->child);
     if (item->pre) ui_element_unref(item->pre);
@@ -145,7 +135,7 @@ static void ui_menu_item_free(ui_menu_item_t *item) {
     egoverlay_free(item);
 }
 
-static int ui_menu_item_process_mouse_event(ui_menu_item_t *item, ui_mouse_event_t *event, int offset_x, int offset_y) {
+int ui_menu_item_process_mouse_event(ui_menu_item_t *item, ui_mouse_event_t *event, int offset_x, int offset_y) {
     if (!item->enabled) return 1;
 
     if (event->event==UI_MOUSE_EVENT_TYPE_ENTER) {
@@ -186,7 +176,7 @@ void ui_menu_item_set_event_callback(ui_menu_item_t *item, menu_item_event_callb
     item->callback = cb;
 }
 
-static void ui_menu_draw(ui_menu_t *menu, int offset_x, int offset_y, mat4f_t *proj) {
+void ui_menu_draw(ui_menu_t *menu, int offset_x, int offset_y, mat4f_t *proj) {
     int boxw = 0;
     int boxh = 0;
     ui_element_get_preferred_size(menu->box, &boxw, &boxh);
@@ -203,13 +193,9 @@ static void ui_menu_draw(ui_menu_t *menu, int offset_x, int offset_y, mat4f_t *p
     settings_get_int(app_settings, "overlay.ui.colors.menuBG", (int*)&bg_color);
     settings_get_int(app_settings, "overlay.ui.colors.menuBorder", (int*)&border_color);
 
-    // // drop shadow
-    // ui_color_t shadow_color = 0x00000033;
-    // ui_rect_draw(offset_x + menu->element.x + 5, offset_y + menu->element.y + menu->element.height, menu->element.width, 5, shadow_color, proj);
-    // ui_rect_draw(offset_x + menu->element.x + menu->element.width, offset_y + menu->element.y + 5, 5, menu->element.height - 5, shadow_color, proj);
-
     // background
-    ui_rect_draw(offset_x + menu->element.x, offset_y + menu->element.y, menu->element.width, menu->element.height, bg_color, proj);
+    ui_rect_draw(offset_x + menu->element.x, offset_y + menu->element.y,
+                 menu->element.width, menu->element.height, bg_color, proj);
 
     // border
     ui_rect_draw( // left
@@ -220,7 +206,7 @@ static void ui_menu_draw(ui_menu_t *menu, int offset_x, int offset_y, mat4f_t *p
         border_color,
         proj
     );
-    ui_rect_draw( // rightt
+    ui_rect_draw( // right
         offset_x + menu->element.x + menu->element.width - 1,
         offset_y + menu->element.y,
         1,
@@ -245,7 +231,10 @@ static void ui_menu_draw(ui_menu_t *menu, int offset_x, int offset_y, mat4f_t *p
         proj
     );
 
-    if (!menu->parent_menu) ui_add_input_element(offset_x, offset_y, menu->element.x, menu->element.y, menu->element.width, menu->element.height, (ui_element_t*)menu);
+    if (!menu->parent_menu) {
+        ui_add_input_element(offset_x, offset_y, menu->element.x, menu->element.y,
+                             menu->element.width, menu->element.height, (ui_element_t*)menu);
+    }
 
     ui_element_draw(menu->box, offset_x + menu->element.x, offset_y + menu->element.y, proj);
 
@@ -271,7 +260,7 @@ void ui_menu_free(ui_menu_t *menu) {
     egoverlay_free(menu);
 }
 
-static int ui_menu_process_mouse_event(ui_menu_t *menu, ui_mouse_event_t *event, int offset_x, int offset_y) {   
+int ui_menu_process_mouse_event(ui_menu_t *menu, ui_mouse_event_t *event, int offset_x, int offset_y) {   
     //int coffx = menu->element.x + offset_x;
     //int coffy = menu->element.y + offset_y;
     int over_menu = MOUSE_EVENT_OVER_ELEMENT(event, offset_x, offset_y, menu->element) ? 1 : 0;
@@ -293,14 +282,22 @@ static int ui_menu_process_mouse_event(ui_menu_t *menu, ui_mouse_event_t *event,
         return 1;
     }
 
-    // if this is a child menu that also has a child menu and the event was not within this menu, see if it was within a child menu
-    if (menu->parent_menu && menu->child_menu && event->event==UI_MOUSE_EVENT_TYPE_BTN_DOWN) return menu->child_menu->element.process_mouse_event(menu->child_menu, event, offset_x, offset_y);
+    // if this is a child menu that also has a child menu and the event was not
+    // within this menu, see if it was within a child menu
+    if (menu->parent_menu && menu->child_menu && event->event==UI_MOUSE_EVENT_TYPE_BTN_DOWN) {
+        return menu->child_menu->element.process_mouse_event(menu->child_menu, event, offset_x, offset_y);
+    }
    
     // If this is the top parent menu and one of the child menus returned 1 
     // above, return 0. This stops the click from being interpretted as
     // 'outside' of the menu and lets it continue on to the menu items, because
     // it was within one of the child menus.
-    if (event->event==UI_MOUSE_EVENT_TYPE_BTN_DOWN && !menu->parent_menu && menu->child_menu && menu->child_menu->element.process_mouse_event(menu->child_menu, event, offset_x, offset_y)) return 0;
+    if (
+        event->event==UI_MOUSE_EVENT_TYPE_BTN_DOWN &&
+        !menu->parent_menu &&
+        menu->child_menu &&
+        menu->child_menu->element.process_mouse_event(menu->child_menu, event, offset_x, offset_y)
+    ) return 0;
     
     // At this point the click must have been outside of this menu or any child
     // menus. Close the menu.

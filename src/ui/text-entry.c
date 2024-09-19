@@ -1,4 +1,3 @@
-
 #include <stdlib.h>
 #include <string.h>
 #include <lauxlib.h>
@@ -123,7 +122,6 @@ void ui_text_entry_draw(ui_text_entry_t *entry, int offset_x, int offset_y, mat4
 
     int have_focus = ui_element_has_focus(entry);
 
-    //GET_APP_SETTING_INT("overlay.ui.colors.windowBG",              (int*)&bg_color);
     GET_APP_SETTING_INT("overlay.ui.colors.windowBorder",          (int*)&border_color);
     GET_APP_SETTING_INT("overlay.ui.colors.windowBorderHighlight", (int*)&border_highlight_color);
     GET_APP_SETTING_INT("overlay.ui.colors.text",                  (int*)&text_color);
@@ -170,7 +168,8 @@ void ui_text_entry_draw(ui_text_entry_t *entry, int offset_x, int offset_y, mat4
         }
     }
 
-    ui_add_input_element(offset_x, offset_y, entry->element.x, entry->element.y, entry->element.width, entry->element.height, (ui_element_t*)entry);
+    ui_add_input_element(offset_x, offset_y, entry->element.x, entry->element.y,
+                         entry->element.width, entry->element.height, (ui_element_t*)entry);
 }
 
 int ui_text_entry_process_mouse_event(ui_text_entry_t *entry, ui_mouse_event_t *event, int offset_x, int offset_y) {
@@ -222,7 +221,8 @@ int ui_text_entry_process_keyboard_event(ui_text_entry_t *entry, ui_keyboard_eve
 
     if (event->vk_key==VK_BACK) {
         if (event->down && entry->caret_pos) {
-            memcpy(entry->text + entry->caret_pos - 1, entry->text + entry->caret_pos, entry->text_len - entry->caret_pos + 1);
+            memcpy(entry->text + entry->caret_pos - 1, entry->text + entry->caret_pos,
+                   entry->text_len - entry->caret_pos + 1);
             entry->text_len--;
             ui_text_entry_set_caret_pos(entry, entry->caret_pos - 1);
         }
@@ -231,7 +231,8 @@ int ui_text_entry_process_keyboard_event(ui_text_entry_t *entry, ui_keyboard_eve
 
     if (event->vk_key==VK_DELETE) {
         if (event->down && entry->caret_pos < entry->text_len) {
-            memcpy(entry->text + entry->caret_pos, entry->text + entry->caret_pos + 1, entry->text_len - entry->caret_pos);
+            memcpy(entry->text + entry->caret_pos, entry->text + entry->caret_pos + 1,
+                   entry->text_len - entry->caret_pos);
             entry->text_len--;
         }
         return 1;
@@ -284,7 +285,8 @@ int ui_text_entry_process_keyboard_event(ui_text_entry_t *entry, ui_keyboard_eve
                     char *text_right = egoverlay_calloc(entry->text_len - entry->caret_pos, sizeof(char));
                     memcpy(text_right, entry->text + entry->caret_pos, entry->text_len - entry->caret_pos);
 
-                    memcpy(entry->text + entry->caret_pos + strlen(clipboard_text), text_right, entry->text_len - entry->caret_pos);
+                    memcpy(entry->text + entry->caret_pos + strlen(clipboard_text), text_right,
+                           entry->text_len - entry->caret_pos);
                     egoverlay_free(text_right);
                 }
             }
@@ -330,9 +332,9 @@ int ui_text_entry_process_keyboard_event(ui_text_entry_t *entry, ui_keyboard_eve
 }
 
 luaL_Reg ui_text_entry_funcs[] = {
-    "__gc",       &ui_text_entry_lua_del,
-    "hint",       &ui_text_entry_lua_hint,
-    "text",       &ui_text_entry_lua_text,
+    "__gc"      , &ui_text_entry_lua_del,
+    "hint"      , &ui_text_entry_lua_hint,
+    "text"      , &ui_text_entry_lua_text,
     "on_keydown", &ui_text_entry_lua_on_keydown,
     NULL,         NULL
 };

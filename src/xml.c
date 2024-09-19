@@ -13,7 +13,8 @@ libxml2
 
     local xml = require 'libxml2'
 
-The :lua:mod:`libxml2` module is, as its name suggests, a Lua binding to `libxml2 <https://gitlab.gnome.org/GNOME/libxml2>`_.
+The :lua:mod:`libxml2` module is, as its name suggests, a Lua binding to
+`libxml2 <https://gitlab.gnome.org/GNOME/libxml2>`_.
 
 */
 
@@ -91,7 +92,9 @@ void xml_error_handler(error_handler_data_t *data, const xmlError *error) {
         if (context_begin < line_start) context_begin = line_start;
 
         size_t context_len = 41;
-        if (context_begin - line_start + context_len > line_len) context_len = line_len - (context_begin - line_start);
+        if (context_begin - line_start + context_len > line_len) {
+            context_len = line_len - (context_begin - line_start);
+        }
 
         char *context = egoverlay_calloc(context_len + 1, sizeof(char));
         memcpy(context, data->file + context_begin, context_len);
@@ -249,7 +252,8 @@ int xml_doc_lua_get_root_element(lua_State *L) {
 /*** RST
     .. lua:method:: name()
 
-        Return the name of this document. This is the name supplied with :lua:func:`read_string`.
+        Return the name of this document. This is the name supplied with
+        :lua:func:`read_string`.
 
         :rtype: string
 
@@ -267,7 +271,8 @@ int xml_doc_lua_name(lua_State *L) {
 /*** RST
     .. lua:method:: url()
 
-        Return the URL of this document, or the :lua:meth:`name` if it doesn't have one.
+        Return the URL of this document, or the :lua:meth:`name` if it doesn't
+        have one.
 
         :rtype: string
 
@@ -304,19 +309,19 @@ int xml_node_lua_doc(lua_State *L);
 int xml_node_lua_line(lua_State *L);
 
 luaL_Reg xml_node_funcs[] = {
-    "__gc",     &xml_node_lua_del,
-    "copy",     &xml_node_lua_copy,
-    "prev",     &xml_node_lua_prev,
-    "next",     &xml_node_lua_next,
+    "__gc"    , &xml_node_lua_del,
+    "copy"    , &xml_node_lua_copy,
+    "prev"    , &xml_node_lua_prev,
+    "next"    , &xml_node_lua_next,
     "children", &xml_node_lua_children,
-    "type",     &xml_node_lua_type,
-    "name",     &xml_node_lua_name,
-    "prop",     &xml_node_lua_prop,
-    "props",    &xml_node_lua_props,
-    "content",  &xml_node_lua_content,
-    "doc",      &xml_node_lua_doc,
-    "line",     &xml_node_lua_line,
-    NULL,          NULL
+    "type"    , &xml_node_lua_type,
+    "name"    , &xml_node_lua_name,
+    "prop"    , &xml_node_lua_prop,
+    "props"   , &xml_node_lua_props,
+    "content" , &xml_node_lua_content,
+    "doc"     , &xml_node_lua_doc,
+    "line"    , &xml_node_lua_line,
+    NULL      ,  NULL
 };
 
 
@@ -614,7 +619,8 @@ int xml_node_lua_content(lua_State *L) {
         xmlNodeSetContent(node, (const xmlChar*)new_content);
         return 0;
     }
-    return luaL_error(L, "node:content either takes no argument (returns content) or 1 string argument (sets content).");
+    return luaL_error(L, "node:content either takes no argument (returns content) "
+                         "or 1 string argument (sets content).");
 }
 
 /*** RST

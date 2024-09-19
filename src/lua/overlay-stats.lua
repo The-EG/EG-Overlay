@@ -128,8 +128,10 @@ function overlay_stats.update()
     local now = overlay.time()
 
     if last_process_time then
-        local overlay_time = (proc_time.user_time - last_process_user_time) + (proc_time.kernel_time - last_process_kernel_time)
-        local sys_time = (proc_time.system_user_time - last_system_user_time) + (proc_time.system_kernel_time - last_system_kernel_time)
+        local overlay_time = ((proc_time.user_time - last_process_user_time) + 
+                              (proc_time.kernel_time - last_process_kernel_time))
+        local sys_time = ((proc_time.system_user_time - last_system_user_time) +
+                          (proc_time.system_kernel_time - last_system_kernel_time))
         
         local usage = overlay_time / sys_time
 

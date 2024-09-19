@@ -180,9 +180,11 @@ void logger_log(logger_t *log, enum LOGGER_LEVEL level, const char *message, ...
 
     char *outbuf;
     size_t outlen = 0;
-    outlen = snprintf(NULL, 0, "%s.%03d | % -20s | % -7s | %s", timebuf, tb.millitm, log->name, level_str, msgbuf) + 1;
+    outlen = snprintf(NULL, 0, "%s.%03d | % -20s | % -7s | %s",
+                      timebuf, tb.millitm, log->name, level_str, msgbuf) + 1;
     outbuf = egoverlay_calloc(outlen, sizeof(char));
-    snprintf(outbuf, outlen, "%s.%03d | % -20s | % -7s | %s", timebuf, tb.millitm, log->name, level_str, msgbuf);
+    snprintf(outbuf, outlen, "%s.%03d | % -20s | % -7s | %s",
+             timebuf, tb.millitm, log->name, level_str, msgbuf);
 
     egoverlay_free(msgbuf);
 

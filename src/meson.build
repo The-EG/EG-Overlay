@@ -56,7 +56,17 @@ subdir('lua')
 executable(
     'eg-overlay',
     egoverlay_sources + icon_res + shaders + lua_files + githash,
-    dependencies: [glfw_lib, winmm_lib, freetype2_dep, curl_dep, curl_link_libs, libxml2_dep, zlib_dep, lua_dep, jansson_dep],
+    dependencies: [
+      glfw_lib,
+      winmm_lib,
+      freetype2_dep,
+      curl_dep,
+      curl_link_libs,
+      libxml2_dep,
+      zlib_dep,
+      lua_dep,
+      jansson_dep,
+    ],
     link_with: [],
     install: true,
     c_args: [
@@ -80,7 +90,11 @@ executable(
         '-DSQLITE_ENABLE_MEMORY_MANAGEMENT',
         '-DSQLITE_ENABLE_NULL_TRIM'
     ],
-    include_directories: [stb_inc, glad_inc, include_directories('../contrib/sqlite-amalgamation-3460000/', is_system: true)],
+    include_directories: [
+      stb_inc,
+      glad_inc,
+      include_directories('../contrib/sqlite-amalgamation-3460000/', is_system: true),
+    ],
     win_subsystem: 'windows',
     override_options: ['warning_level=3', 'c_std=c11']
 )

@@ -76,22 +76,30 @@ void ui_scroll_view_draw(ui_scroll_view_t *scroll, int offset_x, int offset_y, m
 
     int old_scissor[4];
     if (push_scissor(sx, sy, scroll->element.width, scroll->element.height, old_scissor)) {
-        ui_add_input_element(offset_x, offset_y, scroll->element.x, scroll->element.y, scroll->element.width, scroll->element.height, (ui_element_t*)scroll);
+        ui_add_input_element(offset_x, offset_y, scroll->element.x, scroll->element.y,
+                             scroll->element.width, scroll->element.height, (ui_element_t*)scroll);
         if (scroll->child) {
             int cwidth = 0;
             int cheight = 0;
 
-            if (scroll->child->get_preferred_size && scroll->child->get_preferred_size(scroll->child, &cwidth, &cheight)) {
+            if (
+                scroll->child->get_preferred_size &&
+                scroll->child->get_preferred_size(scroll->child, &cwidth, &cheight)
+            ) {
                 if (scroll->disp_x < 0) scroll->disp_x = 0;
                 
                 if (cwidth > scroll->element.width) {
-                    if (scroll->disp_x > cwidth - scroll->element.width) scroll->disp_x = cwidth - scroll->element.width;
+                    if (scroll->disp_x > cwidth - scroll->element.width) {
+                        scroll->disp_x = cwidth - scroll->element.width;
+                    }
                 } else scroll->disp_x = 0;
 
                 if (scroll->disp_y < 0) scroll->disp_y = 0;
 
                 if (cheight > scroll->element.height) {
-                    if (scroll->disp_y > cheight - scroll->element.height) scroll->disp_y = cheight - scroll->element.height;
+                    if (scroll->disp_y > cheight - scroll->element.height) {
+                        scroll->disp_y = cheight - scroll->element.height;
+                    }
                 } else scroll->disp_y = 0;
 
                 ui_element_set_size(scroll->child, cwidth, cheight);
@@ -109,12 +117,14 @@ void ui_scroll_view_draw(ui_scroll_view_t *scroll, int offset_x, int offset_y, m
                 GET_APP_SETTING_INT("overlay.ui.colors.windowBorder",          (int*)&border_color);
                 GET_APP_SETTING_INT("overlay.ui.colors.windowBorderHighlight", (int*)&border_highlight_color);
 
-                scroll->vert_bar_size = (int)(((float)scroll->element.height / (float)cheight) * scroll->element.height);
+                scroll->vert_bar_size = (int)(((float)scroll->element.height / (float)cheight) *
+                                              scroll->element.height);
                 scroll->vert_bar_range = scroll->element.height - scroll->vert_bar_size;
                 scroll->vert_bar_scale = (float)scroll->disp_y / (float)(cheight - scroll->element.height);
                 scroll->vert_bar_y = (int)(scroll->vert_bar_range * scroll->vert_bar_scale);
                 
-                ui_rect_draw(sx + scroll->element.width - 11, sy + scroll->vert_bar_y, 10, scroll->vert_bar_size, scroll->highlight_vertical_bar ? border_highlight_color : border_color, proj);
+                ui_rect_draw(sx + scroll->element.width - 11, sy + scroll->vert_bar_y, 10, scroll->vert_bar_size,
+                             scroll->highlight_vertical_bar ? border_highlight_color : border_color, proj);
             }
 
             if (scroll->show_horiz_bar) {
@@ -129,7 +139,9 @@ void ui_scroll_view_draw(ui_scroll_view_t *scroll, int offset_x, int offset_y, m
                 scroll->horiz_bar_scale = (float)scroll->disp_x / (float)(cwidth - scroll->element.width);
                 scroll->horiz_bar_x = (int)(scroll->horiz_bar_range * scroll->horiz_bar_scale);
                 
-                ui_rect_draw(sx + scroll->horiz_bar_x, sy + scroll->element.height - 11, scroll->horiz_bar_size, 10, scroll->highlight_horiz_bar ? border_highlight_color : border_color, proj);
+                ui_rect_draw(sx + scroll->horiz_bar_x, sy + scroll->element.height - 11,
+                             scroll->horiz_bar_size, 10,
+                             scroll->highlight_horiz_bar ? border_highlight_color : border_color, proj);
             }
         }
 
@@ -167,10 +179,24 @@ int ui_scroll_view_process_mouse_event(ui_scroll_view_t *scroll, ui_mouse_event_
     }
 
     if (event->event==UI_MOUSE_EVENT_TYPE_MOVE && !scroll->mouse_scroll_y) {
-        if (MOUSE_POINT_IN_RECT(event->x, event->y, vert_scroll_region_x, vert_scroll_region_y, 11, scroll->element.height)) {
+        if (MOUSE_POINT_IN_RECT(
+                event->x,
+                event->y,
+                vert_scroll_region_x,
+                vert_scroll_region_y,
+                11,
+                scroll->element.height
+        )) {
             scroll->show_vertical_bar = 1;
 
-            if (MOUSE_POINT_IN_RECT(event->x, event->y, vert_scroll_region_x, vert_scroll_region_y + scroll->vert_bar_y, 10, scroll->vert_bar_size)) {
+            if (MOUSE_POINT_IN_RECT(
+                    event->x,
+                    event->y,
+                    vert_scroll_region_x,
+                    vert_scroll_region_y + scroll->vert_bar_y,
+                    10,
+                    scroll->vert_bar_size
+            )) {
                 scroll->highlight_vertical_bar = 1;
             } else {
                 scroll->highlight_vertical_bar = 0;
@@ -187,7 +213,14 @@ int ui_scroll_view_process_mouse_event(ui_scroll_view_t *scroll, ui_mouse_event_
         if (MOUSE_POINT_IN_RECT(event->x, event->y, horiz_scroll_region_x, horiz_scroll_region_y, scroll->element.width, 11)) {
             scroll->show_horiz_bar = 1;
 
-            if (MOUSE_POINT_IN_RECT(event->x, event->y, horiz_scroll_region_x + scroll->horiz_bar_x, horiz_scroll_region_y, scroll->horiz_bar_size, 10)) {
+            if (MOUSE_POINT_IN_RECT(
+                    event->x,
+                    event->y,
+                    horiz_scroll_region_x + scroll->horiz_bar_x,
+                    horiz_scroll_region_y,
+                    scroll->horiz_bar_size,
+                    10
+            )) {
                 scroll->highlight_horiz_bar = 1;
             } else {
                 scroll->highlight_horiz_bar = 0;
@@ -231,7 +264,13 @@ int ui_scroll_view_process_mouse_event(ui_scroll_view_t *scroll, ui_mouse_event_
     }
 
     if (scroll->show_vertical_bar && !scroll->mouse_scroll_y && !scroll->mouse_scroll_x &&
-        MOUSE_POINT_IN_RECT(event->x, event->y, vert_scroll_region_x, vert_scroll_region_y + scroll->vert_bar_y, 10, scroll->vert_bar_size) &&
+        MOUSE_POINT_IN_RECT(
+            event->x,
+            event->y,
+            vert_scroll_region_x,
+            vert_scroll_region_y + scroll->vert_bar_y,
+            10, scroll->vert_bar_size
+        ) &&
         event->event==UI_MOUSE_EVENT_TYPE_BTN_DOWN &&
         event->button==UI_MOUSE_EVENT_BUTTON_LEFT)
     {
@@ -242,7 +281,13 @@ int ui_scroll_view_process_mouse_event(ui_scroll_view_t *scroll, ui_mouse_event_
     }
 
     if (scroll->show_horiz_bar && !scroll->mouse_scroll_y && !scroll->mouse_scroll_x &&
-        MOUSE_POINT_IN_RECT(event->x, event->y, horiz_scroll_region_x + scroll->horiz_bar_x, horiz_scroll_region_y, scroll->horiz_bar_size, 10) &&
+        MOUSE_POINT_IN_RECT(
+            event->x,
+            event->y,
+            horiz_scroll_region_x + scroll->horiz_bar_x,
+            horiz_scroll_region_y,
+            scroll->horiz_bar_size, 10
+        ) &&
         event->event==UI_MOUSE_EVENT_TYPE_BTN_DOWN &&
         event->button==UI_MOUSE_EVENT_BUTTON_LEFT)
     {
@@ -283,11 +328,11 @@ void ui_scroll_view_register_lua_funcs(lua_State *L) {
 }
 
 luaL_Reg scroll_view_funcs[] = {
-    "__gc",          &ui_scroll_view_lua_del,
-    "size",          &ui_scroll_view_lua_size,
-    "pos",           &ui_scroll_view_lua_pos,
-    "set_child",     &ui_scroll_view_lua_set_child,
-    "scroll_max_y",  &ui_scroll_view_lua_scroll_max_y,
+    "__gc"         , &ui_scroll_view_lua_del,
+    "size"         , &ui_scroll_view_lua_size,
+    "pos"          , &ui_scroll_view_lua_pos,
+    "set_child"    , &ui_scroll_view_lua_set_child,
+    "scroll_max_y" , &ui_scroll_view_lua_scroll_max_y,
     "scroll_amount", &ui_scroll_view_lua_scroll_amount,
     NULL,             NULL
 };

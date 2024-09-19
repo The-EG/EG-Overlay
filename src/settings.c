@@ -113,8 +113,12 @@ void settings_free(settings_t *settings) {
     for (size_t h=0;h<settings->default_values_hash_size;h++) {
         if (settings->default_keys[h]) {
             egoverlay_free(settings->default_keys[h]);
-            if (settings->default_values[h]->type==SETTINGS_DEFAULT_TYPE_STRING) egoverlay_free(settings->default_values[h]->value_str);
-            if (settings->default_values[h]->type==SETTINGS_DEFAULT_TYPE_JSON) json_decref(settings->default_values[h]->value_json);
+            if (settings->default_values[h]->type==SETTINGS_DEFAULT_TYPE_STRING) {
+                egoverlay_free(settings->default_values[h]->value_str);
+            }
+            if (settings->default_values[h]->type==SETTINGS_DEFAULT_TYPE_JSON) {
+                json_decref(settings->default_values[h]->value_json);
+            }
             egoverlay_free(settings->default_values[h]);
         }
     }
@@ -581,13 +585,13 @@ Classes
 */
 
 luaL_Reg settings_lua_funcs[] = {
-    "__gc",        &settings_lua_del,
-    "get",         &settings_lua_get,
-    "set",         &settings_lua_set,
+    "__gc"       , &settings_lua_del,
+    "get"        , &settings_lua_get,
+    "set"        , &settings_lua_set,
     "set_default", &settings_lua_set_default,
     "save_on_set", &settings_lua_save_on_set,
     "save"       , &settings_lua_save,
-    NULL,    NULL
+    NULL         ,  NULL
 };
 
 void settings_lua_register_metatable(lua_State *L) {
@@ -621,11 +625,12 @@ int settings_lua_del(lua_State *L) {
 /*** RST
     .. lua:method:: set(key, value)
 
-        Set the value for the given key. If the key already exists it will be overriden.
+        Set the value for the given key. If the key already exists it will be overridden.
 
         :param key: The key to set.
         :type key: string
-        :param value: The value to set. Tables are not supported, objects or arrays should be passed as :lua:class:`JSON.json` objects instead.
+        :param value: The value to set. Tables are not supported, objects or
+            arrays should be passed as :lua:class:`JSON.json` objects instead.
         :type value: number, boolean, nil, string, or :lua:class:`JSON.json`
 
         .. versionhistory::
@@ -672,11 +677,14 @@ int settings_lua_set(lua_State *L) {
 /*** RST
     .. lua:method:: set_default(key, value)
 
-        Set a default value for a given key. This functions exactly like :lua:meth:`settings.set` except this does not write the value to the underlying JSON file.
+        Set a default value for a given key. This functions exactly like
+        :lua:meth:`settings.set` except this does not write the value to the
+        underlying JSON file.
 
         :param key: The key to set.
         :type key: string
-        :param value: The value to set. Tables are not supported, objects or arrays should be passed as :lua:class:`JSON.json` objects instead.
+        :param value: The value to set. Tables are not supported, objects or
+            arrays should be passed as :lua:class:`JSON.json` objects instead.
         :type value: number, boolean, nil, string, or :lua:class:`JSON.json`
 
         .. versionhistory::
@@ -723,11 +731,13 @@ int settings_lua_set_default(lua_State *L) {
 /*** RST
     .. lua:method:: get(key)
 
-        Get the value for the given key. If the key doesn't exist, return the default value, if set. If not, returns ``nil``.
+        Get the value for the given key. If the key doesn't exist, return the
+        default value, if set. If not, returns ``nil``.
 
         Object and arrays are returned as :lua:class:`JSON.json` objects.
 
-        :param key: The key to return. This is a path into the JSON object structure separated by ``.``. I.e. ``window.x``.
+        :param key: The key to return. This is a path into the JSON object
+            structure separated by ``.``. I.e. ``window.x``.
         :type key: string
         :return: The config value at ``key`` or ``nil``
 
@@ -804,9 +814,9 @@ settings_t *lua_checksettings(lua_State *L, int ind) {
     .. lua:method:: save_on_set(value)
 
         Control the behvior when setting a value. By default,
-        :lua:class:`settings.settings` will save values to the underlying JSON file every
-        time a value is set. This behavior can be turned off by passing ``false``
-        to this function.
+        :lua:class:`settings.settings` will save values to the underlying JSON
+        file every time a value is set. This behavior can be turned off by
+        passing ``false`` to this function.
 
         :param value: Save on set?
         :type key: boolean
@@ -825,8 +835,8 @@ int settings_lua_save_on_set(lua_State *L) {
 /*** RST
     .. lua:method:: save()
 
-        Save the :lua:class:`settings.settings` object to the underlying JSON file. This
-        is required if :lua:meth:`save_on_set` is turned off.
+        Save the :lua:class:`settings.settings` object to the underlying JSON
+        file. This is required if :lua:meth:`save_on_set` is turned off.
 
         .. versionhistory::
             :0.0.1: Added

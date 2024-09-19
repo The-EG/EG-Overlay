@@ -71,7 +71,15 @@ void ui_grid_free(ui_grid_t *grid) {
     egoverlay_free(grid);
 }
 
-void ui_grid_attach(ui_grid_t *grid, void *uielement, int row, int col, int rowspan, int colspan, int horizalign, int vertalign) {
+void ui_grid_attach(
+    ui_grid_t *grid,
+    void *uielement,
+    int row, int col,
+    int rowspan,
+    int colspan,
+    int horizalign,
+    int vertalign
+) {
     ui_grid_cell_t *cell = &GRID_CELL(grid, row, col);
 
     if (cell->item) ui_element_unref(cell->item);

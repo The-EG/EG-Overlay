@@ -269,23 +269,23 @@ int mumble_link_open_module(lua_State *L) {
     return 1;
 }
 
-static int mumble_link_lua_tick(lua_State *L);
-static int mumble_link_lua_version(lua_State *L);
-static int mumble_link_lua_character_name(lua_State *L);
-static int mumble_link_lua_character_profession(lua_State *L);
-static int mumble_link_lua_character_specialization(lua_State *L);
-static int mumble_link_lua_character_race(lua_State *L);
-static int mumble_link_lua_avatar_position(lua_State *L);
-static int mumble_link_lua_avatar_front(lua_State *L);
-static int mumble_link_lua_avatar_top(lua_State *L);
-static int mumble_link_lua_camera_position(lua_State *L);
-static int mumble_link_lua_camera_front(lua_State *L);
-static int mumble_link_lua_camera_top(lua_State *L);
-static int mumble_link_lua_map_type(lua_State *L);
-static int mumble_link_lua_map_id(lua_State *L);
-static int mumble_link_lua_ui_state(lua_State *L);
+int mumble_link_lua_tick(lua_State *L);
+int mumble_link_lua_version(lua_State *L);
+int mumble_link_lua_character_name(lua_State *L);
+int mumble_link_lua_character_profession(lua_State *L);
+int mumble_link_lua_character_specialization(lua_State *L);
+int mumble_link_lua_character_race(lua_State *L);
+int mumble_link_lua_avatar_position(lua_State *L);
+int mumble_link_lua_avatar_front(lua_State *L);
+int mumble_link_lua_avatar_top(lua_State *L);
+int mumble_link_lua_camera_position(lua_State *L);
+int mumble_link_lua_camera_front(lua_State *L);
+int mumble_link_lua_camera_top(lua_State *L);
+int mumble_link_lua_map_type(lua_State *L);
+int mumble_link_lua_map_id(lua_State *L);
+int mumble_link_lua_ui_state(lua_State *L);
 
-static int mumble_link_lua_index(lua_State *L) {
+int mumble_link_lua_index(lua_State *L) {
     const char *key = luaL_checkstring(L, 2);
     //size_t key_len = strlen(key);
 
@@ -312,7 +312,7 @@ static int mumble_link_lua_index(lua_State *L) {
     return 0;
 }
 
-static int mumble_link_lua_new_index(lua_State *L) {
+int mumble_link_lua_new_index(lua_State *L) {
     char *mod_name = lua_manager_get_lua_module_name(L);
     logger_warn(ml->log, "%s tried to assign to mumble_link!", mod_name);
     egoverlay_free(mod_name);
@@ -333,7 +333,7 @@ Attributes
     .. versionhistory::
         :0.0.1: Added
 */
-static int mumble_link_lua_tick(lua_State *L) {
+int mumble_link_lua_tick(lua_State *L) {
     lua_pushinteger(L, mumble_link_tick());
     return 1;
 }
@@ -346,7 +346,7 @@ static int mumble_link_lua_tick(lua_State *L) {
     .. versionhistory::
         :0.0.1: Added
 */
-static int mumble_link_lua_version(lua_State *L) {
+int mumble_link_lua_version(lua_State *L) {
     lua_pushinteger(L, mumble_link_version());
     return 1;
 }
@@ -361,7 +361,7 @@ static int mumble_link_lua_version(lua_State *L) {
     .. versionhistory::
         :0.0.1: Added
 */
-static int mumble_link_lua_character_name(lua_State *L) {
+int mumble_link_lua_character_name(lua_State *L) {
     char name[128] = {0};
     mumble_link_character_name(name, 128);
     lua_pushstring(L, name);
@@ -387,7 +387,7 @@ static int mumble_link_lua_character_name(lua_State *L) {
     .. versionhistory::
         :0.0.1: Added
 */
-static int mumble_link_lua_character_profession(lua_State *L) {
+int mumble_link_lua_character_profession(lua_State *L) {
     switch (mumble_link_character_profression()) {
         case MUMBLE_LINK_PROFESSION_ERROR:        lua_pushstring(L, "error");        break;
         case MUMBLE_LINK_PROFESSION_ELEMENTALIST: lua_pushstring(L, "Elementalist"); break;
@@ -421,7 +421,7 @@ static int mumble_link_lua_character_profession(lua_State *L) {
     .. versionhistory::
         :0.0.1: Added
 */
-static int mumble_link_lua_character_specialization(lua_State *L) {
+int mumble_link_lua_character_specialization(lua_State *L) {
     mumble_link_check_identity_cache();
     if (ml->identity_cache==NULL || !json_is_object(ml->identity_cache)) return 0;
 
@@ -453,7 +453,7 @@ static int mumble_link_lua_character_specialization(lua_State *L) {
     .. versionhistory::
         :0.0.1: Added
 */
-static int mumble_link_lua_character_race(lua_State *L) {
+int mumble_link_lua_character_race(lua_State *L) {
     mumble_link_check_identity_cache();
     if (ml->identity_cache==NULL || !json_is_object(ml->identity_cache)) return 0;
 
@@ -475,7 +475,7 @@ static int mumble_link_lua_character_race(lua_State *L) {
     return 1;
 }
 
-static void push_ml_xyz(lua_State *L, float *vals) {
+void push_ml_xyz(lua_State *L, float *vals) {
     lua_createtable(L, 0, 3);
     lua_pushnumber(L, vals[0]);
     lua_setfield(L, -2, "x");
@@ -500,7 +500,7 @@ static void push_ml_xyz(lua_State *L, float *vals) {
     .. versionhistory::
         :0.0.1: Added
 */
-static int mumble_link_lua_avatar_position(lua_State *L) {
+int mumble_link_lua_avatar_position(lua_State *L) {
     push_ml_xyz(L, (float*)&ml->gw2_ml->avatar_position);
     return 1;
 }
@@ -518,7 +518,7 @@ static int mumble_link_lua_avatar_position(lua_State *L) {
     .. versionhistory::
         :0.0.1: Added
 */
-static int mumble_link_lua_avatar_front(lua_State *L) {
+int mumble_link_lua_avatar_front(lua_State *L) {
     push_ml_xyz(L, (float*)&ml->gw2_ml->avatar_front);
     return 1;
 }
@@ -534,7 +534,7 @@ static int mumble_link_lua_avatar_front(lua_State *L) {
     .. versionhistory::
         :0.0.1: Added
 */
-static int mumble_link_lua_avatar_top(lua_State *L) {
+int mumble_link_lua_avatar_top(lua_State *L) {
     push_ml_xyz(L, (float*)&ml->gw2_ml->avatar_top);
     return 1;
 }
@@ -554,7 +554,7 @@ static int mumble_link_lua_avatar_top(lua_State *L) {
     .. versionhistory::
         :0.0.1: Added
 */
-static int mumble_link_lua_camera_position(lua_State *L) {
+int mumble_link_lua_camera_position(lua_State *L) {
     push_ml_xyz(L, (float*)&ml->gw2_ml->camera_position);
     return 1;
 }
@@ -572,7 +572,7 @@ static int mumble_link_lua_camera_position(lua_State *L) {
     .. versionhistory::
         :0.0.1: Added
 */
-static int mumble_link_lua_camera_front(lua_State *L) {
+int mumble_link_lua_camera_front(lua_State *L) {
     push_ml_xyz(L, (float*)&ml->gw2_ml->camera_front);
     return 1;
 }
@@ -588,7 +588,7 @@ static int mumble_link_lua_camera_front(lua_State *L) {
     .. versionhistory::
         :0.0.1: Added
 */
-static int mumble_link_lua_camera_top(lua_State *L) {
+int mumble_link_lua_camera_top(lua_State *L) {
     push_ml_xyz(L, (float*)&ml->gw2_ml->camera_top);
     return 1;
 }
@@ -626,7 +626,7 @@ static int mumble_link_lua_camera_top(lua_State *L) {
     .. versionhistory::
         :0.0.1: Added
 */
-static int mumble_link_lua_map_type(lua_State *L) {
+int mumble_link_lua_map_type(lua_State *L) {
     switch (ml->gw2_ml->context.map_type) {
     case  0: lua_pushstring(L, "redirect");              break;
     case  1: lua_pushstring(L, "character-creation");    break;
@@ -664,7 +664,7 @@ static int mumble_link_lua_map_type(lua_State *L) {
         :0.0.1: Added
 */
 
-static int mumble_link_lua_map_id(lua_State *L) {
+int mumble_link_lua_map_id(lua_State *L) {
     lua_pushinteger(L, ml->gw2_ml->context.map_id);
     return 1;
 }
@@ -693,7 +693,7 @@ static int mumble_link_lua_map_id(lua_State *L) {
     .. versionhistory::
         :0.0.1: Added
 */
-static int mumble_link_lua_ui_state(lua_State *L) {
+int mumble_link_lua_ui_state(lua_State *L) {
     /*
     lua_createtable(L, 0, 7);
     lua_pushboolean(L, ml->gw2_ml->context.ui_state & MUMBLE_LINK_UI_STATE_MAP_OPEN);

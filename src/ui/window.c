@@ -88,7 +88,8 @@ static void ui_window_draw_decorations(ui_window_t *win, int offset_x, int offse
     ui_rect_draw(win_x + win->element.width - 1, win_y, 1, win->element.height, border_color, proj); // right
 
     // titlebar
-    ui_rect_draw(win_x, win_y, win->element.width, titlebar_height, win->highlight_title ? border_highlight_color : border_color, proj);
+    ui_rect_draw(win_x, win_y, win->element.width, titlebar_height, 
+                 win->highlight_title ? border_highlight_color : border_color, proj);
 
     // caption
     int old_scissor[4];
@@ -99,7 +100,10 @@ static void ui_window_draw_decorations(ui_window_t *win, int offset_x, int offse
     pop_scissor(old_scissor);
 
     // resize box
-    if (win->resizable && win->draw_resizer) ui_rect_draw(win_x + win->element.width - 11, win_y + win->element.height - 11, 10, 10, border_highlight_color, proj);
+    if (win->resizable && win->draw_resizer) {
+        ui_rect_draw(win_x + win->element.width - 11, win_y + win->element.height - 11,
+                     10, 10, border_highlight_color, proj);
+    }
 }
 
 ui_window_t *ui_window_new(const char *caption, int x, int y) {
@@ -153,7 +157,12 @@ void ui_window_draw(ui_window_t *win, int offset_x, int offset_y, mat4f_t *proj)
     int cheight = 0;
 
 
-    if (!win->resizable && win->child && win->child->get_preferred_size && win->child->get_preferred_size(win->child, &cwidth, &cheight)) {
+    if (
+        !win->resizable &&
+        win->child &&
+        win->child->get_preferred_size &&
+        win->child->get_preferred_size(win->child, &cwidth, &cheight)
+    ) {
         win->element.width  = cwidth + 4;
         win->element.height = cheight + win->child_y_offset + 2;
     }
@@ -169,7 +178,8 @@ void ui_window_draw(ui_window_t *win, int offset_x, int offset_y, mat4f_t *proj)
     // draw window decoration
     ui_window_draw_decorations(win, offset_x, offset_y, proj);
 
-    ui_add_input_element(offset_x, offset_y, win->element.x, win->element.y, win->element.width, win->element.height, (ui_element_t*)win);
+    ui_add_input_element(offset_x, offset_y, win->element.x, win->element.y,
+                         win->element.width, win->element.height, (ui_element_t*)win);
 
     //if (win->resizable) ui_element_draw(win->resize_patch, dec_x, dec_y, proj);
 
@@ -233,7 +243,12 @@ static int ui_window_process_mouse_event(ui_window_t *win, ui_mouse_event_t *eve
         return 1;
     }
 
-    if (event->x >= win->element.x && event->x <= win->element.x + win->element.width && event->y >= win->element.y && event->y <= win->element.y + win->child_y_offset - 1) {
+    if (
+        event->x >= win->element.x &&
+        event->x <= win->element.x + win->element.width &&
+        event->y >= win->element.y &&
+        event->y <= win->element.y + win->child_y_offset - 1
+    ) {
         if (event->event==UI_MOUSE_EVENT_TYPE_MOVE) {
             //ui_rect_set_color(win->title_bar, 0x3d5a78ff);
             win->highlight_title = 1;
@@ -360,25 +375,25 @@ void ui_window_save_to_settings(ui_window_t *win) {
     egoverlay_free(h_path);
 }
 
-static int ui_window_lua_new(lua_State *L);
-static int ui_window_lua_del(lua_State *L);
-static int ui_window_lua_show(lua_State *L);
-static int ui_window_lua_hide(lua_State *L);
-static int ui_window_lua_min_size(lua_State *L);
-static int ui_window_lua_resizable(lua_State *L);
-static int ui_window_lua_settings(lua_State *L);
+int ui_window_lua_new(lua_State *L);
+int ui_window_lua_del(lua_State *L);
+int ui_window_lua_show(lua_State *L);
+int ui_window_lua_hide(lua_State *L);
+int ui_window_lua_min_size(lua_State *L);
+int ui_window_lua_resizable(lua_State *L);
+int ui_window_lua_settings(lua_State *L);
 
-static int ui_window_lua_set_child(lua_State *L);
+int ui_window_lua_set_child(lua_State *L);
 
-static luaL_Reg window_funcs[] = {
-    "__gc",          &ui_window_lua_del,
-    "set_child",     &ui_window_lua_set_child,
-    "show",          &ui_window_lua_show,
-    "hide",          &ui_window_lua_hide,
-    "min_size",      &ui_window_lua_min_size,
-    "resizable",     &ui_window_lua_resizable,
-    "settings",      &ui_window_lua_settings,
-    NULL,     NULL
+luaL_Reg window_funcs[] = {
+    "__gc"     , &ui_window_lua_del,
+    "set_child", &ui_window_lua_set_child,
+    "show"     , &ui_window_lua_show,
+    "hide"     , &ui_window_lua_hide,
+    "min_size" , &ui_window_lua_min_size,
+    "resizable", &ui_window_lua_resizable,
+    "settings" , &ui_window_lua_settings,
+    NULL       ,  NULL
 };
 
 void ui_window_lua_register_ui_funcs(lua_State *L) {
@@ -386,7 +401,7 @@ void ui_window_lua_register_ui_funcs(lua_State *L) {
     lua_setfield(L, -2, "window");
 }
 
-static void lua_ui_window_register_metatable(lua_State *L) {
+void lua_ui_window_register_metatable(lua_State *L) {
     if (luaL_newmetatable(L, "UIWindowMetaTable")) {
         lua_pushvalue(L, -1);
         lua_setfield(L, -2, "__index");
@@ -429,7 +444,7 @@ Functions
         :0.0.1: Added
 */
 
-static int ui_window_lua_new(lua_State *L) {
+int ui_window_lua_new(lua_State *L) {
     const char *caption = luaL_checkstring(L, 1);
     int x = (int)luaL_checkinteger(L, 2);
     int y = (int)luaL_checkinteger(L, 3);
@@ -444,7 +459,7 @@ static int ui_window_lua_new(lua_State *L) {
 
 #define CHECK_UI_WIN(L, ind) *(ui_window_t**)luaL_checkudata(L, ind, "UIWindowMetaTable")
 
-static int ui_window_lua_del(lua_State *L) {
+int ui_window_lua_del(lua_State *L) {
     ui_window_t *win = CHECK_UI_WIN(L, 1);
 
     ui_element_unref(win);
@@ -470,7 +485,7 @@ Classes
         .. versionhistory::
             :0.0.1: Added
 */
-static int ui_window_lua_set_child(lua_State *L) {
+int ui_window_lua_set_child(lua_State *L) {
     ui_window_t *win = CHECK_UI_WIN(L, 1);
 
     ui_element_t *element = lua_checkuielement(L, 2);
@@ -489,7 +504,7 @@ static int ui_window_lua_set_child(lua_State *L) {
         .. versionhistory::
             :0.0.1: Added
 */
-static int ui_window_lua_show(lua_State *L) {
+int ui_window_lua_show(lua_State *L) {
     ui_window_t *win = CHECK_UI_WIN(L, 1);
 
     ui_window_show(win);
@@ -505,7 +520,7 @@ static int ui_window_lua_show(lua_State *L) {
         .. versionhistory::
             :0.0.1: Added
 */
-static int ui_window_lua_hide(lua_State *L) {
+int ui_window_lua_hide(lua_State *L) {
     ui_window_t *win = CHECK_UI_WIN(L, 1);
 
     ui_window_hide(win);
@@ -526,7 +541,7 @@ static int ui_window_lua_hide(lua_State *L) {
         .. versionhistory::
             :0.0.1: Added
 */
-static int ui_window_lua_min_size(lua_State *L) {
+int ui_window_lua_min_size(lua_State *L) {
     ui_window_t *win = CHECK_UI_WIN(L, 1);
     int width = (int)luaL_checkinteger(L, 2);
     int height = (int)luaL_checkinteger(L, 3);
@@ -548,7 +563,7 @@ static int ui_window_lua_min_size(lua_State *L) {
         .. versionhistory::
             :0.0.1: Added
 */
-static int ui_window_lua_resizable(lua_State *L) {
+int ui_window_lua_resizable(lua_State *L) {
     ui_window_t *win = CHECK_UI_WIN(L, 1);
     int r = lua_toboolean(L, 2);
 
@@ -601,7 +616,7 @@ static int ui_window_lua_resizable(lua_State *L) {
         .. versionhistory::
             :0.0.1: Added
 */
-static int ui_window_lua_settings(lua_State *L) {
+int ui_window_lua_settings(lua_State *L) {
     ui_window_t *win = CHECK_UI_WIN(L, 1);
     settings_t *settings = lua_checksettings(L, 2);
     const char *path = luaL_checkstring(L, 3);

@@ -11,7 +11,7 @@
 -- grow again, etc.
 -- collectgarbage('incremental', 200, 100, 13)
 --
--- Aggressive collection. This will keep memory usage minimal but it **wil**
+-- Aggressive collection. This will keep memory usage minimal but it **will**
 -- negatively affect performance.
 -- collectgarbage('incremental', 100, 400, 3)
 --

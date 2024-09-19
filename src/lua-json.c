@@ -8,7 +8,8 @@ JSON
 
     local JSON = require 'JSON'
 
-The :lua:mod:`JSON` Module provides JSON parsing, manipulation, and serialization. It is a thin wrapper of the Jansson library.
+The :lua:mod:`JSON` Module provides JSON parsing, manipulation, and
+serialization. It is a thin wrapper of the Jansson library.
 */
 
 #include "lua-json.h"
@@ -98,19 +99,32 @@ Functions
 
     .. lua:data:: JSON_REJECT_DUPLICATES
 
-        Issue a decoding error if any JSON object in the input text contains duplicate keys. Without this flag, the value of the last occurrence of each key ends up in the result. Key equivalence is checked byte-by-byte, without special Unicode comparison algorithms.
+        Issue a decoding error if any JSON object in the input text contains
+        duplicate keys. Without this flag, the value of the last occurrence of
+        each key ends up in the result. Key equivalence is checked byte-by-byte,
+        without special Unicode comparison algorithms.
 
     .. lua:data:: JSON_DECODE_ANY
 
-        By default, the decoder expects an array or object as the input. With this flag enabled, the decoder accepts any valid JSON value.
+        By default, the decoder expects an array or object as the input. With
+        this flag enabled, the decoder accepts any valid JSON value.
 
     .. lua:data:: JSON_DISABLE_EOF_CHECK
 
-        By default, the decoder expects that its whole input constitutes a valid JSON text, and issues an error if there’s extra data after the otherwise valid JSON input. With this flag enabled, the decoder stops after decoding a valid JSON array or object, and thus allows extra data after the JSON text.
+        By default, the decoder expects that its whole input constitutes a valid
+        JSON text, and issues an error if there’s extra data after the otherwise
+        valid JSON input. With this flag enabled, the decoder stops after
+        decoding a valid JSON array or object, and thus allows extra data after
+        the JSON text.
 
     .. lua:data:: JSON_DECODE_INT_AS_REAL
 
-        JSON defines only one number type. Jansson distinguishes between ints and reals. For more information see Real vs. Integer. With this flag enabled the decoder interprets all numbers as real values. Integers that do not have an exact double representation will silently result in a loss of precision. Integers that cause a double overflow will cause an error.
+        JSON defines only one number type. Jansson distinguishes between ints
+        and reals. For more information see Real vs. Integer. With this flag
+        enabled the decoder interprets all numbers as real values. Integers that
+        do not have an exact double representation will silently result in a
+        loss of precision. Integers that cause a double overflow will cause an
+        error.
 
     .. lua:data:: JSON_ALLOW_NUL
 
@@ -178,25 +192,37 @@ int json_lua_mod_loads(lua_State *L) {
 
     .. lua:data:: JSON_INDENT(n)
 
-        Pretty-print the result, using newlines between array and object items, and indenting with n spaces. The valid range for n is between 0 and 31 (inclusive), other values result in an undefined output. If ``JSON_INDENT`` is not used or n is 0, no newlines are inserted between array and object items.
+        Pretty-print the result, using newlines between array and object items,
+        and indenting with n spaces. The valid range for n is between 0 and 31
+        (inclusive), other values result in an undefined output. If
+        ``JSON_INDENT`` is not used or n is 0, no newlines are inserted between
+        array and object items.
 
         The maximum indentation that can be used is 31.
 
     .. lua:data:: JSON_COMPACT
 
-        This flag enables a compact representation, i.e. sets the separator between array and object items to ``","`` and between object keys and values to ``":"``. Without this flag, the corresponding separators are ``", "`` and ``": "`` for more readable output.
+        This flag enables a compact representation, i.e. sets the separator
+        between array and object items to ``","`` and between object keys and
+        values to ``":"``. Without this flag, the corresponding separators are
+        ``", "`` and ``": "`` for more readable output.
 
     .. lua:data:: JSON_ENSURE_ASCII
 
-        If this flag is used, the output is guaranteed to consist only of ASCII characters. This is achieved by escaping all Unicode characters outside the ASCII range.
+        If this flag is used, the output is guaranteed to consist only of ASCII
+        characters. This is achieved by escaping all Unicode characters outside
+        the ASCII range.
     
     .. lua:data:: JSON_SORT_KEYS
 
-        If this flag is used, all the objects in output are sorted by key. This is useful e.g. if two JSON texts are diffed or visually compared.
+        If this flag is used, all the objects in output are sorted by key. This
+        is useful e.g. if two JSON texts are diffed or visually compared.
     
     .. lua:data:: JSON_ENCODE_ANY
 
-        Specifying this flag makes it possible to encode any JSON value on its own. Without it, only objects and arrays can be passed as the json value to the encoding functions.
+        Specifying this flag makes it possible to encode any JSON value on its
+        own. Without it, only objects and arrays can be passed as the json value
+        to the encoding functions.
 
     .. lua:data:: JSON_ESCAPE_SLASH
 
@@ -204,13 +230,19 @@ int json_lua_mod_loads(lua_State *L) {
 
     .. lua:data:: JSON_REAL_PRECISION(n)
 
-        Output all real numbers with at most n digits of precision. The valid range for n is between 0 and 31 (inclusive), and other values result in an undefined behavior.
+        Output all real numbers with at most n digits of precision. The valid
+        range for n is between 0 and 31 (inclusive), and other values result in
+        an undefined behavior.
 
-        By default, the precision is 17, to correctly and losslessly encode all IEEE 754 double precision floating point numbers.
+        By default, the precision is 17, to correctly and losslessly encode all
+        IEEE 754 double precision floating point numbers.
 
     .. lua:data:: JSON_EMBED
 
-        If this flag is used, the opening and closing characters of the top-level array (‘[’, ‘]’) or object (‘{’, ‘}’) are omitted during encoding. This flag is useful when concatenating multiple arrays or objects into a stream.
+        If this flag is used, the opening and closing characters of the
+        top-level array (‘[’, ‘]’) or object (‘{’, ‘}’) are omitted during
+        encoding. This flag is useful when concatenating multiple arrays or
+        objects into a stream.
 
     .. versionhistory::
         :0.0.1: Added
@@ -259,8 +291,8 @@ Classes
     intended to function as a Lua table or sequence. As such the only 
     :lua:class:`json` values a Lua user will enounter will be objects or arrays.
 
-    All other values are converted automatically to or from native Lua types when they
-    are accessed or set.
+    All other values are converted automatically to or from native Lua types
+    when they are accessed or set.
 
     .. code-block:: lua
         :caption: Example

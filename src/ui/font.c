@@ -153,31 +153,37 @@ ui_font_t *ui_font_new(const char *path, int size, int weight, int slant, int wi
         for (FT_UInt a=0;a<mm_var->num_axis;a++) {
             if (weight!=INT_MIN && strcmp(mm_var->axis[a].name,"Weight")==0) {
                 if (weight < mm_var->axis[a].minimum / 0x10000) {
-                    logger_warn(logger, " %s : specified weight (%d) below minimum %d", path, weight, mm_var->axis[a].minimum / 0x10000);
+                    logger_warn(logger, " %s : specified weight (%d) below minimum %d",
+                                path, weight, mm_var->axis[a].minimum / 0x10000);
                     weight = mm_var->axis[a].minimum / 0x10000;
                 }
                 if (weight > mm_var->axis[a].maximum / 0x10000) {
-                    logger_warn(logger, " %s : specified weight (%d) above minimum %d", path, weight, mm_var->axis[a].maximum / 0x10000);
+                    logger_warn(logger, " %s : specified weight (%d) above minimum %d",
+                                path, weight, mm_var->axis[a].maximum / 0x10000);
                     weight = mm_var->axis[a].maximum / 0x10000;
                 }
                 coords[a] = weight * 0x10000;
             } else if (slant!=INT_MIN && strcmp(mm_var->axis[a].name,"Slant")==0) {
                 if (slant < mm_var->axis[a].minimum / 0x10000) {
-                    logger_warn(logger, " %s : specified slant (%d) below minimum %d", path, slant, mm_var->axis[a].minimum / 0x10000);
+                    logger_warn(logger, " %s : specified slant (%d) below minimum %d",
+                                path, slant, mm_var->axis[a].minimum / 0x10000);
                     slant = mm_var->axis[a].minimum / 0x10000;
                 }
                 if (slant > mm_var->axis[a].maximum / 0x10000) {
-                    logger_warn(logger, " %s : specified weight (%d) above minimum %d", path, slant, mm_var->axis[a].maximum / 0x10000);
+                    logger_warn(logger, " %s : specified weight (%d) above minimum %d",
+                                path, slant, mm_var->axis[a].maximum / 0x10000);
                     slant = mm_var->axis[a].maximum / 0x10000;
                 }
                 coords[a] = slant * 0x10000;
             } else if (width!=INT_MIN && strcmp(mm_var->axis[a].name,"Width")==0) {
                 if (width < mm_var->axis[a].minimum / 0x10000) {
-                    logger_warn(logger, " %s : specified width (%d) below minimum %d", path, width, mm_var->axis[a].minimum / 0x10000);
+                    logger_warn(logger, " %s : specified width (%d) below minimum %d",
+                                path, width, mm_var->axis[a].minimum / 0x10000);
                     width = mm_var->axis[a].minimum / 0x10000;
                 }
                 if (width > mm_var->axis[a].maximum / 0x10000) {
-                    logger_warn(logger, " %s : specified weight (%d) above minimum %d", path, width, mm_var->axis[a].maximum / 0x10000);
+                    logger_warn(logger, " %s : specified weight (%d) above minimum %d",
+                                path, width, mm_var->axis[a].maximum / 0x10000);
                     width = mm_var->axis[a].maximum / 0x10000;
                 }
                 coords[a] = width * 0x10000;
@@ -207,7 +213,8 @@ ui_font_t *ui_font_new(const char *path, int size, int weight, int slant, int wi
     font->page_glyph_x = (uint32_t)GLYPH_TEX_SIZE / font->size;
     font->page_max_glyphs = font->page_glyph_x * font->page_glyph_x;
 
-    logger_debug(logger, "new font, %s size %d (%d), %d glyphs per page.", path, size, font->size, font->page_max_glyphs);
+    logger_debug(logger, "new font, %s size %d (%d), %d glyphs per page.",
+                 path, size, font->size, font->page_max_glyphs);
 
     font->glyph_pages = ui_font_init_page(font);
 
@@ -286,7 +293,8 @@ static void ui_font_render_glyph(ui_font_t *font, uint32_t codepoint) {
     // hash index of the codepoint
     size_t new_ind = codepoint % font->page_max_glyphs;
 
-    // in case of hash colission use a linear probe to find the next empty slot, increasing. wrap around if we reach the end
+    // in case of hash colission use a linear probe to find the next empty slot,
+    // increasing. wrap around if we reach the end
     while (last_page->glyphs[new_ind]) {
         new_ind++;
         if (new_ind>=font->page_max_glyphs) new_ind = 0;
@@ -335,13 +343,22 @@ static void ui_font_update_textures(ui_font_t *font) {
     glyph_page_t *p = font->glyph_pages;
     while (p) {
         glBindTexture(GL_TEXTURE_RECTANGLE, p->texture);
-        glTexImage2D(GL_TEXTURE_RECTANGLE, 0, GL_RED, GLYPH_TEX_SIZE, GLYPH_TEX_SIZE, 0, GL_RED, GL_UNSIGNED_BYTE, p->pixels);
+        glTexImage2D(GL_TEXTURE_RECTANGLE, 0, GL_RED, GLYPH_TEX_SIZE,
+                     GLYPH_TEX_SIZE, 0, GL_RED, GL_UNSIGNED_BYTE, p->pixels);
         glBindTexture(GL_TEXTURE_RECTANGLE, 0);
         p = p->next;
     }
 }
 
-void ui_font_render_text(ui_font_t *font, mat4f_t *proj, int x, int y, const char *text, size_t count, ui_color_t color) {
+void ui_font_render_text(
+    ui_font_t *font,
+    mat4f_t *proj,
+    int x,
+    int y,
+    const char *text,
+    size_t count,
+    ui_color_t color
+) {
     gl_shader_program_use(shader_program);
     glBindVertexArray(vao);
 

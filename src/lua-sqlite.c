@@ -316,7 +316,10 @@ int db_lua_execute(lua_State *L) {
 int statement_lua_bind(lua_State *L) {
     statement_t *stmt = luaL_checkstatement(L, 1);
 
-    if (lua_gettop(L)!=4 && lua_gettop(L)!=3) return luaL_error(L, "statement:bind takes 2 or 3 arguments, name/index, value, and (optionally) blob.");
+    if (lua_gettop(L)!=4 && lua_gettop(L)!=3) {
+        return luaL_error(L, "statement:bind takes 2 or 3 arguments, "
+                             "name/index, value, and (optionally) blob.");
+    }
 
     int blob = lua_toboolean(L, 4);
 
@@ -459,7 +462,9 @@ int statement_lua_reset(lua_State *L) {
     statement_t *stmt = luaL_checkstatement(L, 1);
 
     int r = sqlite3_reset(stmt->stmt);
-    if (r!=SQLITE_OK) return luaL_error(L, "Error during statement:reset : (%d) %s", r, sqlite3_errmsg(stmt->db->db));
+    if (r!=SQLITE_OK) {
+        return luaL_error(L, "Error during statement:reset : (%d) %s", r, sqlite3_errmsg(stmt->db->db));
+    }
 
     return 0;
 }

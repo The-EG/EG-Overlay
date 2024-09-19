@@ -8,10 +8,15 @@ mumble-link-events
 
     require 'mumble-link-events'
 
-The :lua:mod:`mumble-link-events` module does not have any public functions or attributes, however once it is loaded from another module using ``require``, it will send events based on the data accessible from the :lua:mod:`mumble-link` module.
+The :lua:mod:`mumble-link-events` module does not have any public functions or
+attributes, however once it is loaded from another module using ``require``, it
+will send events based on the data accessible from the :lua:mod:`mumble-link`
+module.
 
 .. note::
-    This module checks particular values in :lua:mod:`mumble-link` on every :overlay:event:`update` event. Any events that it queues are dispatched on the next :overlay:event:`update`.
+    This module checks particular values in :lua:mod:`mumble-link` on every
+    :overlay:event:`update` event. Any events that it queues are dispatched on
+    the next :overlay:event:`update`.
 
 
 Events
@@ -19,7 +24,8 @@ Events
 
 .. overlay:event:: mumble-link-available
 
-    Sent once :lua:data:`mumble-link.tick` has changed after a :overlay:event:`mumble-link-unavailable` event.
+    Sent once :lua:data:`mumble-link.tick` has changed after a
+    :overlay:event:`mumble-link-unavailable` event.
 
     .. versionhistory::
         :0.0.1: Added
@@ -27,9 +33,12 @@ Events
 
 .. overlay:event:: mumble-link-unavailable
 
-    Sent anytime :lua:data:`mumble-link.tick` is not updated for at least 400 milliseconds, indicating that the game is no longer updating the MumbleLink data.
+    Sent anytime :lua:data:`mumble-link.tick` is not updated for at least 400
+    milliseconds, indicating that the game is no longer updating the MumbleLink
+    data.
     
-    Once this event has been sent additional MumbleLink related events will not be sent until :overlay:event:`mumble-link-available` is sent again.
+    Once this event has been sent additional MumbleLink related events will not
+    be sent until :overlay:event:`mumble-link-available` is sent again.
 
     .. versionhistory::
         :0.0.1: Added

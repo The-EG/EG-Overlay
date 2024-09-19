@@ -71,7 +71,14 @@ void gl_shader_program_attach_shader_file(gl_shader_program_t *program, const ch
     program->shaders[program->shader_count] = shader;
     program->shader_count++;
 
-    logger_debug(logger, "Shader %d attached to program %d at stage %d from %s.", shader, program->program, type, path);
+    logger_debug(
+        logger,
+        "Shader %d attached to program %d at stage %d from %s.",
+        shader,
+        program->program,
+        type,
+        path
+    );
 }
 
 void gl_shader_program_link(gl_shader_program_t *program) {

@@ -44,7 +44,6 @@ log_sink_t *log_file_sink_new(const char *path) {
     sink->sink.write = (log_sink_write_fn*)&log_file_sink_write;
 
     sink->close_file = 1;
-    //sink->f = fopen(path, "wt");
     sink->f = _fsopen(path, "wb", _SH_DENYWR);
 
     if (!sink->f) {
