@@ -5,7 +5,6 @@
 #include "lamath.h"
 #include "rect.h"
 #include "font.h"
-#include "polyline.h"
 #include "image.h"
 #include "window.h"
 #include "menu.h"
@@ -109,7 +108,6 @@ void ui_init() {
 
     ui_rect_init();
     ui_font_init();
-    ui_polyline_init();
     ui_image_init();
 
     ui->input_mutex = CreateMutex(0, FALSE, NULL);
@@ -139,7 +137,6 @@ void ui_cleanup() {
 
     CloseHandle(ui->input_mutex);
     logger_debug(ui->log, "cleanup");
-    ui_polyline_cleanup();
     ui_rect_cleanup();
     ui_font_cleanup();
     ui_image_cleanup();
@@ -620,7 +617,6 @@ int ui_lua_open_module(lua_State *L) {
     ui_text_lua_register_ui_funcs(L);
     ui_rect_lua_register_ui_funcs(L);
     ui_window_lua_register_ui_funcs(L);
-    ui_polyline_lua_register_ui_funcs(L);
     ui_image_lua_register_ui_funcs(L);
     ui_button_lua_register_ui_funcs(L);
     ui_box_lua_register_ui_funcs(L);

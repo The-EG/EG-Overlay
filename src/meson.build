@@ -14,7 +14,6 @@ egoverlay_sources = files(
     'ui/rect.c',
     'ui/font.c',
     'ui/text.c',
-    'ui/polyline.c',
     'ui/window.c',
     'ui/image.c',
     'ui/button.c',
