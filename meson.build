@@ -17,8 +17,11 @@ cmake_buildtypes = {
 }
 
 generic_cmake_opts = cmake.subproject_options()
+jansson_opts = cmake.subproject_options()
 curl_opts = cmake.subproject_options()
 
+jansson_opts.add_cmake_defines(cmake_buildtypes[get_option('buildtype')])
+jansson_opts.add_cmake_defines({'JANSSON_BUILD_DOCS': 'OFF'})
 generic_cmake_opts.add_cmake_defines(cmake_buildtypes[get_option('buildtype')])
 curl_opts.add_cmake_defines(cmake_buildtypes[get_option('buildtype')])
 
@@ -50,12 +53,28 @@ curl_link_libs = [
 ]
 curl_dep = curl_proj.dependency('libcurl_static')
 
-libxml2_dep = dependency('libxml-2.0', default_options: ['default_library=static', 'warning_level=0', 'python=false', 'readline=false', 'threads=enabled'])
+libxml2_dep = dependency('libxml-2.0', 
+  default_options: [
+    'default_library=static',
+    'warning_level=0',
+    'python=false',
+    'readline=false',
+    'threads=enabled',
+    'catalog=false',
+    'debugging=false',
+    'html=false',
+    'ipv6=false',
+    'modules=false',
+    'push=false',
+    'readline=false',
+    'minimum=true',
+    ]
+)
 
 lua_proj = subproject('lua-5.4.6')
 lua_dep = lua_proj.get_variable('lua_dep')
 
-jansson_proj = cmake.subproject('jansson-2.14', options:generic_cmake_opts)
+jansson_proj = cmake.subproject('jansson-2.14', options:jansson_opts)
 jansson_dep = jansson_proj.dependency('jansson')
 
 subdir('src')
