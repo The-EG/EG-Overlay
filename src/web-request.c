@@ -43,7 +43,8 @@ struct web_request_t {
     int free_after_perform;
 };
 
-static void web_request_push_to_lua(lua_State *L, web_request_t *request, int lua_managed);
+void lua_pushwebrequest(lua_State *L, web_request_t *request, int lua_managed);
+web_request_t *lua_checkwebrequest(lua_State *L, int ind);
 int web_request_lua_open_module(lua_State *L);
 
 void web_request_init() {
@@ -119,7 +120,7 @@ static int web_request_run_lua_callback(lua_State *L, struct web_request_lua_cal
 
     lua_pushinteger(L, data->http_code);
     lua_pushstring(L, data->data);
-    web_request_push_to_lua(L, data->req, 0);
+    lua_pushwebrequest(L, data->req, 0);
 
     /*
     if (lua_pcall(L, 3, 0, 0)!=LUA_OK) {
@@ -419,9 +420,7 @@ void web_request_lua_register_metatable(lua_State *L) {
     }
 }
 
-#define LUA_CHECK_WEBREQUEST(L, i) *(web_request_t**)luaL_checkudata(L, i, "WebRequestMetaTable")
-
-void web_request_push_to_lua(lua_State *L, web_request_t *request, int lua_managed) {
+void lua_pushwebrequest(lua_State *L, web_request_t *request, int lua_managed) {
     web_request_t **req = (web_request_t**)lua_newuserdata(L, sizeof(web_request_t*));
 
     *req = request;
@@ -430,6 +429,11 @@ void web_request_push_to_lua(lua_State *L, web_request_t *request, int lua_manag
     lua_setiuservalue(L, -2, 1);
     web_request_lua_register_metatable(L);
     lua_setmetatable(L, -2);
+}
+
+web_request_t *lua_checkwebrequest(lua_State *L, int ind) {
+    return *(web_request_t**)luaL_checkudata(L, ind, "WebRequestMetaTable");
+
 }
 
 /*** RST
@@ -451,13 +455,13 @@ int web_request_lua_new(lua_State *L) {
     const char *url = luaL_checkstring(L, 1);
     web_request_t *req = web_request_new(url);
 
-    web_request_push_to_lua(L, req, 1);
+    lua_pushwebrequest(L, req, 1);
 
     return 1;
 }
 
 int web_request_lua_del(lua_State *L) {
-    web_request_t *r = LUA_CHECK_WEBREQUEST(L, 1);
+    web_request_t *r = lua_checkwebrequest(L, 1);
 
     lua_getiuservalue(L, -1, 1);
     int lua_managed = lua_toboolean(L, -1);
@@ -499,7 +503,7 @@ Classes
             :0.0.1: Added
 */
 int web_request_lua_add_header(lua_State *L) {
-    web_request_t *r = LUA_CHECK_WEBREQUEST(L, 1);
+    web_request_t *r = lua_checkwebrequest(L, 1);
     const char *name = luaL_checkstring(L, 2);
     const char *value = luaL_checkstring(L, 3);
 
@@ -524,7 +528,7 @@ int web_request_lua_add_header(lua_State *L) {
             :0.0.1: Added
 */
 int web_request_lua_add_query_parameter(lua_State *L) {
-    web_request_t *r = LUA_CHECK_WEBREQUEST(L, 1);
+    web_request_t *r = lua_checkwebrequest(L, 1);
     const char *name = luaL_checkstring(L, 2);
     const char *value = luaL_checkstring(L, 3);
 
@@ -548,7 +552,7 @@ int web_request_lua_add_query_parameter(lua_State *L) {
         :return: none
 */
 int web_request_lua_queue(lua_State *L) {
-    web_request_t *r = LUA_CHECK_WEBREQUEST(L, 1);
+    web_request_t *r = lua_checkwebrequest(L, 1);
 
     web_request_list_t *w = egoverlay_calloc(1, sizeof(web_request_list_t));
     w->request = r;

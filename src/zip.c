@@ -332,10 +332,12 @@ void lua_pushzip(lua_State *L, zip_t *zip) {
     lua_setmetatable(L, -2);
 }
 
-#define LUA_CHECK_ZIP(L, ind) *(zip_t**)luaL_checkudata(L, ind, "ZipMetaTable")
+zip_t *lua_checkzip(lua_State *L, int ind) {
+    return *(zip_t**)luaL_checkudata(L, ind, "ZipMetaTable");
+}
 
 int zip_lua_del(lua_State *L) {
-    zip_t *zip = LUA_CHECK_ZIP(L, 1);
+    zip_t *zip = lua_checkzip(L, 1);
 
     zip_unref(zip);
 
@@ -354,7 +356,7 @@ int zip_lua_del(lua_State *L) {
             :0.0.1: Added
 */
 int zip_lua_files(lua_State *L) {
-    zip_t *zip = LUA_CHECK_ZIP(L, 1);
+    zip_t *zip = lua_checkzip(L, 1);
 
     lua_newtable(L);
 
@@ -384,7 +386,7 @@ int zip_lua_files(lua_State *L) {
             :0.0.1: Added
 */
 int zip_lua_file_content(lua_State *L) {
-    zip_t *zip = LUA_CHECK_ZIP(L, 1);
+    zip_t *zip = lua_checkzip(L, 1);
 
     const char *file_path_orig = luaL_checkstring(L, 2);
     char *file_path = _strdup(file_path_orig);

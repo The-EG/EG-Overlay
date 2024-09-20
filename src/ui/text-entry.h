@@ -11,4 +11,3 @@ void ui_text_entry_set_text(ui_text_entry_t *entry, const char *text);
 
 void ui_text_entry_lua_register_funcs(lua_State *L);
 
-void lua_push_ui_textentry(lua_State *L, ui_text_entry_t *entry);

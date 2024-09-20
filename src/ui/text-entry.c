@@ -351,7 +351,7 @@ void ui_text_entry_lua_register_metatable(lua_State *L) {
     }
 }
 
-void lua_push_ui_textentry(lua_State *L, ui_text_entry_t *entry) {
+void lua_pushuitextentry(lua_State *L, ui_text_entry_t *entry) {
     ui_element_ref(entry);
 
     ui_text_entry_t **pentry = (ui_text_entry_t**)lua_newuserdata(L, sizeof(ui_text_entry_t*));
@@ -408,7 +408,7 @@ int ui_text_entry_lua_new(lua_State *L) {
 
     ui_text_entry_t *entry = ui_text_entry_new(font);
 
-    lua_push_ui_textentry(L, entry);
+    lua_pushuitextentry(L, entry);
 
     ui_element_unref(entry);
 
@@ -425,10 +425,12 @@ Classes
 
 */
 
-#define LUA_CHECK_TEXT_ENTRY(L, ind) *(ui_text_entry_t**)luaL_checkudata(L, ind, "UITextEntryMetaTable")
+ui_text_entry_t *lua_checkuitextentry(lua_State *L, int ind) {
+    return *(ui_text_entry_t**)luaL_checkudata(L, ind, "UITextEntryMetaTable");
+}
 
 int ui_text_entry_lua_del(lua_State *L) {
-    ui_text_entry_t *entry = LUA_CHECK_TEXT_ENTRY(L, 1);
+    ui_text_entry_t *entry = lua_checkuitextentry(L, 1);
 
     ui_element_unref(entry);
 
@@ -447,7 +449,7 @@ int ui_text_entry_lua_del(lua_State *L) {
             :0.0.1: Added
 */
 int ui_text_entry_lua_hint(lua_State *L) {
-    ui_text_entry_t *entry = LUA_CHECK_TEXT_ENTRY(L, 1);
+    ui_text_entry_t *entry = lua_checkuitextentry(L, 1);
     const char *hint = luaL_checkstring(L, 2);
 
     if (entry->hint) egoverlay_free(entry->hint);
@@ -474,7 +476,7 @@ int ui_text_entry_lua_hint(lua_State *L) {
             :0.0.1: Added
 */
 int ui_text_entry_lua_text(lua_State *L) {
-    ui_text_entry_t *entry = LUA_CHECK_TEXT_ENTRY(L, 1);
+    ui_text_entry_t *entry = lua_checkuitextentry(L, 1);
 
     if (lua_gettop(L)==1) {
         lua_pushstring(L, entry->text);
@@ -511,7 +513,7 @@ int ui_text_entry_lua_text(lua_State *L) {
             :0.0.1: Added
 */
 int ui_text_entry_lua_on_keydown(lua_State *L) {
-    ui_text_entry_t *entry = LUA_CHECK_TEXT_ENTRY(L, 1);
+    ui_text_entry_t *entry = lua_checkuitextentry(L, 1);
 
     if (lua_gettop(L)==1) {
         luaL_unref(L, LUA_REGISTRYINDEX, entry->lua_cbi);

@@ -366,7 +366,9 @@ void ui_menu_lua_register_ui_funcs(lua_State *L) {
     lua_setfield(L, -2, "menu_item");
 }
 
-#define LUA_CHECK_MENUITEM(L, ind) *(ui_menu_item_t**)luaL_checkudata(L, ind, "UIMenuItemMetaTable")
+ui_menu_item_t *lua_checkuimenuitem(lua_State *L, int ind) {
+    return *(ui_menu_item_t**)luaL_checkudata(L, ind, "UIMenuItemMetaTable");
+}
 
 luaL_Reg menu_funcs[] = {
     "__gc",     &ui_menu_lua_del,
@@ -377,7 +379,7 @@ luaL_Reg menu_funcs[] = {
 };
 
 
-void lua_push_ui_menu(lua_State *L, ui_menu_t *menu) {
+void lua_pushuimenu(lua_State *L, ui_menu_t *menu) {
     ui_menu_t **pmenu = lua_newuserdata(L, sizeof(ui_menu_t*));
     *pmenu = menu;
 
@@ -406,7 +408,7 @@ luaL_Reg ui_menu_item_funcs[] = {
     NULL,           NULL
 };
 
-void lua_push_ui_menuitem(lua_State *L, ui_menu_item_t *mi) {
+void lua_pushuimenuitem(lua_State *L, ui_menu_item_t *mi) {
     ui_menu_item_t **pmi = (ui_menu_item_t**)lua_newuserdata(L, sizeof(ui_menu_item_t*));
     *pmi = mi;
 
@@ -420,7 +422,9 @@ void lua_push_ui_menuitem(lua_State *L, ui_menu_item_t *mi) {
     ui_element_ref(mi);
 }
 
-#define LUA_CHECK_MENU(L, ind) *(ui_menu_t**)luaL_checkudata(L, ind, "UIMenuMetaTable")
+ui_menu_t *lua_checkuimenu(lua_State *L, int ind) {
+    return *(ui_menu_t**)luaL_checkudata(L, ind, "UIMenuMetaTable");
+}
 
 /*** RST
 .. lua:function:: menu()
@@ -434,7 +438,7 @@ void lua_push_ui_menuitem(lua_State *L, ui_menu_item_t *mi) {
 */
 int ui_menu_lua_new(lua_State *L) {
     ui_menu_t *menu = ui_menu_new();
-    lua_push_ui_menu(L, menu);
+    lua_pushuimenu(L, menu);
     ui_element_unref(menu);
 
     return 1;
@@ -452,7 +456,7 @@ int ui_menu_lua_new(lua_State *L) {
 */
 int ui_menu_item_lua_new(lua_State *L) {
     ui_menu_item_t *mi = ui_menu_item_new();
-    lua_push_ui_menuitem(L, mi);
+    lua_pushuimenuitem(L, mi);
     ui_element_unref(mi);
 
     return 1;
@@ -468,7 +472,7 @@ Classes
 */
 
 int ui_menu_lua_del(lua_State *L) {
-    ui_menu_t *menu = LUA_CHECK_MENU(L, 1);
+    ui_menu_t *menu = lua_checkuimenu(L, 1);
 
     ui_element_unref(menu);
 
@@ -486,12 +490,12 @@ int ui_menu_lua_del(lua_State *L) {
             :0.0.1: Added
 */
 int ui_menu_lua_add_item(lua_State *L) {
-    ui_menu_t *menu = LUA_CHECK_MENU(L, 1);
+    ui_menu_t *menu = lua_checkuimenu(L, 1);
 
     // TODO: shouldn't this only accept menuitems??
     if (!lua_isuserdata(L, 2)) return luaL_error(L, "menu:add_item argument #1 must be a UI element.");
 
-    ui_menu_item_t *item = LUA_CHECK_MENUITEM(L, 2);
+    ui_menu_item_t *item = lua_checkuimenuitem(L, 2);
 
     ui_menu_add_item(menu, item);
 
@@ -511,7 +515,7 @@ int ui_menu_lua_add_item(lua_State *L) {
             :0.0.1: Added
 */
 int ui_menu_lua_show(lua_State *L) {
-    ui_menu_t *menu = LUA_CHECK_MENU(L, 1);
+    ui_menu_t *menu = lua_checkuimenu(L, 1);
     int x = (int)luaL_checkinteger(L, 2);
     int y = (int)luaL_checkinteger(L, 3);
 
@@ -531,7 +535,7 @@ int ui_menu_lua_show(lua_State *L) {
             :0.0.1: Added
 */
 int ui_menu_lua_hide(lua_State *L) {
-    ui_menu_t *menu = LUA_CHECK_MENU(L, 1);
+    ui_menu_t *menu = lua_checkuimenu(L, 1);
 
     ui_menu_hide(menu);
 
@@ -545,7 +549,7 @@ int ui_menu_lua_hide(lua_State *L) {
 */
 
 int ui_menu_item_lua_del(lua_State *L) {
-    ui_menu_item_t *mi = LUA_CHECK_MENUITEM(L, 1);
+    ui_menu_item_t *mi = lua_checkuimenuitem(L, 1);
 
     ui_element_unref(mi);
     return 0;
@@ -563,7 +567,7 @@ int ui_menu_item_lua_del(lua_State *L) {
             :0.0.1: Added
 */
 int ui_menu_item_lua_set_child(lua_State *L) {
-    ui_menu_item_t *mi = LUA_CHECK_MENUITEM(L, 1);
+    ui_menu_item_t *mi = lua_checkuimenuitem(L, 1);
 
     if (!lua_isuserdata(L, 2)) return luaL_error(L, "menu_item:set_child argument #1 must be a UI element.");
 
@@ -588,7 +592,7 @@ int ui_menu_item_lua_set_child(lua_State *L) {
             :0.0.1: Added
 */
 int ui_menu_item_lua_set_pre(lua_State *L) {
-    ui_menu_item_t *mi = LUA_CHECK_MENUITEM(L, 1);
+    ui_menu_item_t *mi = lua_checkuimenuitem(L, 1);
 
     if (!lua_isuserdata(L, 2)) return luaL_error(L, "menu_item:set_pre argument #1 must be a UI element.");
 
@@ -611,8 +615,8 @@ int ui_menu_item_lua_set_pre(lua_State *L) {
             :0.0.1: Added
 */
 int ui_menu_item_lua_set_submenu(lua_State *L) {
-    ui_menu_item_t *mi = LUA_CHECK_MENUITEM(L, 1);
-    ui_menu_t *submenu = LUA_CHECK_MENU(L, 2);
+    ui_menu_item_t *mi = lua_checkuimenuitem(L, 1);
+    ui_menu_t *submenu = lua_checkuimenu(L, 2);
 
     if (mi->sub_menu) ui_element_unref(mi->sub_menu);
     mi->sub_menu = submenu;
@@ -633,7 +637,7 @@ int ui_menu_item_lua_set_submenu(lua_State *L) {
             :0.0.1: Added
 */
 int ui_menu_item_lua_on_click(lua_State *L) {
-    ui_menu_item_t *mi = LUA_CHECK_MENUITEM(L, 1);
+    ui_menu_item_t *mi = lua_checkuimenuitem(L, 1);
 
     if (!lua_isfunction(L, 2)) return luaL_error(L, "menu_item:on_click argument #1 must be a function.");
 
@@ -659,7 +663,7 @@ int ui_menu_item_lua_on_click(lua_State *L) {
             :0.0.1: Added
 */
 int ui_menu_item_lua_enabled(lua_State *L) {
-    ui_menu_item_t *mi = LUA_CHECK_MENUITEM(L, 1);
+    ui_menu_item_t *mi = lua_checkuimenuitem(L, 1);
 
     if (lua_gettop(L)==2) {
         int enabled = lua_toboolean(L, 2);

@@ -162,6 +162,6 @@ float ui_window_caption_size();
 
 typedef struct ui_lua_element_t ui_lua_element_t;
 
-int ui_lua_check_align(lua_State *L, int ind);
+int lua_checkuialign(lua_State *L, int ind);
 
 ui_element_t *lua_checkuielement(lua_State *L, int ind);

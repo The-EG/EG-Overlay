@@ -349,7 +349,7 @@ void ui_scroll_view_register_metatable(lua_State *L) {
     }
 }
 
-void lua_push_ui_scrollview(lua_State *L, ui_scroll_view_t *scroll) {
+void lua_pushuiscrollview(lua_State *L, ui_scroll_view_t *scroll) {
     ui_element_ref(scroll);
 
     ui_scroll_view_t **psv = lua_newuserdata(L, sizeof(ui_scroll_view_t*));
@@ -379,13 +379,15 @@ Functions
 */
 int ui_scroll_view_lua_new(lua_State *L) {
     ui_scroll_view_t *sv = ui_scroll_view_new();
-    lua_push_ui_scrollview(L, sv);
+    lua_pushuiscrollview(L, sv);
     ui_element_unref(sv);
 
     return 1;
 }
 
-#define LUA_CHECK_SCROLLVIEW(L, ind) *(ui_scroll_view_t**)luaL_checkudata(L, ind, "UIScrollViewMetaTable")
+ui_scroll_view_t *lua_checkuiscrollview(lua_State *L, int ind) {
+    return *(ui_scroll_view_t**)luaL_checkudata(L, ind, "UIScrollViewMetaTable");
+}
 
 /*** RST
 Classes
@@ -404,7 +406,7 @@ Classes
 
 
 int ui_scroll_view_lua_del(lua_State *L) {
-    ui_scroll_view_t *sv = LUA_CHECK_SCROLLVIEW(L, 1);
+    ui_scroll_view_t *sv = lua_checkuiscrollview(L, 1);
 
     ui_element_unref(sv);
 
@@ -412,7 +414,7 @@ int ui_scroll_view_lua_del(lua_State *L) {
 }
 
 int ui_scroll_view_lua_size(lua_State *L) {
-    ui_scroll_view_t *sv = LUA_CHECK_SCROLLVIEW(L, 1);
+    ui_scroll_view_t *sv = lua_checkuiscrollview(L, 1);
     int w = (int)luaL_checkinteger(L, 2);
     int h = (int)luaL_checkinteger(L, 3);
 
@@ -422,7 +424,7 @@ int ui_scroll_view_lua_size(lua_State *L) {
 }
 
 int ui_scroll_view_lua_pos(lua_State *L) {
-    ui_scroll_view_t *sv = LUA_CHECK_SCROLLVIEW(L, 1);
+    ui_scroll_view_t *sv = lua_checkuiscrollview(L, 1);
     int x = (int)luaL_checkinteger(L, 2);
     int y = (int)luaL_checkinteger(L, 3);
 
@@ -442,7 +444,7 @@ int ui_scroll_view_lua_pos(lua_State *L) {
             :0.0.1: Added
 */
 int ui_scroll_view_lua_set_child(lua_State *L) {
-    ui_scroll_view_t *sv = LUA_CHECK_SCROLLVIEW(L, 1);
+    ui_scroll_view_t *sv = lua_checkuiscrollview(L, 1);
 
     ui_element_t *child = lua_checkuielement(L, 2);
 
@@ -461,7 +463,7 @@ int ui_scroll_view_lua_set_child(lua_State *L) {
             :0.0.1: Added
 */
 int ui_scroll_view_lua_scroll_max_y(lua_State *L) {
-    ui_scroll_view_t *sv = LUA_CHECK_SCROLLVIEW(L, 1);
+    ui_scroll_view_t *sv = lua_checkuiscrollview(L, 1);
     ui_scroll_view_scroll_y(sv, INT32_MAX);
     
     return 0;
@@ -479,7 +481,7 @@ int ui_scroll_view_lua_scroll_max_y(lua_State *L) {
             :0.0.1: Added
 */
 int ui_scroll_view_lua_scroll_amount(lua_State *L) {
-    ui_scroll_view_t *sv = LUA_CHECK_SCROLLVIEW(L, 1);
+    ui_scroll_view_t *sv = lua_checkuiscrollview(L, 1);
     int scroll_amount = (int)luaL_checkinteger(L, 2);
     
     sv->scroll_amount = scroll_amount;

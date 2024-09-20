@@ -12,7 +12,6 @@ ui_text_t *ui_text_new(const char *text, ui_color_t color, ui_font_t *font);
 void ui_text_update_text(ui_text_t *text, const char *new_text);
 
 void ui_text_lua_register_ui_funcs(lua_State *L);
-void lua_push_ui_text(lua_State *L, ui_text_t *text);
 
 void ui_text_set_pos(ui_text_t *text, int x, int y);
 void ui_text_set_size(ui_text_t *text, int width, int height);

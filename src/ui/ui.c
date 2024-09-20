@@ -806,7 +806,7 @@ static int ui_lua_mouse_position(lua_State *L) {
     return 2;
 }
 
-int ui_lua_check_align(lua_State *L, int ind) {
+int lua_checkuialign(lua_State *L, int ind) {
     const char *align_str = luaL_checkstring(L, ind);
 
     if      (strcmp(align_str, "start" )==0) return   -1;

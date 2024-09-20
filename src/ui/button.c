@@ -251,7 +251,8 @@ int ui_button_lua_border_color(lua_State *L);
 int ui_button_lua_border_width(lua_State *L);
 int ui_button_lua_bind_value(lua_State *L);
 
-void lua_push_ui_button(lua_State *L, ui_button_t *button);
+void lua_pushuibutton(lua_State *L, ui_button_t *button);
+ui_button_t *lua_checkuibutton(lua_State *L, int ind);
 
 luaL_Reg ui_mod_button_funcs[] = {
     "button"  , &ui_button_lua_new,
@@ -295,7 +296,7 @@ Functions
 */
 int ui_button_lua_new(lua_State *L) {
     ui_button_t *btn = ui_button_new();
-    lua_push_ui_button(L, btn);
+    lua_pushuibutton(L, btn);
     ui_element_unref(btn);
 
     return 1;
@@ -319,16 +320,18 @@ int ui_checkbox_lua_new(lua_State *L) {
     int size = (int)luaL_checkinteger(L, 1);
 
     ui_button_t *checkbox = ui_checkbox_new(size);
-    lua_push_ui_button(L, checkbox);
+    lua_pushuibutton(L, checkbox);
     ui_element_unref(checkbox);
 
     return 1;
 }
 
-#define LUA_CHECK_BUTTON(L, ind) *(ui_button_t**)luaL_checkudata(L, ind, "UIButtonMetaTable")
+ui_button_t *lua_checkuibutton(lua_State *L, int ind) {
+    return *(ui_button_t**)luaL_checkudata(L, ind, "UIButtonMetaTable");
+}
 
 int ui_button_lua_del(lua_State *L) {
-    ui_button_t *btn = LUA_CHECK_BUTTON(L, 1);
+    ui_button_t *btn = lua_checkuibutton(L, 1);
 
     ui_element_unref(btn);
 
@@ -376,7 +379,7 @@ Classes
             :0.0.1: Added
 */
 int ui_button_lua_set_child(lua_State *L) {
-    ui_button_t *btn = LUA_CHECK_BUTTON(L, 1);
+    ui_button_t *btn = lua_checkuibutton(L, 1);
 
     if (!lua_isuserdata(L, 2)) return luaL_error(L, "button:set_child argument #1 must be a UI element");
 
@@ -399,7 +402,7 @@ int ui_button_lua_set_child(lua_State *L) {
             :0.0.1: Added
 */
 int ui_button_lua_background_color(lua_State *L) {
-    ui_button_t *btn = LUA_CHECK_BUTTON(L, 1);
+    ui_button_t *btn = lua_checkuibutton(L, 1);
     ui_color_t color = (ui_color_t)luaL_checkinteger(L, 2);
 
     btn->background = color;
@@ -419,7 +422,7 @@ int ui_button_lua_background_color(lua_State *L) {
             :0.0.1: Added
 */
 int ui_button_lua_border_color(lua_State *L) {
-    ui_button_t *btn = LUA_CHECK_BUTTON(L, 1);
+    ui_button_t *btn = lua_checkuibutton(L, 1);
     ui_color_t color = (ui_color_t)luaL_checkinteger(L, 2);
 
     btn->border_color = color;
@@ -439,7 +442,7 @@ int ui_button_lua_border_color(lua_State *L) {
             :0.0.1: Added
 */
 int ui_button_lua_border_width(lua_State *L) {
-    ui_button_t *btn = LUA_CHECK_BUTTON(L, 1);
+    ui_button_t *btn = lua_checkuibutton(L, 1);
     int width = (int)luaL_checkinteger(L, 2);
 
     btn->border_width = width;
@@ -447,7 +450,7 @@ int ui_button_lua_border_width(lua_State *L) {
     return 0;
 }
 
-void lua_push_ui_button(lua_State *L, ui_button_t *button) {
+void lua_pushuibutton(lua_State *L, ui_button_t *button) {
     ui_button_t **pbtn = (ui_button_t**)lua_newuserdata(L, sizeof(ui_button_t*));
     *pbtn = button;
 
@@ -466,7 +469,7 @@ void lua_push_ui_button(lua_State *L, ui_button_t *button) {
 }
 
 int ui_button_lua_bind_value(lua_State *L) {
-    ui_button_t *btn = LUA_CHECK_BUTTON(L, 1);
+    ui_button_t *btn = lua_checkuibutton(L, 1);
 
     if (lua_gettop(L)!=3) return luaL_error(L, "button:bind_value takes 2 arguments: table, fieldname.");
 

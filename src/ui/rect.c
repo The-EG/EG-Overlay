@@ -54,22 +54,4 @@ void ui_rect_draw(int x, int y, int width, int height, ui_color_t color, mat4f_t
     glBindVertexArray(0);
 }
 
-static int ui_rect_lua_draw(lua_State *L);
 
-void ui_rect_lua_register_ui_funcs(lua_State *L) {
-    lua_pushcfunction(L, &ui_rect_lua_draw);
-    lua_setfield(L, -2, "rect");   
-}
-
-static int ui_rect_lua_draw(lua_State *L) {
-    int x = (int)luaL_checkinteger(L, 1);
-    int y = (int)luaL_checkinteger(L, 2);
-    int w = (int)luaL_checkinteger(L, 3);
-    int h = (int)luaL_checkinteger(L, 4);
-    ui_color_t c = (int)luaL_checkinteger(L, 5);
-    mat4f_t *proj = mat4f_from_lua(L, 6);
-
-    ui_rect_draw(x, y, w, h, c, proj);
-
-    return 0;
-}

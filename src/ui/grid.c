@@ -406,8 +406,8 @@ int ui_grid_lua_attach(lua_State *L) {
     }
 
     if (args==8) {
-        horizalign = ui_lua_check_align(L, 7);
-        vertalign = ui_lua_check_align(L, 8);
+        horizalign = lua_checkuialign(L, 7);
+        vertalign = lua_checkuialign(L, 8);
     }
 
     if (row < 1 || row > grid->rows) return luaL_error(L, "row out of range. %d [1, %d]", row, grid->rows);

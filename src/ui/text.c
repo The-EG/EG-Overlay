@@ -147,6 +147,7 @@ void ui_text_set_size(ui_text_t *text, int width, int height) {
     if (height > 0) text->element.height = height;
 }
 
+void lua_pushuitext(lua_State *L, ui_text_t *text);
 
 int ui_text_lua_new(lua_State *L);
 
@@ -183,7 +184,7 @@ void ui_text_lua_register_metatable(lua_State *L) {
     }
 }
 
-void lua_push_ui_text(lua_State *L, ui_text_t *text) {
+void lua_pushuitext(lua_State *L, ui_text_t *text) {
     ui_element_ref(text);
 
     ui_text_t **t = lua_newuserdata(L, sizeof(ui_text_t*));
@@ -248,15 +249,18 @@ int ui_text_lua_new(lua_State *L) {
 
     ui_text_t *t = ui_text_new(text, color, font);
 
-    lua_push_ui_text(L, t);
+    lua_pushuitext(L, t);
     ui_element_unref(t);
     
     return 1;
 }
 
-int ui_text_lua_del(lua_State *L) {
-    ui_text_t *text = *(ui_text_t**)luaL_checkudata(L, 1, "UITextMetaTable");
+ui_text_t *lua_checkuitext(lua_State *L, int ind) {
+    return *(ui_text_t**)luaL_checkudata(L, ind, "UITextMetaTable");
+}
 
+int ui_text_lua_del(lua_State *L) {
+    ui_text_t *text = lua_checkuitext(L, 1);
     ui_element_unref(text);
 
     return 0;
@@ -282,7 +286,7 @@ Classes
             :0.0.1: Added
 */
 int ui_text_lua_update_text(lua_State *L) {
-    ui_text_t *text = *(ui_text_t**)luaL_checkudata(L, 1, "UITextMetaTable");
+    ui_text_t *text = lua_checkuitext(L, 1);
     const char *new_text = luaL_checkstring(L, 2);
 
     ui_text_update_text(text, new_text);
@@ -306,8 +310,7 @@ int ui_text_lua_update_text(lua_State *L) {
 int ui_text_lua_events(lua_State *L) {
     if (lua_gettop(L)!=2) return luaL_error(L, "events takes a boolean parameter.");
 
-    ui_text_t *text = *(ui_text_t**)luaL_checkudata(L, 1, "UITextMetaTable");
-
+    ui_text_t *text = lua_checkuitext(L, 1);
     text->events = lua_toboolean(L, 2);
 
     return 0;

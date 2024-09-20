@@ -37,10 +37,12 @@ int xml_lua_read_file(lua_State *L);
 int xml_lua_read_string(lua_State *L);
 
 void xml_doc_lua_register_metatable(lua_State *L);
-void xml_doc_lua_push(lua_State *L, xmlDocPtr doc, int lua_managed);
+void lua_pushxmldoc(lua_State *L, xmlDocPtr doc, int lua_managed);
+xmlDocPtr lua_checkxmldoc(lua_State *L, int ind);
 
 void xml_node_lua_register_metatable(lua_State *L);
-void xml_node_lua_push(lua_State *L, xmlNodePtr node, int lua_managed);
+void lua_pushxmlnode(lua_State *L, xmlNodePtr node, int lua_managed);
+xmlNodePtr lua_checkxmlnode(lua_State *L, int ind);
 
 static luaL_Reg xml_funcs[] = {
     "read_file",   &xml_lua_read_file,
@@ -126,7 +128,7 @@ int xml_lua_read_file(lua_State *L) {
     const char *path = luaL_checkstring(L, 1);
 
     xmlDocPtr doc = xmlReadFile(path, NULL, 0);
-    if (doc) xml_doc_lua_push(L, doc, 1);
+    if (doc) lua_pushxmldoc(L, doc, 1);
     else lua_pushnil(L);
 
     return 1;
@@ -162,7 +164,7 @@ int xml_lua_read_string(lua_State *L) {
     xmlDocPtr doc = xmlCtxtReadMemory(ctx, data, data_size, name, NULL, XML_PARSE_RECOVER);
 
     xmlFreeParserCtxt(ctx);
-    if (doc) xml_doc_lua_push(L, doc, 1);
+    if (doc) lua_pushxmldoc(L, doc, 1);
     else lua_pushnil(L);
 
     return 1;
@@ -177,7 +179,7 @@ Classes
     An XML Document.
 
 */
-void xml_doc_lua_push(lua_State *L, xmlDocPtr doc, int lua_managed) {
+void lua_pushxmldoc(lua_State *L, xmlDocPtr doc, int lua_managed) {
     xmlDocPtr *ppdoc = (xmlDocPtr*)lua_newuserdata(L, sizeof(xmlDocPtr));
     *ppdoc = doc;
 
@@ -212,10 +214,12 @@ void xml_doc_lua_register_metatable(lua_State *L) {
     }
 }
 
-#define LUA_CHECK_XML_DOC(L, i) *(xmlDocPtr*)luaL_checkudata(L, i, "XmlDocMetaTable")
+xmlDocPtr lua_checkxmldoc(lua_State *L, int ind) {
+    return *(xmlDocPtr*)luaL_checkudata(L, ind, "XmlDocMetaTable");
+}
 
 int xml_doc_lua_del(lua_State *L) {
-    xmlDocPtr doc = LUA_CHECK_XML_DOC(L, 1);
+    xmlDocPtr doc = lua_checkxmldoc(L, 1);
 
     lua_getiuservalue(L, -1, 1);
     int lua_managed = lua_toboolean(L, -1);
@@ -240,11 +244,11 @@ int xml_doc_lua_del(lua_State *L) {
             :0.0.0: Added
 */
 int xml_doc_lua_get_root_element(lua_State *L) {
-    xmlDocPtr doc = LUA_CHECK_XML_DOC(L, 1);
+    xmlDocPtr doc = lua_checkxmldoc(L, 1);
 
     xmlNodePtr node = xmlDocGetRootElement(doc);
 
-    xml_node_lua_push(L, node, 0);
+    lua_pushxmlnode(L, node, 0);
 
     return 1;
 }
@@ -261,7 +265,7 @@ int xml_doc_lua_get_root_element(lua_State *L) {
             :0.0.1: Added
 */
 int xml_doc_lua_name(lua_State *L) {
-    xmlDocPtr doc = LUA_CHECK_XML_DOC(L, 1);
+    xmlDocPtr doc = lua_checkxmldoc(L, 1);
 
     lua_pushstring(L, doc->name);
 
@@ -280,7 +284,7 @@ int xml_doc_lua_name(lua_State *L) {
             :0.0.1: Added
 */
 int xml_doc_lua_url(lua_State *L) {
-    xmlDocPtr doc = LUA_CHECK_XML_DOC(L, 1);
+    xmlDocPtr doc = lua_checkxmldoc(L, 1);
 
     lua_pushstring(L, (const char*)doc->URL);
 
@@ -334,7 +338,7 @@ void xml_node_lua_register_metatable(lua_State *L) {
     }
 }
 
-void xml_node_lua_push(lua_State *L, xmlNodePtr node, int lua_managed) {
+void lua_pushxmlnode(lua_State *L, xmlNodePtr node, int lua_managed) {
     xmlNodePtr *ppnode = (xmlNodePtr*)lua_newuserdata(L, sizeof(xmlNodePtr));
     *ppnode = node;
 
@@ -344,10 +348,12 @@ void xml_node_lua_push(lua_State *L, xmlNodePtr node, int lua_managed) {
     lua_setmetatable(L, -2);
 }
 
-#define LUA_CHECK_XML_NODE(L, i) *(xmlNodePtr*)luaL_checkudata(L, i, "XmlNodeMetaTable")
+xmlNodePtr lua_checkxmlnode(lua_State *L, int ind) {
+    return *(xmlNodePtr*)luaL_checkudata(L, ind, "XmlNodeMetaTable");
+}
 
 int xml_node_lua_del(lua_State *L) {
-    xmlNodePtr node = LUA_CHECK_XML_NODE(L, 1);
+    xmlNodePtr node = lua_checkxmlnode(L, 1);
 
     lua_getiuservalue(L, -1, 1);
     int lua_managed = lua_toboolean(L, -1);
@@ -372,11 +378,11 @@ int xml_node_lua_del(lua_State *L) {
             :0.0.1: Added
 */
 int xml_node_lua_copy(lua_State *L) {
-    xmlNodePtr node = LUA_CHECK_XML_NODE(L, 1);
+    xmlNodePtr node = lua_checkxmlnode(L, 1);
 
     xmlNodePtr copy = xmlCopyNode(node, 1);
 
-    xml_node_lua_push(L, copy, 1);
+    lua_pushxmlnode(L, copy, 1);
 
     return 1;
 }
@@ -395,9 +401,9 @@ int xml_node_lua_copy(lua_State *L) {
             :0.0.1: Added
 */
 int xml_node_lua_prev(lua_State *L) {
-    xmlNodePtr node = LUA_CHECK_XML_NODE(L, 1);
+    xmlNodePtr node = lua_checkxmlnode(L, 1);
 
-    if (node->prev) xml_node_lua_push(L, node->prev, 0);
+    if (node->prev) lua_pushxmlnode(L, node->prev, 0);
     else lua_pushnil(L);
 
     return 1;
@@ -417,9 +423,9 @@ int xml_node_lua_prev(lua_State *L) {
             :0.0.1: Added
 */
 int xml_node_lua_next(lua_State *L) {
-    xmlNodePtr node = LUA_CHECK_XML_NODE(L, 1);
+    xmlNodePtr node = lua_checkxmlnode(L, 1);
 
-    if (node->next) xml_node_lua_push(L, node->next, 0);
+    if (node->next) lua_pushxmlnode(L, node->next, 0);
     else lua_pushnil(L);
 
     return 1;
@@ -440,9 +446,9 @@ int xml_node_lua_next(lua_State *L) {
             :0.0.1: Added
 */
 int xml_node_lua_children(lua_State *L) {
-    xmlNodePtr node = LUA_CHECK_XML_NODE(L, 1);
+    xmlNodePtr node = lua_checkxmlnode(L, 1);
 
-    if (node->children) xml_node_lua_push(L, node->children, 0);
+    if (node->children) lua_pushxmlnode(L, node->children, 0);
     else lua_pushnil(L);
 
     return 1;
@@ -480,7 +486,7 @@ int xml_node_lua_children(lua_State *L) {
             :0.0.1: Added
 */
 int xml_node_lua_type(lua_State *L) {
-    xmlNodePtr node = LUA_CHECK_XML_NODE(L, 1);
+    xmlNodePtr node = lua_checkxmlnode(L, 1);
 
     switch (node->type) {
     case XML_ELEMENT_NODE:       lua_pushliteral(L, "element-node");           break;
@@ -521,7 +527,7 @@ int xml_node_lua_type(lua_State *L) {
             :0.0.1: Added
 */
 int xml_node_lua_name(lua_State *L) {
-    xmlNodePtr node = LUA_CHECK_XML_NODE(L, 1);
+    xmlNodePtr node = lua_checkxmlnode(L, 1);
 
     if (node->name) lua_pushstring(L, (const char*)node->name);
     else lua_pushnil(L);
@@ -548,7 +554,7 @@ int xml_node_lua_name(lua_State *L) {
             :0.0.1: Added
 */
 int xml_node_lua_prop(lua_State *L) {
-    xmlNodePtr node = LUA_CHECK_XML_NODE(L, 1);
+    xmlNodePtr node = lua_checkxmlnode(L, 1);
     const char *prop_name = luaL_checkstring(L, 2);
 
     if (lua_gettop(L)==2) {
@@ -581,7 +587,7 @@ int xml_node_lua_prop(lua_State *L) {
             :0.0.1: Added
 */
 int xml_node_lua_props(lua_State *L) {
-    xmlNodePtr node = LUA_CHECK_XML_NODE(L, 1);
+    xmlNodePtr node = lua_checkxmlnode(L, 1);
 
     lua_newtable(L);
     int ti = 1;
@@ -605,7 +611,7 @@ int xml_node_lua_props(lua_State *L) {
             :0.0.1: Added
 */
 int xml_node_lua_content(lua_State *L) {
-    xmlNodePtr node = LUA_CHECK_XML_NODE(L, 1);
+    xmlNodePtr node = lua_checkxmlnode(L, 1);
 
     if (lua_gettop(L)==1) {
         char *content = (char*)xmlNodeGetContent(node);
@@ -634,9 +640,9 @@ int xml_node_lua_content(lua_State *L) {
             :0.0.1: Added
 */
 int xml_node_lua_doc(lua_State *L) {
-    xmlNodePtr node = LUA_CHECK_XML_NODE(L, 1);
+    xmlNodePtr node = lua_checkxmlnode(L, 1);
 
-    if (node->doc) xml_doc_lua_push(L, node->doc, 0);
+    if (node->doc) lua_pushxmldoc(L, node->doc, 0);
     else lua_pushnil(L);
 
     return 1;
@@ -656,7 +662,7 @@ int xml_node_lua_doc(lua_State *L) {
             :0.0.1: Added
 */
 int xml_node_lua_line(lua_State *L) {
-    xmlNodePtr node = LUA_CHECK_XML_NODE(L, 1);
+    xmlNodePtr node = lua_checkxmlnode(L, 1);
 
     lua_pushinteger(L, node->line);
 

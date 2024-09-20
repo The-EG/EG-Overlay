@@ -293,7 +293,7 @@ static void ui_box_lua_register_metatable(lua_State *L) {
 }
 
 
-void lua_push_uibox(ui_box_t *box, lua_State *L) {
+void lua_pushuibox(ui_box_t *box, lua_State *L) {
     ui_box_t **b = lua_newuserdata(L, sizeof(ui_box_t*));
     *b = box;
 
@@ -334,16 +334,18 @@ int ui_box_lua_new(lua_State *L) {
     }
 
     ui_box_t *box = ui_box_new(o);
-    lua_push_uibox(box, L);
+    lua_pushuibox(box, L);
     ui_element_unref(box); // release our reference here, Lua still has one
 
     return 1;
 }
 
-#define CHECK_UI_BOX(L, ind) *(ui_box_t**)luaL_checkudata(L, ind, "UIBoxMetaTable")
+ui_box_t *lua_checkuibox(lua_State *L, int ind) {
+    return *(ui_box_t**)luaL_checkudata(L, ind, "UIBoxMetaTable");
+}
 
 int ui_box_lua_del(lua_State *L) {
-    ui_box_t *box = CHECK_UI_BOX(L, 1);
+    ui_box_t *box = lua_checkuibox(L, 1);
 
     ui_element_unref(box); // release Lua's ref, that will free it if no other refs exist
 
@@ -380,7 +382,7 @@ Classes
 
 */
 int ui_box_lua_set_padding(lua_State *L) {
-    ui_box_t *box = CHECK_UI_BOX(L, 1);
+    ui_box_t *box = lua_checkuibox(L, 1);
     int left = (int)luaL_checkinteger(L, 2);
     int right = (int)luaL_checkinteger(L, 3);
     int top = (int)luaL_checkinteger(L, 4);
@@ -416,7 +418,7 @@ int ui_box_lua_pack_end(lua_State *L) {
     return luaL_error(L, "Invalid number of arguments to box:pack_end. "
                          "box:pack_end(ui_element [, expand [, align]])");
 
-    ui_box_t *box = CHECK_UI_BOX(L, 1);
+    ui_box_t *box = lua_checkuibox(L, 1);
 
     ui_element_t *element = lua_checkuielement(L, 2);
 
@@ -425,7 +427,7 @@ int ui_box_lua_pack_end(lua_State *L) {
 
     if (args>2) fill = lua_toboolean(L, 3);
     if (args==4) {
-        align = ui_lua_check_align(L, 4);
+        align = lua_checkuialign(L, 4);
     }
 
     ui_box_pack_end(box, element, fill, align);
@@ -450,9 +452,9 @@ int ui_box_lua_pack_end(lua_State *L) {
             :0.0.1: Added
 */
 int ui_box_lua_set_align(lua_State *L) {
-    ui_box_t *box = CHECK_UI_BOX(L, 1);
+    ui_box_t *box = lua_checkuibox(L, 1);
 
-    box->align = ui_lua_check_align(L, 2);
+    box->align = lua_checkuialign(L, 2);
 
     return 0;
 }
@@ -469,7 +471,7 @@ int ui_box_lua_set_align(lua_State *L) {
             :0.0.1: Added
 */
 int ui_box_lua_spacing(lua_State *L) {
-    ui_box_t *box = CHECK_UI_BOX(L, 1);
+    ui_box_t *box = lua_checkuibox(L, 1);
     int spacing = (int)luaL_checkinteger(L, 2);
 
     box->spacing = spacing;
@@ -488,7 +490,7 @@ int ui_box_lua_spacing(lua_State *L) {
                 :0.0.1: Added
 */
 int ui_box_lua_item_count(lua_State *L) {
-    ui_box_t *box = CHECK_UI_BOX(L, 1);
+    ui_box_t *box = lua_checkuibox(L, 1);
     int count = 0;
     for (ui_box_item_t *i=box->items;i;i=i->next) count++;
 
@@ -506,7 +508,7 @@ int ui_box_lua_item_count(lua_State *L) {
             :0.0.1: Added
 */
 int ui_box_lua_pop_start(lua_State *L) {
-    ui_box_t *box = CHECK_UI_BOX(L, 1);
+    ui_box_t *box = lua_checkuibox(L, 1);
 
     ui_box_item_t *f = box->items;
 
@@ -535,7 +537,7 @@ int ui_box_lua_pop_start(lua_State *L) {
 int ui_box_lua_events(lua_State *L) {
     if (lua_gettop(L)!=2) return luaL_error(L, "events takes a boolean parameter.");
 
-    ui_box_t *box = CHECK_UI_BOX(L, 1);
+    ui_box_t *box = lua_checkuibox(L, 1);
     box->events = lua_toboolean(L, 2);
 
     return 0;

@@ -62,7 +62,7 @@ int ui_separator_get_preferred_size(ui_separator_t *sep, int *width, int *height
     return 1;
 }
 
-void lua_push_ui_separator(lua_State *L, ui_separator_t *sep);
+void lua_pushuiseparator(lua_State *L, ui_separator_t *sep);
 
 int ui_separator_lua_new(lua_State *L);
 int ui_separator_lua_del(lua_State *L);
@@ -81,7 +81,7 @@ void ui_separator_lua_register_ui_funcs(lua_State *L) {
     lua_setfield(L, -2, "separator");
 }
 
-void lua_push_ui_separator(lua_State *L, ui_separator_t *sep) {
+void lua_pushuiseparator(lua_State *L, ui_separator_t *sep) {
     ui_separator_t **psep = (ui_separator_t**)lua_newuserdata(L, sizeof(ui_separator_t*));
     *psep = sep;
 
@@ -129,7 +129,7 @@ int ui_separator_lua_new(lua_State *L) {
     else return luaL_error(L, "ui.separator(orientation) - orientation must be 'horizontal' or 'vertical'.");
 
     ui_separator_t *sep = ui_separator_new(orientation);
-    lua_push_ui_separator(L, sep);
+    lua_pushuiseparator(L, sep);
     ui_element_unref(sep);
 
     return 1;
@@ -147,10 +147,12 @@ Classes
 
 */
 
-#define LUA_CHECK_SEP(L, ind) *(ui_separator_t**)luaL_checkudata(L, ind, "UISeparatorMetaTable")
+ui_separator_t *lua_checkuiseparator(lua_State *L, int ind) {
+    return *(ui_separator_t**)luaL_checkudata(L, ind, "UISeparatorMetaTable");
+}
 
 int ui_separator_lua_del(lua_State *L) {
-    ui_separator_t *sep = LUA_CHECK_SEP(L, 1);
+    ui_separator_t *sep = lua_checkuiseparator(L, 1);
     ui_element_unref(sep);
     return 0;
 }
@@ -167,7 +169,7 @@ int ui_separator_lua_del(lua_State *L) {
             :0.0.1: Added
 */
 int ui_separator_lua_thickness(lua_State *L) {
-    ui_separator_t *sep = LUA_CHECK_SEP(L, 1);
+    ui_separator_t *sep = lua_checkuiseparator(L, 1);
     int thickness = (int)luaL_checkinteger(L, 2);
 
     sep->thickness = thickness;
@@ -187,7 +189,7 @@ int ui_separator_lua_thickness(lua_State *L) {
             :0.0.1: Added
 */
 int ui_separator_lua_color(lua_State *L) {
-    ui_separator_t *sep = LUA_CHECK_SEP(L, 1);
+    ui_separator_t *sep = lua_checkuiseparator(L, 1);
     ui_color_t color = (ui_color_t)luaL_checkinteger(L, 2);
 
     sep->color = color;

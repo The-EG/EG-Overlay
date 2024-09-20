@@ -603,8 +603,6 @@ void settings_lua_register_metatable(lua_State *L) {
     }
 }
 
-#define LUA_CHECK_SETTINGS(L, ind) *(settings_t**)luaL_checkudata(L, ind, "SettingsMetaTable")
-
 void lua_pushsettings(lua_State *L, settings_t *settings) {
     settings_t **psettings = lua_newuserdata(L, sizeof(settings_t*));
     *psettings = settings;
@@ -615,7 +613,7 @@ void lua_pushsettings(lua_State *L, settings_t *settings) {
 }
 
 int settings_lua_del(lua_State *L) {
-    settings_t *s = LUA_CHECK_SETTINGS(L, 1);
+    settings_t *s = lua_checksettings(L, 1);
 
     settings_unref(s);
 
@@ -637,7 +635,7 @@ int settings_lua_del(lua_State *L) {
             :0.0.1: Added
 */
 int settings_lua_set(lua_State *L) {
-    settings_t *s = LUA_CHECK_SETTINGS(L, 1);
+    settings_t *s = lua_checksettings(L, 1);
     const char *key = luaL_checkstring(L, 2);
 
     switch(lua_type(L, 3)) {
@@ -691,7 +689,7 @@ int settings_lua_set(lua_State *L) {
             :0.0.1: Added
 */
 int settings_lua_set_default(lua_State *L) {
-    settings_t *s = LUA_CHECK_SETTINGS(L, 1);
+    settings_t *s = lua_checksettings(L, 1);
     const char *key = luaL_checkstring(L, 2);
 
     switch(lua_type(L, 3)) {
@@ -745,7 +743,7 @@ int settings_lua_set_default(lua_State *L) {
             :0.0.1: Added
 */
 int settings_lua_get(lua_State *L) {
-    settings_t *s = LUA_CHECK_SETTINGS(L, 1);
+    settings_t *s = lua_checksettings(L, 1);
     const char *key = luaL_checkstring(L, 2);
 
     json_t *val = NULL;
@@ -807,7 +805,7 @@ int settings_lua_get(lua_State *L) {
 }
 
 settings_t *lua_checksettings(lua_State *L, int ind) {
-    return LUA_CHECK_SETTINGS(L, ind);
+    return *(settings_t**)luaL_checkudata(L, ind, "SettingsMetaTable");
 }
 
 /*** RST

@@ -375,6 +375,8 @@ void ui_window_save_to_settings(ui_window_t *win) {
     egoverlay_free(h_path);
 }
 
+void lua_pushuiwindow(lua_State *L, ui_window_t *window);
+
 int ui_window_lua_new(lua_State *L);
 int ui_window_lua_del(lua_State *L);
 int ui_window_lua_show(lua_State *L);
@@ -409,7 +411,7 @@ void lua_ui_window_register_metatable(lua_State *L) {
     }
 }
 
-void lua_push_ui_window(lua_State *L, ui_window_t *window) {
+void lua_pushuiwindow(lua_State *L, ui_window_t *window) {
     ui_element_ref(window);
 
     ui_window_t **win = lua_newuserdata(L, sizeof(ui_window_t*));
@@ -451,16 +453,18 @@ int ui_window_lua_new(lua_State *L) {
 
     ui_window_t *win = ui_window_new(caption, x, y);
 
-    lua_push_ui_window(L, win);
+    lua_pushuiwindow(L, win);
     ui_element_unref(win);
 
     return 1;
 }
 
-#define CHECK_UI_WIN(L, ind) *(ui_window_t**)luaL_checkudata(L, ind, "UIWindowMetaTable")
+ui_window_t *lua_checkuiwindow(lua_State *L, int ind) {
+    return *(ui_window_t**)luaL_checkudata(L, ind, "UIWindowMetaTable");
+}
 
 int ui_window_lua_del(lua_State *L) {
-    ui_window_t *win = CHECK_UI_WIN(L, 1);
+    ui_window_t *win = lua_checkuiwindow(L, 1);
 
     ui_element_unref(win);
 
@@ -486,7 +490,7 @@ Classes
             :0.0.1: Added
 */
 int ui_window_lua_set_child(lua_State *L) {
-    ui_window_t *win = CHECK_UI_WIN(L, 1);
+    ui_window_t *win = lua_checkuiwindow(L, 1);
 
     ui_element_t *element = lua_checkuielement(L, 2);
 
@@ -505,7 +509,7 @@ int ui_window_lua_set_child(lua_State *L) {
             :0.0.1: Added
 */
 int ui_window_lua_show(lua_State *L) {
-    ui_window_t *win = CHECK_UI_WIN(L, 1);
+    ui_window_t *win = lua_checkuiwindow(L, 1);
 
     ui_window_show(win);
 
@@ -521,7 +525,7 @@ int ui_window_lua_show(lua_State *L) {
             :0.0.1: Added
 */
 int ui_window_lua_hide(lua_State *L) {
-    ui_window_t *win = CHECK_UI_WIN(L, 1);
+    ui_window_t *win = lua_checkuiwindow(L, 1);
 
     ui_window_hide(win);
     
@@ -542,7 +546,7 @@ int ui_window_lua_hide(lua_State *L) {
             :0.0.1: Added
 */
 int ui_window_lua_min_size(lua_State *L) {
-    ui_window_t *win = CHECK_UI_WIN(L, 1);
+    ui_window_t *win = lua_checkuiwindow(L, 1);
     int width = (int)luaL_checkinteger(L, 2);
     int height = (int)luaL_checkinteger(L, 3);
 
@@ -564,7 +568,7 @@ int ui_window_lua_min_size(lua_State *L) {
             :0.0.1: Added
 */
 int ui_window_lua_resizable(lua_State *L) {
-    ui_window_t *win = CHECK_UI_WIN(L, 1);
+    ui_window_t *win = lua_checkuiwindow(L, 1);
     int r = lua_toboolean(L, 2);
 
     ui_window_set_resizable(win, r);
@@ -617,7 +621,7 @@ int ui_window_lua_resizable(lua_State *L) {
             :0.0.1: Added
 */
 int ui_window_lua_settings(lua_State *L) {
-    ui_window_t *win = CHECK_UI_WIN(L, 1);
+    ui_window_t *win = lua_checkuiwindow(L, 1);
     settings_t *settings = lua_checksettings(L, 2);
     const char *path = luaL_checkstring(L, 3);
 
