@@ -140,11 +140,9 @@ void ui_image_size(ui_image_t *image, int *width, int *height) {
 
 static int ui_image_lua_new_from_file(lua_State *L);
 static int ui_image_lua_del(lua_State *L);
-static int ui_image_lua_draw(lua_State *L);
 
 static luaL_Reg image_funcs[] = {
     "__gc",              &ui_image_lua_del,
-    "draw",              &ui_image_lua_draw,
     NULL,    NULL
 };
 
@@ -189,21 +187,6 @@ static int ui_image_lua_del(lua_State *L) {
     lua_pop(L, 1);
 
     if (lua_managed) ui_image_free(img);
-
-    return 0;
-}
-
-static int ui_image_lua_draw(lua_State *L) {
-    ui_image_t *img = *(ui_image_t**)luaL_checkudata(L, 1, "UIImageMetaTable");
-    mat4f_t *proj = mat4f_from_lua(L, 2);
-    int x = (int)luaL_checkinteger(L, 3);
-    int y = (int)luaL_checkinteger(L, 4);
-    int width = (int)luaL_checkinteger(L, 5);
-    int height = (int)luaL_checkinteger(L, 6);
-    float saturation = (float)luaL_checknumber(L, 7);
-    float value = (float)luaL_checknumber(L, 8);
-
-    ui_image_draw(img, proj, x, y, width, height, saturation, value);
 
     return 0;
 }

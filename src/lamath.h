@@ -1,5 +1,4 @@
 #pragma once
-#include <lua.h>
 
 typedef struct {
     float i1j1;
@@ -88,9 +87,6 @@ void mat4f_mult_mat4f(mat4f_t *a, mat4f_t *b, mat4f_t *out);
 void mat4f_rotatex(mat4f_t *m, float radians);
 void mat4f_rotatey(mat4f_t *m, float radians);
 void mat4f_rotatez(mat4f_t *m, float radians);
-
-void mat4f_push_to_lua(mat4f_t *mat4f, lua_State *L);
-mat4f_t *mat4f_from_lua(lua_State *L, int i);
 
 void mat2f_rotate(mat2f_t *m, float radians);
 

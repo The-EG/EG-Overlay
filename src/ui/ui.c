@@ -21,13 +21,6 @@
 
 #include <lauxlib.h>
 
-struct ui_lua_element_t {
-    ui_element_t element;
-
-    lua_State *lua;
-    int draw_cbi;
-};
-
 typedef struct ui_input_element_t {
     int offset_x;
     int offset_y;
@@ -615,7 +608,6 @@ int ui_lua_open_module(lua_State *L) {
     luaL_setfuncs(L, ui_funcs, 0);
 
     ui_text_lua_register_ui_funcs(L);
-    ui_rect_lua_register_ui_funcs(L);
     ui_window_lua_register_ui_funcs(L);
     ui_image_lua_register_ui_funcs(L);
     ui_button_lua_register_ui_funcs(L);
@@ -813,75 +805,6 @@ static int ui_lua_mouse_position(lua_State *L) {
 
     return 2;
 }
-
-static int ui_lua_element_set_draw(lua_State *L);
-static int ui_lua_element_del(lua_State *L);
-
-static luaL_Reg ui_lua_element_funcs[] = {
-    "draw", &ui_lua_element_set_draw,
-    "__gc", &ui_lua_element_del,
-    NULL,    NULL
-};
-
-static void ui_lua_element_register_metatable(lua_State *L) {
-    if (luaL_newmetatable(L, "UILuaElementMetaTable")) {
-        lua_pushvalue(L, -1);
-        lua_setfield(L, -2, "__index");
-
-        luaL_setfuncs(L, ui_lua_element_funcs, 0);
-    }
-}
-
-static int ui_lua_element(lua_State *L) {
-    ui_lua_element_t **element = lua_newuserdata(L, sizeof(ui_lua_element_t*));
-    ui_lua_element_t *e = egoverlay_calloc(1, sizeof(ui_lua_element_t));
-
-    *element = e;
-
-    e->element.draw = &ui_lua_element_draw;
-    e->lua = L;
-    e->draw_cbi = -1;
-
-    ui_lua_element_register_metatable(L);
-    lua_setmetatable(L, -2);
-
-    return 1;
-}
-
-void ui_lua_element_draw(ui_lua_element_t *element, int offset_x, int offset_y, mat4f_t *proj) {
-    UNUSED_PARAM(offset_x);
-    UNUSED_PARAM(offset_y);
-
-    if (element->draw_cbi > 0) {
-        lua_rawgeti(element->lua, LUA_REGISTRYINDEX, element->draw_cbi);
-        mat4f_push_to_lua(proj, element->lua);
-        if (lua_pcall(element->lua, 1, 0, 0)!=LUA_OK) {
-            const char *errmsg = luaL_checkstring(element->lua, -1);
-            logger_error(ui->log, "Error occured during lua element draw: %s", errmsg);
-            lua_pop(element->lua, 1);
-        }
-    }
-}
-
-static int ui_lua_element_set_draw(lua_State *L) {
-    ui_lua_element_t *element = *(ui_lua_element_t**)luaL_checkudata(L, 1, "UILuaElementMetaTable");
-    if (element->draw_cbi>0) luaL_unref(L, LUA_REGISTRYINDEX, element->draw_cbi);
-    lua_pushvalue(L, -1);
-    element->draw_cbi = luaL_ref(L, LUA_REGISTRYINDEX);
-
-    return 0;
-}
-
-static int ui_lua_element_del(lua_State *L) {
-    ui_lua_element_t *element = *(ui_lua_element_t**)luaL_checkudata(L, 1, "UILuaElementMetaTable");
-
-    if (element->draw_cbi>0) luaL_unref(L, LUA_REGISTRYINDEX, element->draw_cbi);
-
-    egoverlay_free(element);
-
-    return 0;
-}
-
 
 int ui_lua_check_align(lua_State *L, int ind) {
     const char *align_str = luaL_checkstring(L, ind);

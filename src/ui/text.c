@@ -152,12 +152,10 @@ int ui_text_lua_new(lua_State *L);
 
 int ui_text_lua_del(lua_State *L);
 int ui_text_lua_update_text(lua_State *L);
-int ui_text_lua_draw(lua_State *L);
 int ui_text_lua_events(lua_State *L);
 
 luaL_Reg ui_text_funcs[] = {
     "update_text"       , &ui_text_lua_update_text,
-    "draw"              , &ui_text_lua_draw,
     "__gc"              , &ui_text_lua_del,
     "addeventhandler"   , &ui_element_lua_addeventhandler,
     "removeeventhandler", &ui_element_lua_removeeventhandler,
@@ -288,17 +286,6 @@ int ui_text_lua_update_text(lua_State *L) {
     const char *new_text = luaL_checkstring(L, 2);
 
     ui_text_update_text(text, new_text);
-
-    return 0;
-}
-
-int ui_text_lua_draw(lua_State *L) {
-    ui_text_t *text = *(ui_text_t**)luaL_checkudata(L, 1, "UITextMetaTable");
-    int x = (int)luaL_checkinteger(L, 2);
-    int y = (int)luaL_checkinteger(L, 3);
-    mat4f_t *proj = mat4f_from_lua(L, 4);
-
-    ui_text_draw(text, x, y, proj);
 
     return 0;
 }

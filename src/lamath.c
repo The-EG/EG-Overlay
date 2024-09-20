@@ -139,20 +139,6 @@ static void mat4f_register_metatable(lua_State *L) {
     }
 }
 
-void mat4f_push_to_lua(mat4f_t *m, lua_State *L) {
-    mat4f_t **pm = lua_newuserdata(L, sizeof(mat4f_t *));
-    *pm = m;
-
-    mat4f_register_metatable(L);
-    lua_setmetatable(L, -2);
-}
-
-mat4f_t *mat4f_from_lua(lua_State *L, int i) {
-    mat4f_t *m = *(mat4f_t**)luaL_checkudata(L, i, "LAMathMat4FMetaTable");
-
-    return m;
-}
-
 void mat4f_lookat_rh(mat4f_t *m, vec3f_t *camera, vec3f_t *center, vec3f_t *up) {
     vec3f_t F = {center->x - camera->x, center->y - camera->y, center->z - camera->z};
     vec3f_t nF = {0};
