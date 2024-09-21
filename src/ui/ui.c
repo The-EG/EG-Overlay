@@ -81,13 +81,13 @@ void ui_init() {
     settings_set_default_int(app_settings, "overlay.ui.colors.windowBorderHighlight", 0x3d5a78ff);
 
     settings_set_default_int(app_settings, "overlay.ui.colors.text",                  0xFFFFFFFF);
+    settings_set_default_int(app_settings, "overlay.ui.colors.accentText",            0xFCBA03FF);
 
     settings_set_default_int(app_settings, "overlay.ui.colors.buttonBG",              0x1F253BDD);
     settings_set_default_int(app_settings, "overlay.ui.colors.buttonBGHover",         0x2E3859FF);
     settings_set_default_int(app_settings, "overlay.ui.colors.buttonBGHighlight",     0x3a4670FF);
     settings_set_default_int(app_settings, "overlay.ui.colors.buttonBorder",          0x3D4478FF);
 
-    //settings_set_default_int(app_settings, "overlay.ui.colors.menuBG",                0x1F253BDD);
     settings_set_default_int(app_settings, "overlay.ui.colors.menuBG",                0x161a26DD);
     settings_set_default_int(app_settings, "overlay.ui.colors.menuBorder",            0x3D4478FF);
     settings_set_default_int(app_settings, "overlay.ui.colors.menuItemHover",         0x2E3859FF);

@@ -25,18 +25,25 @@ local uih = {}
     Create a :lua:class:`eg-overlay-ui.uitext` using default font settings. If
     ``color`` is not specified, the default color will also be used.
 
+    If ``color`` is instead ``true`` then the default accent color will be used.
+
     :param string text:
     :param integer color: (Optional) See :ref:`colors`.
     :rtype: eg-overlay-ui.uitext
 
     .. versionhistory::
         :0.0.1: Added
+        :0.1.0: Use accent color if ``color`` is ``true``
 ]]--
 function uih.text(text, color)
     local settings = overlay.settings()
     local font_name = settings:get('overlay.ui.font.path')
     local font_size = settings:get('overlay.ui.font.size')
     local color = color or settings:get('overlay.ui.colors.text')
+
+    if (type(color)=='boolean' and color) then
+        color = settings:get('overlay.ui.colors.accentText')
+    end
 
     return ui.text(text, color, font_name, font_size)
 end
