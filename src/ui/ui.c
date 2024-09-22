@@ -307,13 +307,37 @@ void ui_element_unref(ui_element_t *element) {
 
     if (element->ref_count) return;
 
+    WaitForSingleObject(ui->input_mutex, INFINITE);
+
+    if (ui->mouse_over_element == element) {
+        ui->mouse_over_element = NULL;
+    }
+
+    ui_input_element_t *e = ui->input_elements;
+    ui_input_element_t *next = NULL;
+    while (e) {
+        ui_input_element_t *prev = e->prev;
+        if (e->element==element) {
+            if (ui->input_elements==e) ui->input_elements = prev;
+            egoverlay_free(e);
+            if (next) next->prev = prev;
+            break;
+        } else {
+            next = e;
+        }
+        e = prev;
+    }
+
+    ReleaseMutex(ui->input_mutex);
+
     for (size_t hi=0;hi<element->lua_event_handler_count;hi++) {
         lua_manager_unref(element->lua_event_handlers[hi]);
     }
     if (element->lua_event_handlers) egoverlay_free(element->lua_event_handlers);
 
     if (element->free) element->free(element);
-}
+
+    }
 
 void ui_add_input_element(int offset_x, int offset_y, int x, int y, int w, int h, ui_element_t *element) {
     ui_input_element_t *e = egoverlay_calloc(1, sizeof(ui_input_element_t));
@@ -327,8 +351,12 @@ void ui_add_input_element(int offset_x, int offset_y, int x, int y, int w, int h
 
     e->element = element;
 
+    WaitForSingleObject(ui->input_mutex, INFINITE);
+
     e->prev = ui->input_elements;
     ui->input_elements = e;
+
+    ReleaseMutex(ui->input_mutex);
 }
 
 static void ui_send_leave_event(ui_element_t *element, int offset_x, int offset_y) {
@@ -377,19 +405,19 @@ void ui_send_lua_mouse_event(ui_element_t *element, ui_mouse_event_t *event) {
 }
 
 int ui_process_mouse_event(ui_mouse_event_t *event) {
+    WaitForSingleObject(ui->input_mutex, INFINITE);
+
     ui->last_mouse_x = event->x;
     ui->last_mouse_y = event->y;
 
     ui_input_element_t *top_element_under_mouse = NULL;
 
-    WaitForSingleObject(ui->input_mutex, INFINITE);
-    for (ui_input_element_t *e = ui->input_elements;e;e = e->prev) {
+        for (ui_input_element_t *e = ui->input_elements;e;e = e->prev) {
         if (MOUSE_POINT_IN_RECT(event->x, event->y, e->offset_x + e->x, e->offset_y + e->y, e->w, e->h)) {
             top_element_under_mouse = e;
             break;
         }
     }
-    ReleaseMutex(ui->input_mutex);
 
     if (top_element_under_mouse && ui->mouse_over_element!=top_element_under_mouse->element) {
         if (ui->mouse_over_element) {
@@ -415,14 +443,16 @@ int ui_process_mouse_event(ui_mouse_event_t *event) {
                 event,
                 ui->capture_offset_x,
                 ui->capture_offset_y
-            )) return 1;
+            )) {
+            ReleaseMutex(ui->input_mutex);
+            return 1;
+        }
     }
 
     if (top_element_under_mouse) {
         ui_send_lua_mouse_event(top_element_under_mouse->element, event);
     }
 
-    WaitForSingleObject(ui->input_mutex, INFINITE);
     ui_input_element_t *e = ui->input_elements;
 
     while (e) { 
