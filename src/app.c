@@ -735,6 +735,7 @@ int app_run() {
     overlay_3d_cleanup();
     ui_cleanup();
     web_request_cleanup();
+    xml_cleanup();
     glfwMakeContextCurrent(NULL);
 
     Shell_NotifyIcon(NIM_DELETE, &nid);
@@ -820,4 +821,9 @@ static void app_run_script() {
     lua_sqlite_init();
 
     lua_manager_run_file(app->runscript);
+
+    lua_manager_cleanup();
+    mumble_link_cleanup();
+    web_request_cleanup();
+    xml_cleanup();
 }

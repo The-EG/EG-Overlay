@@ -33,6 +33,10 @@ void xml_lua_init() {
     lua_manager_add_module_opener("libxml2", &xml_lua_open_module);
 }
 
+void xml_cleanup() {
+    xmlCleanupParser();
+}
+
 int xml_lua_read_file(lua_State *L);
 int xml_lua_read_string(lua_State *L);
 
