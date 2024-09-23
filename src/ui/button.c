@@ -250,6 +250,7 @@ int ui_button_lua_background_color(lua_State *L);
 int ui_button_lua_border_color(lua_State *L);
 int ui_button_lua_border_width(lua_State *L);
 int ui_button_lua_bind_value(lua_State *L);
+int ui_button_lua_state(lua_State *L);
 
 void lua_pushuibutton(lua_State *L, ui_button_t *button);
 ui_button_t *lua_checkuibutton(lua_State *L, int ind);
@@ -271,6 +272,7 @@ luaL_Reg ui_button_funcs[] = {
     "border_color"      , &ui_button_lua_border_color,
     "border_width"      , &ui_button_lua_border_width,
     "bind_value"        , &ui_button_lua_bind_value,
+    "state"             , &ui_button_lua_state,
     "addeventhandler"   , &ui_element_lua_addeventhandler,
     "removeeventhandler", &ui_element_lua_removeeventhandler,
     NULL                ,  NULL
@@ -490,6 +492,29 @@ int ui_button_lua_bind_value(lua_State *L) {
     memcpy(btn->lua_bind_field, field, strlen(field));
 
     return 0;
+}
+
+/*** RST
+    .. lua:method:: state([value])
+
+        Get or return the state of this button.
+
+        :param boolean value: (Optional)
+        :rtype: boolean
+
+        .. versionhistory::
+            :0.1.0: Added
+
+*/
+int ui_button_lua_state(lua_State *L) {
+    ui_button_t *btn = lua_checkuibutton(L, 1);
+
+    if (lua_gettop(L)==2) {
+        btn->state = lua_toboolean(L, 2);
+        return 0;
+    }
+    lua_pushboolean(L, btn->state);
+    return 1;
 }
 
 /*** RST
