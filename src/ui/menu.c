@@ -21,8 +21,6 @@ struct ui_menu_item_t {
     int pre_size;
     int post_size;
 
-    int clicked_cbi;
-
     menu_item_event_callback *callback;
 
     ui_menu_t *sub_menu;
@@ -66,12 +64,6 @@ ui_menu_item_t *ui_menu_item_new() {
     ui_element_ref(mi);
 
     return mi;
-}
-
-int ui_menu_item_lua_clicked_callback(lua_State *L, ui_menu_item_t *data) {
-    lua_rawgeti(L, LUA_REGISTRYINDEX, data->clicked_cbi);
-
-    return 0;
 }
 
 void ui_menu_item_draw(ui_menu_item_t *item, int offset_x, int offset_y, mat4f_t *proj) {
@@ -128,7 +120,6 @@ int ui_menu_item_get_preferred_size(ui_menu_item_t *item, int *width, int *heigh
 }
 
 void ui_menu_item_free(ui_menu_item_t *item) {
-    if (item->clicked_cbi) lua_manager_unref(item->clicked_cbi);
     if (item->child) ui_element_unref(item->child);
     if (item->pre) ui_element_unref(item->pre);
     if (item->sub_menu) ui_element_unref(item->sub_menu);
@@ -158,14 +149,7 @@ int ui_menu_item_process_mouse_event(ui_menu_item_t *item, ui_mouse_event_t *eve
     }
 
     if (event->event==UI_MOUSE_EVENT_TYPE_BTN_UP && event->button==UI_MOUSE_EVENT_BUTTON_LEFT) {
-        //if (item->callback) item->callback("left-click");
-
-        // if there is a lua callback, let it define if the menu closes or not.
-        // if not, close the menu
-        if (item->clicked_cbi) {
-            lua_manager_add_event_callback(&ui_menu_item_lua_clicked_callback, item);
-        } //else ui_menu_hide(item->parent_menu);
-
+        ui_element_call_lua_event_handlers(item, "click-left");
         return 1;
     }
 
@@ -356,7 +340,6 @@ int ui_menu_item_lua_set_child(lua_State *L);
 int ui_menu_item_lua_enabled(lua_State *L);
 int ui_menu_item_lua_set_pre(lua_State *L);
 int ui_menu_item_lua_set_submenu(lua_State *L);
-int ui_menu_item_lua_on_click(lua_State *L);
 
 void ui_menu_lua_register_ui_funcs(lua_State *L) {
     lua_pushcfunction(L, &ui_menu_lua_new);
@@ -399,12 +382,13 @@ void lua_pushuimenu(lua_State *L, ui_menu_t *menu) {
 }
 
 luaL_Reg ui_menu_item_funcs[] = {
-    "__gc"       , &ui_menu_item_lua_del,
-    "set_child"  , &ui_menu_item_lua_set_child,
-    "set_pre"    , &ui_menu_item_lua_set_pre,
-    "set_submenu", &ui_menu_item_lua_set_submenu,
-    "on_click"   , &ui_menu_item_lua_on_click,
-    "enabled"    , &ui_menu_item_lua_enabled,
+    "__gc"              , &ui_menu_item_lua_del,
+    "set_child"         , &ui_menu_item_lua_set_child,
+    "set_pre"           , &ui_menu_item_lua_set_pre,
+    "set_submenu"       , &ui_menu_item_lua_set_submenu,
+    "enabled"           , &ui_menu_item_lua_enabled,
+    "addeventhandler"   , &ui_element_lua_addeventhandler,
+    "removeeventhandler", &ui_element_lua_removeeventhandler,
     NULL,           NULL
 };
 
@@ -415,6 +399,10 @@ void lua_pushuimenuitem(lua_State *L, ui_menu_item_t *mi) {
     if (luaL_newmetatable(L, "UIMenuItemMetaTable")) {
         lua_pushvalue(L, -1);
         lua_setfield(L, -2, "__index");
+
+        lua_pushboolean(L, 1);
+        lua_setfield(L, -2, "__is_uielement");
+
         luaL_setfuncs(L, ui_menu_item_funcs, 0);
     }
 
@@ -626,29 +614,6 @@ int ui_menu_item_lua_set_submenu(lua_State *L) {
 }
 
 /*** RST
-    .. lua:method:: on_click(func)
-
-        Set a function to be called when this menu item is clicked. Only one
-        function can bet set at a time.
-
-        :param function func:
-
-        .. versionhistory::
-            :0.0.1: Added
-*/
-int ui_menu_item_lua_on_click(lua_State *L) {
-    ui_menu_item_t *mi = lua_checkuimenuitem(L, 1);
-
-    if (!lua_isfunction(L, 2)) return luaL_error(L, "menu_item:on_click argument #1 must be a function.");
-
-    if (mi->clicked_cbi) luaL_unref(L, LUA_REGISTRYINDEX, mi->clicked_cbi);
-    lua_pushvalue(L, 2);
-    mi->clicked_cbi = luaL_ref(L, LUA_REGISTRYINDEX);
-
-    return 0;
-}
-
-/*** RST
     .. lua:method:: enabled([value])
 
         Get or set wether this menu item is enabled or not. A disabled menu item
@@ -674,3 +639,7 @@ int ui_menu_item_lua_enabled(lua_State *L) {
         return 1;
     }
 }
+
+/*** RST
+    .. include:: /docs/_include/ui_element_eventhandlers.rst
+*/
