@@ -138,19 +138,127 @@ int xml_lua_read_file(lua_State *L) {
     return 1;
 }
 
-/*** RST
-.. lua:function:: read_string(xml, name)
+typedef struct {
+    lua_State *L;
+    xmlParserCtxtPtr ctx;
+    int startelement;
+    int endelement;
+} xml_lua_sax_cbs_t;
 
-    Parse xml from ``xml``.
+void xml_lua_sax_start_element_ns(
+    xml_lua_sax_cbs_t *cbs,
+    const xmlChar *localname,
+    const xmlChar *prefix,
+    const xmlChar *URI,
+    int nb_namespaces,
+    const xmlChar **namespaces,
+    int nb_attributes,
+    int nb_defaulted,
+    const xmlChar **attributes
+) {
+    UNUSED_PARAM(prefix);
+    UNUSED_PARAM(URI);
+    UNUSED_PARAM(nb_namespaces);
+    UNUSED_PARAM(namespaces);
+    UNUSED_PARAM(nb_defaulted);
+
+
+    if (cbs->startelement==0) return;
+
+    lua_rawgeti(cbs->L, LUA_REGISTRYINDEX, cbs->startelement);
+
+    lua_pushstring(cbs->L, (const char*)localname);
+
+    lua_newtable(cbs->L);
+    for (int a=0;a<nb_attributes;a++) {
+        const char *attrname = (const char *)attributes[a * 5];
+        const char *attrvalue = (const char *)attributes[(a * 5) + 3];
+        const char *attrvalend = (const char *)attributes[(a * 5) + 4];
+        size_t attrvallen = (size_t)(attrvalend) - (size_t)(attrvalue);
+        lua_pushlstring(cbs->L, attrvalue, attrvallen);
+        lua_setfield(cbs->L, -2, attrname);
+    }
+
+    lua_pushstring(cbs->L, cbs->ctx->input->filename);
+    lua_pushinteger(cbs->L, cbs->ctx->input->line);
+
+    int r = lua_pcall(cbs->L, 4, 0, 0);
+
+    if (r!=LUA_OK) {
+        logger_t *log = logger_get("xml");
+        const char *msg = lua_tostring(cbs->L, -1);
+        logger_error(log, "Error during startelement callback: %s", msg);
+        lua_pop(cbs->L, 1);
+    }
+}
+
+void xml_lua_sax_end_element_ns(
+    xml_lua_sax_cbs_t *cbs,
+    const xmlChar *localname,
+    const xmlChar *prefix,
+    const xmlChar *URI
+) {
+    UNUSED_PARAM(prefix);
+    UNUSED_PARAM(URI);
+
+    if (cbs->endelement==0) return;
+
+    lua_rawgeti(cbs->L, LUA_REGISTRYINDEX, cbs->endelement);
+
+    lua_pushstring(cbs->L, (const char *)localname);
+    lua_pushstring(cbs->L, cbs->ctx->input->filename);
+    lua_pushinteger(cbs->L, cbs->ctx->input->line);
+
+    int r = lua_pcall(cbs->L, 3, 0, 0);
+
+    if (r!=LUA_OK) {
+        logger_t *log = logger_get("xml");
+        const char *msg = lua_tostring(cbs->L, -1);
+        logger_error(log, "Error during endelement callback: %s", msg);
+        lua_pop(cbs->L, 1);
+    }
+}
+
+/*** RST
+.. lua:function:: read_string(xml, name[, callbacks])
+
+    Parse xml from ``xml``. If ``callbacks`` are supplied SAX based parsing can
+    be performed. The following fields will be called if they exist on
+    ``callbacks``:
+
+    +----------------+---------------------------------------------------------+
+    | Field/Function | Description                                             |
+    +================+=========================================================+
+    | startelement   | Called at an opening element with the element name, a   |
+    |                | table of attributes, the name of the current document,  |
+    |                | and the current line this element occurs on.            |
+    |                |                                                         |
+    |                | .. code-block:: lua                                     |
+    |                |                                                         |
+    |                |     local function startelement(name, attrs, doc, line) |
+    |                |                                                         |
+    |                |     end                                                 |
+    +----------------+---------------------------------------------------------+
+    | endelement     | Called at a closing element with the element name, the  |
+    |                | name of the current document, and the current line.     |
+    |                |                                                         |
+    |                | .. code-block:: lua                                     |
+    |                |                                                         |
+    |                |     local function endelement(name, doc, line)          |
+    |                |                                                         |
+    |                |     end                                                 |
+    +----------------+---------------------------------------------------------+
 
     .. important:: |parse error returns|
 
     :param string xml: The XML string to parse.
     :param string name: The document name, typically a path or file name.
+    :param table callbacks: (Optional)
     :rtype: XMLDoc
 
     .. versionhistory::
         :0.0.1: Added
+        :0.1.0: Added callbacks parameter, SAX2 parsing
 */
 int xml_lua_read_string(lua_State *L) {
     int data_size = 0;
@@ -161,7 +269,37 @@ int xml_lua_read_string(lua_State *L) {
     err_data.file = (char *)data; // data will remain in scope while err_data does, so reference directly
     err_data.file_size = data_size;
 
-    xmlParserCtxtPtr ctx = xmlNewParserCtxt();
+    xmlSAXHandler sh = {0};
+    sh.initialized = XML_SAX2_MAGIC;
+    sh.startElementNs = &xml_lua_sax_start_element_ns;
+    sh.endElementNs = &xml_lua_sax_end_element_ns;
+
+    xmlParserCtxtPtr ctx = NULL;
+
+    xml_lua_sax_cbs_t *cbs = NULL;
+    if (lua_gettop(L)==3 && lua_type(L,3)==LUA_TTABLE) {
+        cbs = egoverlay_calloc(1, sizeof(xml_lua_sax_cbs_t));
+
+        cbs->L = L;
+
+        if (lua_getfield(L, 3, "startelement")==LUA_TFUNCTION) {
+            cbs->startelement = luaL_ref(L, LUA_REGISTRYINDEX);
+        } else {
+            lua_pop(L, 1);
+        }
+
+        if (lua_getfield(L, 3, "endelement")==LUA_TFUNCTION) {
+            cbs->endelement = luaL_ref(L, LUA_REGISTRYINDEX);
+        } else {
+            lua_pop(L, 1);
+        }
+
+        ctx = xmlNewSAXParserCtxt(&sh, cbs);
+        cbs->ctx = ctx;
+    } else {
+        ctx = xmlNewParserCtxt();
+    }
+
     xmlCtxtSetOptions(ctx, XML_PARSE_NOBLANKS | XML_PARSE_RECOVER);
     xmlCtxtSetErrorHandler(ctx, &xml_error_handler, &err_data);
 
@@ -170,6 +308,12 @@ int xml_lua_read_string(lua_State *L) {
     xmlFreeParserCtxt(ctx);
     if (doc) lua_pushxmldoc(L, doc, 1);
     else lua_pushnil(L);
+
+    if (cbs) {
+        if (cbs->startelement) luaL_unref(L, LUA_REGISTRYINDEX, cbs->startelement);
+        if (cbs->endelement) luaL_unref(L, LUA_REGISTRYINDEX, cbs->endelement);
+        egoverlay_free(cbs);
+    }
 
     return 1;
 }
