@@ -85,15 +85,17 @@ function dbmod.printquery(db, sql, cols)
     
     local colseps = {}
     local hdrseps = {}
-    for c,w in pairs(colwidth) do
+    for i,c in ipairs(cols) do
+        local w = colwidth[c]
         table.insert(colseps,string.rep('-', w+2))
     end
     local rowsep = '+' .. table.concat(colseps, '+') .. '+'
 
     print(rowsep)
     local s = '| '
-        
-    for c,w in pairs(colwidth) do
+    
+    for i, c in ipairs(cols) do
+        local w = colwidth[c]
         s = s .. c
         s = s .. string.rep(' ', w - #c) .. ' | '
     end
@@ -103,7 +105,8 @@ function dbmod.printquery(db, sql, cols)
 
     for i, row in ipairs(data) do
         s = '| '
-        for c,w in pairs(colwidth) do
+        for i,c in ipairs(cols) do
+            local w = colwidth[c]
             local vstr = tostring(row[c])
             if type(row[c])=='number' then
                 s = s .. string.rep(' ', w - #vstr) .. vstr .. ' | '
