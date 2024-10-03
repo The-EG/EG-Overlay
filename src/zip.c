@@ -400,7 +400,7 @@ int zip_lua_file_content(lua_State *L) {
         }
     }
 
-    egoverlay_free(file_path);
+    free(file_path);
 
     if (!cdfh) return 0;
 
