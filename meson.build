@@ -61,13 +61,14 @@ libxml2_dep = dependency('libxml-2.0',
     'readline=false',
     'threads=enabled',
     'catalog=false',
-    'debugging=false',
+    'debuging=false',
     'html=false',
     'ipv6=false',
-    'modules=false',
+    'modules=disabled',
     'push=false',
     'readline=false',
-    'minimum=true',
+    'zlib=disabled',
+    'sax1=false',
     ]
 )
 
