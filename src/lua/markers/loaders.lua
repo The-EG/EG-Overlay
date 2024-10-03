@@ -3,61 +3,40 @@ local xml = require 'libxml2'
 local logger = require 'logger'
 local overlay = require 'eg-overlay'
 local converters = require 'markers.converters'
-local data = require 'markers.data'
+local mp = require 'markers.package'
 
 local loaders = {}
 
 loaders.log = logger.logger:new('markers.loaders')
 
-local function node_error(node, ...)
-    local errdoc = node:doc():url()
-    local errline = node:line()
-    local message = string.format(...)
-    loaders.log:error(string.format("%s:%d: %s", errdoc, errline, message))
+local function xmlerror(file, line, ...)
+    local msg = string.format(...)
+    loaders.log:error("%s:%d: %s", file, line, msg)
 end
 
-local function node_warning(node, ...)
-    local errdoc = node:doc():url()
-    local errline = node:line()
-    local message = string.format(...)
-    loaders.log:warn(string.format('%s:%d: %s', errdoc, errline, message))
+local function xmlwarn(file, line, ...)
+    local msg = string.format(...)
+    loaders.log:warn("%s:%d: %s", file, line, msg)
 end
 
-local function validate_poi_props(node)
+local function validatemarkerprops(file, line, attrs)
     local props = {}
-    for i,p in ipairs(node:props()) do
-        local plower = string.lower(p)
+
+    for k,v in pairs(attrs) do
+        local plower = string.lower(k)
 
         if converters.fromxml[plower] then
-            props[plower] = converters.fromxml[plower](node:prop(p))
+            props[plower] = converters.fromxml[plower](v)
             if not props[plower] then
-                node_error(node, "Couldn't convert value %s for property %s", node:prop(p), p)
+                xmlerror(file, line, "Couldn't convert value %s for property %s", v, k)
             end
-        elseif string.match(p, 'bh%-.*') then
+        elseif string.match(k, 'bh%-.*') then
             -- Blish Hud specific property override, ignored for now
         else
-            node_warning(node, "unknown attribute: %s", p)
+            xmlwarn(file, line, "Unknown attribute: %s", k)
         end
     end
     return props
-end
-
--- get child elements of a particular type/tag
-local function get_child_elements_by_tag(node, tag)
-    local children = {}
-
-    local tag_lower = string.lower(tag)
-    
-    local child = node:children()
-
-    while child ~= nil do
-        if child:type() == 'element-node' and string.lower(child:name()) == tag_lower then
-            table.insert(children, child)
-        end
-        child = child:next()
-    end
-
-    return children
 end
 
 local base_loader = {}
@@ -73,30 +52,84 @@ function base_loader:new()
     return b
 end
 
-function base_loader:load_xml_doc(doc)
-    local root = doc:get_root_element()
+-- a table of functions to handle begin/end tags
+base_loader.begintag = {}
+base_loader.endtag = {}
 
-    if string.lower(root:name()) ~= "overlaydata" then
-        node_error(root, "Root element isn't OverlayData, found %s", root:name())
+function base_loader.begintag.OverlayData(self, file, line, attrs)
+    self.in_overlaydata = true
+end
+
+function base_loader.endtag.OverlayData(self)
+    self.in_overlaydata = false
+end
+
+function base_loader.begintag.MarkerCategory(self, file, line, attrs)
+    if not self.in_overlaydata then
+        xmlerror(file, line, 'Got MarkerCategory outside of OverlayData.')
         return
     end
 
-    local marker_cats = get_child_elements_by_tag(root, "MarkerCategory")
-    for i, cat in ipairs(marker_cats) do
-        self:load_marker_category(cat)
+    local name = attrs.name or attrs.Name or attrs['bh-name']
+
+    if not name then
+        xmlerror(file, line, 'MarkerCategory must have a name attribute.')
+        return
     end
 
-    local pois_container = get_child_elements_by_tag(root, "POIs")[1]
-    if pois_container then
-        local pois = get_child_elements_by_tag(pois_container, "POI")
-        for i, poi in ipairs(pois) do
-            self:load_poi(poi)
-        end
+    local props = validatemarkerprops(file, line, attrs)
+    
+    table.insert(self.categorystack, name)
+    local typeid = table.concat(self.categorystack, '.')
 
-        local trails = get_child_elements_by_tag(pois_container, "Trail")
-        for i, trail in ipairs(trails) do
-            self:load_trail(trail)
-        end
+    local cat = self.mp:category(typeid, true)
+
+    for p, v in pairs(props) do
+        cat[p] = v
+    end
+end
+
+function base_loader.endtag.MarkerCategory(self)
+    table.remove(self.categorystack)
+end
+
+function base_loader.begintag.POIs(self, file, line, attrs)
+    if not self.in_overlaydata then
+        xmlerror(file, line, 'Got POIs outside of OverlayData.')
+        return
+    end
+
+    self.in_pois = true
+end
+
+function base_loader.endtag.POIs(self)
+    self.in_pois = false
+end
+
+function base_loader.begintag.POI(self, file, line, attrs)
+    if attrs.type==nil then
+        xmlerror(file, line, 'POI with no type, ignoring.')
+        return
+    end
+
+    if attrs.xpos==nil or attrs.ypos==nil or attrs.zpos==nil then
+        xmlerror(file, line, 'POI with invalid location, ignoring.')
+        return
+    end
+
+    if attrs.MapID==nil then
+        xmlwarn(file, line, 'POI with no MapID.')
+    end
+
+    local props = validatemarkerprops(file, line, attrs)
+
+    local typeid = attrs.type
+
+    local cat = self.mp:category(typeid)
+    local poi = cat:newpoi()
+
+    for p, v in pairs(props) do
+        poi[p] = v
     end
 end
 
@@ -235,22 +268,37 @@ function base_loader:load_trail(node)
     self.db_mp:addtrail(trail_props, trail_coords)
 end
 
-function base_loader:get_category_for_type(typeid)
-    for i,c in ipairs(self.categories) do
-        local cat = c:get_category_for_type(typeid)
-        if cat then return cat end
+function base_loader:loadxml(name, xmldata)
+    local function startele(name, attrs, file, line)
+        if self.begintag[name] then
+            self.begintag[name](self, file, line, attrs)
+        else
+            --xmlwarn(file, line, 'Unhandled tag: %s', name)
+        end
     end
+
+    local function endele(name)
+        if self.endtag[name] then
+            self.endtag[name](self)
+        end
+    end
+
+    xml.read_string(xmldata, name, {
+        startelement = startele,
+        endelement = endele
+    })
 end
 
 loaders.zip_loader = {}
 loaders.zip_loader.__index = loaders.zip_loader
 setmetatable(loaders.zip_loader, base_loader)
 
-function loaders.zip_loader:new(zip_path)
+function loaders.zip_loader:new(zip_path, pack_path)
     local z = base_loader:new()
     z.zip_path = zip_path
-    z.db_mp = data.markerpack(zip_path, 'zip')
-    z.category_typeids = {}
+    z.mp = mp.markerpack:new(pack_path)
+    z.categorystack = {}
+
     setmetatable(z, self)
     return z
 end
@@ -268,55 +316,56 @@ function loaders.zip_loader:load()
     -- the categories they belong to.
     -- So, turn off foreign key checks now and then run a check after everything
     -- is loaded.
-    data.db:execute('PRAGMA foreign_keys = OFF')
-    data.db:execute('BEGIN TRANSACTION')
+    self.mp.db:execute('PRAGMA foreign_keys = OFF')
+    self.mp.db:execute('BEGIN TRANSACTION')
 
     for i,f in ipairs(files) do
         -- find all top level xml files
         if string.find(f, '[^/]+%.xml') == 1 then
             local fstr = self.zip:file_content(f)
-            local xml = xml.read_string(fstr, f)
-            self:load_xml_doc(xml)
+            loaders.log:info("%s...", f)
+            self:loadxml(f, fstr)
             coroutine.yield()
         end
     end
 
-    data.db:execute('COMMIT TRANSACTION')
-    data.db:execute('PRAGMA foreign_keys = ON')
+    self.mp.db:execute('COMMIT TRANSACTION')
+    self.mp.db:execute('PRAGMA foreign_keys = ON')
     
-    loaders.log:info("Checking data integrity...")
-    local stmt = data.db:prepare('PRAGMA foreign_key_check(poi)')
-    local function poi_rows()
-        return stmt:step()
-    end
+    -- loaders.log:info("Checking data integrity...")
+    -- local stmt = data.db:prepare('PRAGMA foreign_key_check(poi)')
+    -- local function poi_rows()
+    --     return stmt:step()
+    -- end
 
-    local badtypeids = {}
-    local badcount = 0
-    for row in poi_rows do
-        local ps = data.db:prepare('SELECT id, type, markerpack FROM poi WHERE rowid = ?')
-        ps:bind(1, row.rowid)
-        local poi = ps:step()
-        if poi.markerpack == self.db_mp.id then
-            badtypeids[poi.type] = true
-            badcount = badcount + 1
-        end
-        ps:finalize()
-    end
-    stmt:finalize()
+    -- local badtypeids = {}
+    -- local badcount = 0
+    -- for row in poi_rows do
+    --     local ps = data.db:prepare('SELECT id, type, markerpack FROM poi WHERE rowid = ?')
+    --     ps:bind(1, row.rowid)
+    --     local poi = ps:step()
+    --     if poi.markerpack == self.db_mp.id then
+    --         badtypeids[poi.type] = true
+    --         badcount = badcount + 1
+    --     end
+    --     ps:finalize()
+    -- end
+    -- stmt:finalize()
 
-    if badcount > 0 then
-        loaders.log:error("Bad type ids in %s", self.zip_path)
-        for k,v in pairs(badtypeids) do
-            loaders.log:error("  %s", k)
-        end
-    end
+    -- if badcount > 0 then
+    --     loaders.log:error("Bad type ids in %s", self.zip_path)
+    --     for k,v in pairs(badtypeids) do
+    --         loaders.log:error("  %s", k)
+    --     end
+    -- end
 
-    loaders.log:info("Integrity check complete.")
+    -- loaders.log:info("Integrity check complete.")
 
     local endt = overlay.time()
     local dur = endt - start
+    local catcount = self.mp:categorycount()
     self.zip = nil
-    loaders.log:info("Loaded %s in %.3f seconds",self.zip_path, dur)
+    loaders.log:info("Loaded %s in %.3f seconds, %d categories",self.zip_path, dur, catcount)
 end
 
 return loaders

@@ -3,6 +3,7 @@ pathing_lua_srcs = [
     'converters.lua',
     'loaders.lua',
     'data.lua',
+    'package.lua',
     'manager.lua',
 ]
 
