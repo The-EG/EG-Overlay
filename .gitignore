@@ -9,7 +9,7 @@ subprojects/*
 !subprojects/glfw.wrap
 !subprojects/libxml2.wrap
 !subprojects/zlib.wrap
-!subprojects/lua-5.4.6/
+!subprojects/lua-5.4.7/
 !subprojects/jansson-2.14/
 
 __pycache__/

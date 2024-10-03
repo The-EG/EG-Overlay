@@ -1,6 +1,6 @@
 $workspace = $PSScriptRoot | Split-Path -Parent
 
-$luapath = $workspace + "\builddir\subprojects\lua-5.4.6"
+$luapath = $workspace + "\builddir\subprojects\lua-5.4.7"
 $zlibpath = $workspace + "\builddir\subprojects\zlib-1.3"
 $ftpath = $workspace + "\builddir\subprojects\freetype-2.13.2"
 $pngpath = $workspace + "\builddir\subprojects\libpng-1.6.40"

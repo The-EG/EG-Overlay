@@ -72,7 +72,7 @@ libxml2_dep = dependency('libxml-2.0',
     ]
 )
 
-lua_proj = subproject('lua-5.4.6')
+lua_proj = subproject('lua-5.4.7')
 lua_dep = lua_proj.get_variable('lua_dep')
 
 jansson_proj = cmake.subproject('jansson-2.14', options:jansson_opts)

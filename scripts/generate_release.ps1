@@ -19,11 +19,11 @@ Copy-Item -Path "builddir\src\shaders"        -Destination "EG-Overlay\shaders" 
 
 Copy-Item -Path "builddir\subprojects\zlib-1.3\z.dll" -Destination "EG-Overlay" -Force
 
-Copy-Item -Path "builddir\subprojects\lua-5.4.6\lua-5.4.6.dll" -Destination "EG-Overlay"         -Force
-Copy-Item -Path "builddir\subprojects\lua-5.4.6\lua-5.4.6.lib" -Destination "EG-Overlay\lib"     -Force
-Copy-Item -Path "..\subprojects\lua-5.4.6\src\lua.h"           -Destination "EG-Overlay\include" -Force
-Copy-Item -Path "..\subprojects\lua-5.4.6\src\luaconf.h"       -Destination "EG-Overlay\include" -Force
-Copy-Item -Path "..\subprojects\lua-5.4.6\src\lauxlib.h"       -Destination "EG-Overlay\include" -Force
+Copy-Item -Path "builddir\subprojects\lua-5.4.7\lua-5.4.7.dll" -Destination "EG-Overlay"         -Force
+Copy-Item -Path "builddir\subprojects\lua-5.4.7\lua-5.4.7.lib" -Destination "EG-Overlay\lib"     -Force
+Copy-Item -Path "..\subprojects\lua-5.4.7\src\lua.h"           -Destination "EG-Overlay\include" -Force
+Copy-Item -Path "..\subprojects\lua-5.4.7\src\luaconf.h"       -Destination "EG-Overlay\include" -Force
+Copy-Item -Path "..\subprojects\lua-5.4.7\src\lauxlib.h"       -Destination "EG-Overlay\include" -Force
 
 Copy-Item -Path "builddir\subprojects\libpng-1.6.40\png16-16.dll" -Destination "EG-Overlay" -Force
 
