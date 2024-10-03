@@ -169,7 +169,7 @@ void xml_lua_sax_start_element_ns(
 
     lua_pushstring(cbs->L, (const char*)localname);
 
-    lua_newtable(cbs->L);
+    lua_createtable(cbs->L, 0, nb_attributes);
     for (int a=0;a<nb_attributes;a++) {
         const char *attrname = (const char *)attributes[a * 5];
         const char *attrvalue = (const char *)attributes[(a * 5) + 3];
