@@ -154,4 +154,27 @@ function uih.checkbox()
     return ui.checkbox(font_size * 1.25)
 end
 
+--[[ RST
+.. lua:function:: textentry([text[, hint] ])
+
+    Create a :lua:class:`eg-overlay-ui.uitextentry` using the default font
+    settings.
+
+    :rtype: eg-overlay-ui.uitextentry
+
+    .. versionhistory::
+        :0.1.0: Added
+]]--
+function uih.textentry(text, hint)
+    local settings = overlay.settings()
+    local font_name = settings:get('overlay.ui.font.pathMono')
+    local font_size = settings:get('overlay.ui.font.size')
+
+    local entry = ui.text_entry(font_name, font_size)
+    if text then entry:text(text) end
+    if hint then entry:hint(hint) end
+
+    return entry
+end
+
 return uih
