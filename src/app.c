@@ -279,7 +279,7 @@ void app_init(HINSTANCE hinst, int argc, char **argv) {
     logger_init();
 
     logger_t *log = logger_new("overlay");
-    logger_set_level(log, LOGGER_LEVEL_DEBUG);
+    logger_set_level(log, LOGGER_LEVEL_INFO);
 
     log_sink_t *file_sink = log_file_sink_new("eg-overlay.log");
     log_sink_t *lua_sink = log_event_sink_new();
@@ -307,7 +307,10 @@ void app_init(HINSTANCE hinst, int argc, char **argv) {
     int no_input_hooks = 0;
 
     for (int a=1;a<argc;a++) {
-        if (strcmp(argv[a], "--target-win-class")==0) {
+        if (strcmp(argv[a], "--debug")==0) {
+            logger_set_level(log, LOGGER_LEVEL_DEBUG);
+            logger_debug(log, "Debug logging enabled.");
+        } else if (strcmp(argv[a], "--target-win-class")==0) {
             if (a + 1 == argc) {
                 MessageBox(
                     NULL,

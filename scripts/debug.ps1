@@ -61,7 +61,7 @@ try {
     & $cdb `
         -G `
         -c "$dbginit" `
-        "$exe" $extra_args
+        "$exe" $extra_args "--debug"
 } finally {
     Pop-Location
     $env:Path = $oldpath

@@ -54,7 +54,7 @@ if ($LastExitCode -ne 0) {
 try {
     Push-Location $workingdir
 
-    & "$exe" $extra_args
+    & "$exe" $extra_args "--debug"
 } finally {
     Pop-Location
     $env:Path = $oldpath
