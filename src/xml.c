@@ -17,7 +17,6 @@ The :lua:mod:`libxml2` module is, as its name suggests, a Lua binding to
 `libxml2 <https://gitlab.gnome.org/GNOME/libxml2>`_.
 
 */
-
 #include "xml.h"
 #include "utils.h"
 #include "logging/logger.h"
@@ -70,9 +69,10 @@ void xml_error_handler(error_handler_data_t *data, const xmlError *error) {
     logger_t *log = logger_get("xml");
     enum LOGGER_LEVEL level = LOGGER_LEVEL_DEBUG;
     switch (error->level) {
-    case XML_ERR_WARNING: level = LOGGER_LEVEL_WARNING; break;
-    case XML_ERR_FATAL:
-    case XML_ERR_ERROR: level = LOGGER_LEVEL_ERROR; break;
+    /* XML_ERR_ERROR is still recoverable, where FATAL is not */
+    case XML_ERR_WARNING:
+    case XML_ERR_ERROR  : level = LOGGER_LEVEL_WARNING; break;
+    case XML_ERR_FATAL  : level = LOGGER_LEVEL_ERROR  ; break;
     }
 
     size_t line_start = 0;
@@ -90,9 +90,9 @@ void xml_error_handler(error_handler_data_t *data, const xmlError *error) {
 
     char *msg = egoverlay_calloc(strlen(error->message), sizeof(char));
     memcpy(msg, error->message, strlen(error->message)-1); // strip the trailing \n
-    logger_log(log, level, "XML parsing error: %s:%d : %s", error->file, error->line, msg);
+    logger_log(log, level, "XML parsing error: %s:%d:%d : %s", error->file, error->line, error->int2, msg);
     egoverlay_free(msg);
-    
+    /*
     if (line_len) {
         size_t context_begin = line_start + error->int2 - 20;
         if (context_begin < line_start) context_begin = line_start;
@@ -110,6 +110,7 @@ void xml_error_handler(error_handler_data_t *data, const xmlError *error) {
 
         logger_log(log, level, "  % *s", error->int2 - (context_begin - line_start), "^");
     }
+    */
 }
 
 /*** RST
@@ -300,10 +301,10 @@ int xml_lua_read_string(lua_State *L) {
         ctx = xmlNewParserCtxt();
     }
 
-    xmlCtxtSetOptions(ctx, XML_PARSE_NOBLANKS | XML_PARSE_RECOVER);
+    xmlCtxtSetOptions(ctx, XML_PARSE_NOBLANKS | XML_PARSE_RECOVER | XML_PARSE_NOENT);
     xmlCtxtSetErrorHandler(ctx, &xml_error_handler, &err_data);
 
-    xmlDocPtr doc = xmlCtxtReadMemory(ctx, data, data_size, name, NULL, XML_PARSE_RECOVER);
+    xmlDocPtr doc = xmlCtxtReadMemory(ctx, data, data_size, name, NULL, XML_PARSE_RECOVER | XML_PARSE_NOENT);
 
     xmlFreeParserCtxt(ctx);
     if (doc) lua_pushxmldoc(L, doc, 1);

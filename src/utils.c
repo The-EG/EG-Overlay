@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
+#include <windows.h>
 #include <glad/gl.h>
 
 char *load_file(const char *path, size_t *length) {
@@ -116,4 +117,15 @@ void error_and_exit(const char *title, const char *msg_format, ...) {
     MessageBox(NULL, msgbuf, title, MB_OK | MB_ICONERROR);
     egoverlay_free(msgbuf);
     exit(-1);
+}
+
+char *wchar_to_char(wchar_t *wstr) {
+    int strsize = WideCharToMultiByte(CP_UTF8, 0, wstr, -1, NULL, 0, NULL, NULL);
+
+    if (strsize==0) return NULL;
+
+    char *str = egoverlay_calloc(strsize, sizeof(char));
+    WideCharToMultiByte(CP_UTF8, 0, wstr, -1, str, strsize, NULL, NULL);
+
+    return str;
 }

@@ -37,10 +37,15 @@ struct ui_window_s {
     int child_width;
     int child_height;
 
+    int vanchor;
+    int hanchor;
+
     ui_element_t *child;
 
     settings_t *settings;
     char *settings_path;
+
+    int showtitlebar;
 
     int shown;
 };
@@ -53,6 +58,8 @@ void ui_window_draw(ui_window_t *win, int offset_x, int offset_y, mat4f_t *proj)
 void ui_window_update_from_settings(ui_window_t *win);
 void ui_window_save_to_settings(ui_window_t *win);
 
+void ui_window_set_showtitlebar(ui_window_t *win, int showtitlebar);
+
 static void ui_window_draw_decorations(ui_window_t *win, int offset_x, int offset_y, mat4f_t *proj) {
     ui_color_t bg_color = 0;
     ui_color_t border_color = 0;
@@ -62,13 +69,7 @@ static void ui_window_draw_decorations(ui_window_t *win, int offset_x, int offse
     char *font_path;
     int font_size = 0;
     int font_weight = INT_MIN;
-
-    GET_APP_SETTING_STR("overlay.ui.font.path", &font_path);
-    GET_APP_SETTING_INT("overlay.ui.font.size", &font_size);
-    GET_APP_SETTING_INT("overlay.ui.font.weight", &font_weight);
-
-    ui_font_t *font = ui_font_get(font_path, font_size, font_weight, INT_MIN, INT_MIN);
-
+    
     GET_APP_SETTING_INT("overlay.ui.colors.windowBG",              (int*)&bg_color);
     GET_APP_SETTING_INT("overlay.ui.colors.windowBorder",          (int*)&border_color);
     GET_APP_SETTING_INT("overlay.ui.colors.windowBorderHighlight", (int*)&border_highlight_color);
@@ -76,8 +77,6 @@ static void ui_window_draw_decorations(ui_window_t *win, int offset_x, int offse
 
     int win_x = offset_x + win->element.x;
     int win_y = offset_y + win->element.y;
-
-    int titlebar_height = win->child_y_offset - 1;
 
     // background
     ui_rect_draw(win_x, win_y, win->element.width, win->element.height, bg_color, proj);
@@ -87,17 +86,30 @@ static void ui_window_draw_decorations(ui_window_t *win, int offset_x, int offse
     ui_rect_draw(win_x, win_y + win->element.height - 1, win->element.width, 1, border_color, proj); // bottom
     ui_rect_draw(win_x + win->element.width - 1, win_y, 1, win->element.height, border_color, proj); // right
 
-    // titlebar
-    ui_rect_draw(win_x, win_y, win->element.width, titlebar_height, 
-                 win->highlight_title ? border_highlight_color : border_color, proj);
+    if (win->showtitlebar) {
+        int titlebar_height = win->child_y_offset - 1;
 
-    // caption
-    int old_scissor[4];
-    push_scissor(win_x + 1, win_y + 1, win->element.width - 2, win->child_y_offset - 2, old_scissor);
+        GET_APP_SETTING_STR("overlay.ui.font.path", &font_path);
+        GET_APP_SETTING_INT("overlay.ui.font.size", &font_size);
+        GET_APP_SETTING_INT("overlay.ui.font.weight", &font_weight);
 
-    ui_font_render_text(font, proj, win_x + 3, win_y + 3, win->caption, strlen(win->caption), text_color);
+        ui_font_t *font = ui_font_get(font_path, font_size, font_weight, INT_MIN, INT_MIN);
 
-    pop_scissor(old_scissor);
+        // titlebar
+        ui_rect_draw(win_x, win_y, win->element.width, titlebar_height, 
+                     win->highlight_title ? border_highlight_color : border_color, proj);
+
+        // caption
+        int old_scissor[4];
+        push_scissor(win_x + 1, win_y + 1, win->element.width - 2, win->child_y_offset - 2, old_scissor);
+
+        ui_font_render_text(font, proj, win_x + 3, win_y + 3, win->caption, strlen(win->caption), text_color);
+
+        pop_scissor(old_scissor);
+    } else {
+        // top border
+        ui_rect_draw(win_x, win_y, win->element.width, 1, border_color, proj);
+    }
 
     // resize box
     if (win->resizable && win->draw_resizer) {
@@ -125,17 +137,11 @@ ui_window_t *ui_window_new(const char *caption, int x, int y) {
     win->child_width = 100 - 4;
     win->child_height = 100 - win->child_y_offset - 2;
 
-    char *font_path;
-    int font_size = 0;
-    int font_weight = INT_MIN;
-    GET_APP_SETTING_STR("overlay.ui.font.path", &font_path);
-    GET_APP_SETTING_INT("overlay.ui.font.size", &font_size);
-    GET_APP_SETTING_INT("overlay.ui.font.weight", &font_weight);
+    win->vanchor = -1;
+    win->hanchor = -1;
 
-    ui_font_t *font = ui_font_get(font_path, font_size, font_weight, INT_MIN, INT_MIN);
-
-    win->child_y_offset = ui_font_get_line_spacing(font) + 6;
-
+    ui_window_set_showtitlebar(win, 1);
+    
     ui_element_ref(win);
 
     return win;
@@ -152,10 +158,8 @@ void ui_window_free(ui_window_t *window) {
 }
 
 void ui_window_draw(ui_window_t *win, int offset_x, int offset_y, mat4f_t *proj) {
-
     int cwidth = 0;
     int cheight = 0;
-
 
     if (
         !win->resizable &&
@@ -173,18 +177,37 @@ void ui_window_draw(ui_window_t *win, int offset_x, int offset_y, mat4f_t *proj)
     win->child_width = win->element.width - 4;
     win->child_height = win->element.height - win->child_y_offset - 2;
 
+    int actual_offset_x = offset_x;
+    int actual_offset_y = offset_y;
+
+    if (win->hanchor>0) {
+        // right anchor
+        actual_offset_x -= win->element.width;
+    } else if (win->hanchor==0) {
+        // center anchor
+        actual_offset_x -= (win->element.width / 2);
+    } // else keep left anchor
+
+    if (win->vanchor>0) {
+        // bottom anchor
+        actual_offset_y -= win->element.height;
+    } else if (win->vanchor==0) {
+        // center anchor
+        actual_offset_y -= (win->element.height / 2);
+    } // else keep top anchor
+
     ui_element_set_size(win->child, win->child_width,  win->child_height);
 
     // draw window decoration
-    ui_window_draw_decorations(win, offset_x, offset_y, proj);
+    ui_window_draw_decorations(win, actual_offset_x, actual_offset_y, proj);
 
-    ui_add_input_element(offset_x, offset_y, win->element.x, win->element.y,
+    ui_add_input_element(actual_offset_x, actual_offset_y, win->element.x, win->element.y,
                          win->element.width, win->element.height, (ui_element_t*)win);
 
     //if (win->resizable) ui_element_draw(win->resize_patch, dec_x, dec_y, proj);
 
-    int coffx = win->element.x + offset_x + win->child_x_offset;
-    int coffy = win->element.y + offset_y + win->child_y_offset;
+    int coffx = win->element.x + actual_offset_x + win->child_x_offset;
+    int coffy = win->element.y + actual_offset_y + win->child_y_offset;
 
     int old_scissor[4];
     push_scissor(coffx, coffy, win->child_width, win->child_height, old_scissor);
@@ -283,6 +306,25 @@ static int ui_window_process_mouse_event(ui_window_t *win, ui_mouse_event_t *eve
     
 
     return 1;
+}
+
+void ui_window_set_showtitlebar(ui_window_t *win, int showtitlebar) {
+    win->showtitlebar = showtitlebar ? 1 : 0;
+
+    if (win->showtitlebar) {
+        char *font_path;
+        int font_size = 0;
+        int font_weight = INT_MIN;
+        GET_APP_SETTING_STR("overlay.ui.font.path", &font_path);
+        GET_APP_SETTING_INT("overlay.ui.font.size", &font_size);
+        GET_APP_SETTING_INT("overlay.ui.font.weight", &font_weight);
+
+        ui_font_t *font = ui_font_get(font_path, font_size, font_weight, INT_MIN, INT_MIN);
+
+        win->child_y_offset = ui_font_get_line_spacing(font) + 6;
+    } else {
+        win->child_y_offset = 2;
+    }
 }
 
 void ui_window_set_child(ui_window_t *window, ui_element_t *child) {
@@ -386,6 +428,9 @@ int ui_window_lua_resizable(lua_State *L);
 int ui_window_lua_settings(lua_State *L);
 int ui_window_lua_position(lua_State *L);
 int ui_window_lua_caption(lua_State *L);
+int ui_window_lua_hanchor(lua_State *L);
+int ui_window_lua_vanchor(lua_State *L);
+int ui_window_lua_titlebar(lua_State *L);
 
 int ui_window_lua_set_child(lua_State *L);
 
@@ -399,6 +444,9 @@ luaL_Reg window_funcs[] = {
     "settings" , &ui_window_lua_settings,
     "position" , &ui_window_lua_position,
     "caption"  , &ui_window_lua_caption,
+    "hanchor"  , &ui_window_lua_hanchor,
+    "vanchor"  , &ui_window_lua_vanchor,
+    "titlebar" , &ui_window_lua_titlebar,
     NULL       ,  NULL
 };
 
@@ -681,6 +729,66 @@ int ui_window_lua_caption(lua_State *L) {
     egoverlay_free(win->caption);
     win->caption = egoverlay_calloc(strlen(newcaption)+1, sizeof(char));
     memcpy(win->caption, newcaption, strlen(newcaption));
+
+    return 0;
+}
+
+/*** RST
+    .. lua:method:: hanchor(anchor)
+    
+        Set the horizontal anchor position for the window. The horizontal anchor
+        controls how the window position is used to position the window.
+        By default, the window is anchored to the top-left.
+
+        :param integer anchor: The new anchor position: ``-1`` for left, ``0``
+            for middle, ``1`` for right.
+        
+        .. versionhistory::
+            :0.1.0: Added
+*/
+int ui_window_lua_hanchor(lua_State *L) {
+    ui_window_t *win = lua_checkuiwindow(L, 1);
+
+    win->hanchor = (int)luaL_checkinteger(L, 2);
+
+    return 0;
+}
+
+/*** RST
+    .. lua:method:: vanchor(anchor)
+    
+        Set the vertical anchor position for the window. The vertical anchor
+        controls how the window position is used to position the window.
+        By default, the window is anchored to the top-left.
+
+        :param integer anchor: The new anchor position: ``-1`` for top, ``0``
+            for middle, ``1`` for bottom.
+        
+        .. versionhistory::
+            :0.1.0: Added
+*/
+int ui_window_lua_vanchor(lua_State *L) {
+    ui_window_t *win = lua_checkuiwindow(L, 1);
+
+    win->vanchor = (int)luaL_checkinteger(L, 2);
+
+    return 0;
+}
+
+/*** RST
+    .. lua:method:: titlebar(show)
+
+        Set whether or not the titlebar is shown.
+
+        :param boolean show:
+
+        .. versionhistory::
+            :0.1.0: Added
+*/
+int ui_window_lua_titlebar(lua_State *L) {
+    ui_window_t *win = lua_checkuiwindow(L, 1);
+
+    ui_window_set_showtitlebar(win, lua_toboolean(L, 2));
 
     return 0;
 }

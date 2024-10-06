@@ -164,4 +164,42 @@ function gw2.player_continent_coords()
     )
 end
 
+function gw2.map2continent(mapx, mapy)
+    if ml.map_id == 0 then return end
+
+    local map = static.map(ml.map_id)
+
+    return gw2.coord_m2c(
+        mapx, mapy,
+        map.continent_rect_left, map.continent_rect_right, map.continent_rect_top, map.continent_rect_bottom,
+        map.map_rect_left, map.map_rect_right, map.map_rect_top, map.map_rect_bottom
+    )
+end
+
+gw2.coordconverter = {}
+gw2.coordconverter.__index = gw2.coordconverter
+
+function gw2.coordconverter:new()
+    if ml.map_id == 0 then return end
+
+    local map = static.map(ml.map_id)
+
+    if not map then return end
+
+    local o = { map = map, mapid = ml.map_id }
+    setmetatable(o, self)
+
+    return o
+end
+
+function gw2.coordconverter:map2continent(mapx, mapz)
+    return gw2.coord_m2c(
+        mapx, mapz,
+        self.map.continent_rect_left, self.map.continent_rect_right,
+        self.map.continent_rect_top, self.map.continent_rect_bottom,
+        self.map.map_rect_left, self.map.map_rect_right,
+        self.map.map_rect_top, self.map.map_rect_bottom
+    )
+end
+
 return gw2

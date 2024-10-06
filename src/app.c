@@ -15,6 +15,8 @@
 #include "logging/dbg-sink.h"
 #include <stdlib.h>
 
+#include <stb_image.h>
+
 #include "ui/ui.h"
 #include "ui/menu.h"
 #include "ui/text.h"
@@ -251,7 +253,8 @@ void APIENTRY gl_debug_output(
 
     // filter out messages we don't care about
     if (
-        id == 131185 // buffer will use VIDEO memory as source
+        id == 131185 || // buffer will use VIDEO memory as source
+        id == 131218    // shader in program XX is being recompiled based on GL state
     ) return;
 
     char *srcstr = "";
@@ -430,14 +433,24 @@ void app_init(HINSTANCE hinst, int argc, char **argv) {
     logger_info(app->log, "GLSL Version: %s", (char*)glGetString(GL_SHADING_LANGUAGE_VERSION));
 
 
-    /*
-    logger_info(app->log, "Extensions:");
+    
+    logger_info(app->log, "Checking extensions:");
+    int have_shading_include = 0;
     int i = 0;
-    while(glGetError()!=GL_INVALID_VALUE) {
-        const GLubyte *ext = glGetStringi(GL_EXTENSIONS, i++);
-        if (ext) logger_info(app->log, "  %s", (const char*)ext);
-    }
-    */
+    GLint extn = 0;
+    glGetIntegerv(GL_NUM_EXTENSIONS, &extn);
+    for (i=0; i<extn; i++) {
+        const GLubyte *ext = glGetStringi(GL_EXTENSIONS, i);
+        if (strcmp((const char*)ext,"GL_ARB_shading_language_include")==0) {
+            logger_info(app->log, "  GL_ARB_shading_language_include supported");
+            have_shading_include = 1;
+        }
+   }
+
+    if (!have_shading_include) {
+        logger_error(app->log,"  GL_ARB_shading_language_include not supported.");
+        abort();
+    }    
 
     logger_info(app->log, "------------------------------------------------------------");
 
@@ -447,10 +460,7 @@ void app_init(HINSTANCE hinst, int argc, char **argv) {
     // alpha blending, but we'll do premultiplied RGB in our fragment shaders
     glEnable(GL_BLEND);
     glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-    // old method, remove later
-    //glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE);
-    //glBlendEquationSeparate(GL_FUNC_ADD, GL_FUNC_ADD);
-    
+        
     glEnable(GL_DEPTH_TEST);
 
     // GW2 is a DirectX application, so we'll be using left-handed rendering
@@ -459,6 +469,8 @@ void app_init(HINSTANCE hinst, int argc, char **argv) {
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
     glFrontFace(GL_CW);
+
+    glStencilFunc(GL_EQUAL, 1, 0xFF);
     
     // let the render thread grab the context when it starts up
     glfwMakeContextCurrent(NULL);
@@ -475,6 +487,9 @@ void app_init(HINSTANCE hinst, int argc, char **argv) {
     AppendMenu(app->sys_tray_menu, MF_ENABLED | MF_STRING, WM_SYSTRAYLOG , "Open log file"          );
     AppendMenu(app->sys_tray_menu, MF_SEPARATOR          , 0             , NULL                     );
     AppendMenu(app->sys_tray_menu, MF_ENABLED | MF_STRING, WM_SYSTRAYQUIT, "Quit"                   );
+
+    // OpenGL textures expect data to be from the bottom up
+    stbi_set_flip_vertically_on_load(1);
 }
 
 void app_cleanup() {
@@ -503,7 +518,6 @@ void app_cleanup() {
 static DWORD WINAPI app_render_thread(LPVOID lpParam) {
     (void)lpParam; // unused
 
-
     logger_debug(app->log, "begin render thread.");
     glfwMakeContextCurrent(app->win);
 
@@ -524,22 +538,23 @@ static DWORD WINAPI app_render_thread(LPVOID lpParam) {
     lua_manager_queue_event("startup", NULL);
     lua_manager_run_event_queue();
 
-    logger_info(app->log, "Starting render loop and waiting for target window");
-
-    //HWND lastwin = NULL;
+    logger_info(app->log, "Starting render loop.");
 
     double frame_begin;
     double frame_end;
     double frame_target;
     
-    //char fg_cls[512] = {0};
-
     vec3f_t avatar = {0,0,0};
     vec3f_t camera = {0,0,0};
     vec3f_t camera_front = {0, 0, 0};
     vec3f_t up = {0.f, 1.f, 0.f};
 
     float fov = 0.f;
+
+    glClearColor(0.0f, 0.0f, 0.0f, 0.f);
+    glClearDepth(-1.f); // left-handed
+    glClearStencil(1);
+    //glStencilMask(0x0);
 
     while (!glfwWindowShouldClose(app->win)) {
         settings_get_double(app->settings, "overlay.frameTargetTime", &frame_target);        
@@ -562,10 +577,8 @@ static DWORD WINAPI app_render_thread(LPVOID lpParam) {
             if (!have_coroutines) Sleep(100);
             continue;
         }
-
-        glClearColor(0.0f, 0.0f, 0.0f, 0.f);
-        glClearDepth(-1.f); // left-handed
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
         fov = mumble_link_fov();
         if (fov!=0.0) {
@@ -574,7 +587,7 @@ static DWORD WINAPI app_render_thread(LPVOID lpParam) {
             mumble_link_camera_position(&camera.x, &camera.y, &camera.z);
             mumble_link_camera_front(&camera_front.x, &camera_front.y, &camera_front.z);
             
-            mat4f_perpsective_lh(&sceneproj, fov, (float)width/(float)height, 1.f, 50000.f);
+            mat4f_perpsective_lh(&sceneproj, fov, (float)width/(float)height, 1.f, 25000.f);
 
             avatar.x *= 39.3701f;
             avatar.y *= 39.3701f;
@@ -630,6 +643,84 @@ static DWORD WINAPI app_render_thread(LPVOID lpParam) {
     return 0;
 }
 
+static DWORD WINAPI app_fgwincheck_thread(LPVOID lpParam) {
+    UNUSED_PARAM(lpParam);
+    logger_debug(app->log, "begin foreground window checker thread...");
+
+    HWND lastwin = NULL;
+    char *fg_cls = egoverlay_calloc(513, sizeof(char));
+    char *target_cls = egoverlay_calloc(513, sizeof(char));
+
+    RECT *target_rect = egoverlay_calloc(1, sizeof(RECT));
+    POINT *target_pos = egoverlay_calloc(1, sizeof(POINT));
+
+    HWND fg_win = NULL;
+
+    while (!glfwWindowShouldClose(app->win)) {
+        fg_win = GetForegroundWindow();
+
+        if (fg_win && fg_win!=lastwin) {
+            memset(fg_cls, 0, 513);
+            GetClassName(fg_win, fg_cls, 512);
+
+            if (strcmp(fg_cls, app->target_win_class)==0) {
+                logger_debug(app->log, "Target window reactivated, showing overlay. (%s)", fg_cls);
+                glfwShowWindow(app->win);
+                app->target_hwnd = fg_win;
+
+            }
+
+            if (fg_win==app->target_hwnd) {
+                SetWindowPos(app->win_hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
+                SetWindowPos(app->win_hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
+            } else {
+                //logger_debug(app->log, "Overlay -> not topmost");
+                SetWindowPos(app->win_hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
+            }
+        } else {
+            memset(target_cls, 0, 513);     
+            if (
+                app->target_hwnd &&
+                (GetClassName(app->target_hwnd, target_cls, 512)==0 ||
+                 strcmp(target_cls, app->target_win_class)!=0)
+            ) {
+                logger_debug(app->log, "Target window disappeared, hiding overlay.");
+                glfwHideWindow(app->win);
+                app->target_hwnd = NULL;                
+            } else if (fg_win==app->target_hwnd) {
+                GetClientRect(app->target_hwnd, target_rect);
+                target_pos->x = target_rect->left;
+                target_pos->y = target_rect->top;
+                ClientToScreen(app->target_hwnd, target_pos);
+
+                SetWindowPos(app->win_hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
+                SetWindowPos(
+                    app->win_hwnd,
+                    HWND_NOTOPMOST,
+                    target_pos->x,
+                    target_pos->y,
+                    target_rect->right - target_rect->left,
+                    target_rect->bottom - target_rect->top - 1,
+                    SWP_NOACTIVATE
+                );
+            }
+
+        }
+        lastwin = fg_win;
+
+        Sleep(100);
+    }
+
+    egoverlay_free(fg_cls);
+    egoverlay_free(target_cls);
+    egoverlay_free(target_rect);
+    egoverlay_free(target_pos);
+
+    logger_debug(app->log, "end foreground window checker thread.");
+
+    return 0;
+}
+
 int app_run() {
     if (app->runscript) {
         app_run_script();
@@ -671,96 +762,29 @@ int app_run() {
     DWORD render_thread_id = 0;
     HANDLE render_thread = CreateThread(NULL, 0, &app_render_thread, NULL, 0, &render_thread_id);
 
+    logger_debug(app->log, "Starting foreground window checker thread...");
+    DWORD fgwin_thread_id = 0;
+    HANDLE fgwin_thread = CreateThread(NULL, 0, &app_fgwincheck_thread, NULL, 0, &fgwin_thread_id);
+
     if (render_thread==NULL) {
         logger_error(app->log, "Failed to create render thread.");
         return -1;
     }
 
-    HWND lastwin = NULL;
-    char *fg_cls = egoverlay_calloc(513, sizeof(char));
-    char *target_cls = egoverlay_calloc(513, sizeof(char));
-
-    int curwinw = 0;
-    int curwinh = 0;
-    int curwinx = 0;
-    int curwiny = 0;
-    RECT *target_rect = egoverlay_calloc(1, sizeof(RECT));
-    POINT *target_pos = egoverlay_calloc(1, sizeof(POINT));
-
-    HWND fg_win = NULL;
-
+    // poll events in a tight loop
+    // since we are using hooks any delays here can negatively impact input for the entire system!
     while (!glfwWindowShouldClose(app->win)) {
         glfwPollEvents();
 
-        fg_win = GetForegroundWindow();
-
-        if (fg_win && fg_win!=lastwin) {
-            memset(fg_cls, 0, 513);
-            GetClassName(fg_win, fg_cls, 512);
-
-            if (strcmp(fg_cls, app->target_win_class)==0) {
-                logger_debug(app->log, "Target window reactivated, updating overlay position & size. (%s)", fg_cls);
-                glfwShowWindow(app->win);
-                app->target_hwnd = fg_win;
-
-                GetClientRect(app->target_hwnd, target_rect);
-                target_pos->x = target_rect->left;
-                target_pos->y = target_rect->top;
-                ClientToScreen(app->target_hwnd, target_pos);
-
-                glfwGetWindowSize(app->win, &curwinw, &curwinh);
-
-                glfwGetWindowPos(app->win, &curwinx, &curwiny);
-                
-                if (curwinx != target_pos->x || curwiny != target_pos->y) {
-                    glfwSetWindowPos(app->win, target_pos->x, target_pos->y);
-                }
-
-                if (
-                    curwinw != target_rect->right - target_rect->left ||
-                    curwinh != target_rect->bottom - target_rect->top
-                ) {
-                    glfwSetWindowSize(
-                        app->win,
-                        target_rect->right - target_rect->left,
-                        target_rect->bottom - target_rect->top - 1
-                    );
-                }
-            }
-            if (fg_win==app->target_hwnd) {
-                //logger_debug(app->log, "Overlay -> topmost");
-                SetWindowPos(app->win_hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
-                SetWindowPos(app->win_hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
-            } else {
-                //logger_debug(app->log, "Overlay -> not topmost");
-                SetWindowPos(app->win_hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
-            }
-        } else {
-            memset(target_cls, 0, 513);
-            
-            if (
-                app->target_hwnd &&
-                (GetClassName(app->target_hwnd, target_cls, 512)==0 ||
-                 strcmp(target_cls, app->target_win_class)!=0)
-            ) {
-                logger_debug(app->log, "Target window disappeared, hiding overlay.");
-                glfwHideWindow(app->win);
-                app->target_hwnd = NULL;                
-            }
-        }
-        lastwin = fg_win;
-
-        Sleep(10);
+        Sleep(1);
     }
 
-    egoverlay_free(fg_cls);
-    egoverlay_free(target_cls);
-    egoverlay_free(target_rect);
-    egoverlay_free(target_pos);
-
-    logger_debug(app->log, "Waiting for render thread to end...");
+    logger_debug(app->log, "Waiting for threads to end...");
+    
     WaitForSingleObject(render_thread, INFINITE);
+    WaitForSingleObject(fgwin_thread, INFINITE);
     CloseHandle(render_thread);
+    CloseHandle(fgwin_thread);
 
     glfwMakeContextCurrent(app->win);
     ui_clear_top_level_elements();
@@ -860,4 +884,14 @@ static void app_run_script() {
     mumble_link_cleanup();
     web_request_cleanup();
     xml_cleanup();
+}
+
+void app_get_mouse_coords(int *x, int *y) {
+    POINT mouse = {0};
+
+    if (!GetCursorPos(&mouse)) return;
+    if (!ScreenToClient(app->win_hwnd, &mouse)) return;
+
+    *x = mouse.x;
+    *y = mouse.y;
 }

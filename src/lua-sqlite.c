@@ -196,7 +196,7 @@ int db_lua_prepare(lua_State *L) {
     int r = sqlite3_prepare_v2(db->db, sql, -1, &stmt, NULL);
 
     if (r!=SQLITE_OK) {
-        return luaL_error(L, "Couldn't prepare statement: %s", sqlite3_errmsg(db->db));
+        return luaL_error(L, "Couldn't prepare statement: %s\nsql:\n%s", sqlite3_errmsg(db->db), sql);
     }
 
     statement_t *dbstmt = lua_newuserdata(L, sizeof(statement_t));
@@ -316,6 +316,8 @@ int db_lua_execute(lua_State *L) {
 int statement_lua_bind(lua_State *L) {
     statement_t *stmt = luaL_checkstatement(L, 1);
 
+    if (stmt->stmt==NULL) return luaL_error(L, "Can't bind a statement after it has been finalized.");
+
     if (lua_gettop(L)!=4 && lua_gettop(L)!=3) {
         return luaL_error(L, "statement:bind takes 2 or 3 arguments, "
                              "name/index, value, and (optionally) blob.");
@@ -407,6 +409,8 @@ int statement_lua_bind(lua_State *L) {
 */
 int statement_lua_step(lua_State *L) {
     statement_t *stmt = luaL_checkstatement(L, 1);
+
+    if (stmt->stmt==NULL) return luaL_error(L, "Can't step a statement after it has been finalized.");
 
     int r = sqlite3_step(stmt->stmt);
     if (r==SQLITE_DONE) return 0;

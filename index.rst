@@ -27,6 +27,7 @@ User Guide
 
     /src/lua/main-menu
     /src/lua/console
+    /src/lua/markers/init
     /src/lua/map-buddy
     /src/lua/overlay-stats
     /src/lua/psna-tracker

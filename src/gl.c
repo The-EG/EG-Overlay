@@ -21,7 +21,7 @@ GLuint gl_load_shader(const char *path, GLenum shader_type) {
     egoverlay_free(src);
 
     glCompileShader(shader);
-
+   
     GLint status;
     glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
     if (status == GL_FALSE) {
@@ -39,10 +39,40 @@ GLuint gl_load_shader(const char *path, GLenum shader_type) {
     return shader;
 }
 
+void gl_add_shader_include(const char *path, const char *name) {
+    logger_t *log = logger_get("gl");
+
+    size_t src_len = 0;
+    char *src = load_file(path, &src_len);
+    
+    glNamedStringARB(GL_SHADER_INCLUDE_ARB, -1, name, (GLint)src_len, src);
+
+    egoverlay_free(src);
+
+    logger_debug(log, "Shader include %s loaded to %s", path, name);
+}
+
+void gl_del_shader_include(const char *name) {
+    glDeleteNamedStringARB(-1, name);
+}
+
 gl_shader_program_t *gl_shader_program_new() {
     gl_shader_program_t *p = egoverlay_calloc(1, sizeof(gl_shader_program_t));
 
     p->program = glCreateProgram();
+
+    return p;
+}
+
+gl_shader_program_t *gl_shader_program_new_with_sources(gl_shader_source_list_t *sources) {
+    gl_shader_program_t *p = gl_shader_program_new();
+
+    while (sources->path) {
+        gl_shader_program_attach_shader_file(p, sources->path, sources->type);
+        sources++;
+    }
+
+    gl_shader_program_link(p);
 
     return p;
 }

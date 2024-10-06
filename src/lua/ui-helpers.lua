@@ -55,6 +55,8 @@ end
     monospace font. If ``color`` is not specified, the default color will be
     used.
 
+    If ``color`` is instead ``true`` then the default accent color will be used.
+
     :param string text:
     :param integer color: (Optional) See :ref:`colors`.
     :rtype: eg-overlay-ui.uitext
@@ -67,6 +69,10 @@ function uih.monospace_text(text, color)
     local font_name = settings:get('overlay.ui.font.pathMono')
     local font_size = settings:get('overlay.ui.font.size')
     local color = color or settings:get('overlay.ui.colors.text')
+
+    if (type(color)=='boolean' and color) then
+        color = settings:get('overlay.ui.colors.accentText')
+    end
 
     return ui.text(text, color, font_name, font_size)
 end

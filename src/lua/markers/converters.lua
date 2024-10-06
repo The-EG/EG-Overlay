@@ -7,6 +7,12 @@ converters.log = logger.logger:new('markers.converters')
 local function strtoint(str)
     local num = tonumber(str)
 
+    if str=='true' then
+        return 1
+    elseif str=='false' then
+        return 0
+    end
+
     if not num then
         return nil
     end
@@ -14,7 +20,7 @@ local function strtoint(str)
     local int = math.tointeger(num)
 
     if not int then
-        return nil
+                return nil
     end
 
     return int
@@ -172,7 +178,7 @@ converters.fromxml = {
     ['heightoffset'      ] = strtofloat,
     ['hide'              ] = unchanged,
     ['iconfile'          ] = unchanged,
-    ['iconsize'          ] = unchanged,
+    ['iconsize'          ] = strtofloat,
     ['info'              ] = unchanged,
     ['inforange'         ] = strtofloat,
     ['ingamevisibility'  ] = strtoint,

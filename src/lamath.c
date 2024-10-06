@@ -110,6 +110,153 @@ void mat4f_translate(mat4f_t *m, float x, float y, float z) {
     m->i4j3 = z;
 }
 
+void mat4f_minors(mat4f_t *m, mat4f_t *out) {
+    out->i1j1 = mat3f_determinate_f(m->i2j2, m->i2j3, m->i2j4,
+                                    m->i3j2, m->i3j3, m->i3j4,
+                                    m->i4j2, m->i4j3, m->i4j4);
+    out->i1j2 = mat3f_determinate_f(m->i2j1, m->i2j3, m->i2j4,
+                                    m->i3j1, m->i3j3, m->i3j4,
+                                    m->i4j1, m->i4j3, m->i4j4);
+    out->i1j3 = mat3f_determinate_f(m->i2j1, m->i2j2, m->i2j4,
+                                    m->i3j1, m->i3j2, m->i3j4,
+                                    m->i4j1, m->i4j2, m->i4j4);
+    out->i1j4 = mat3f_determinate_f(m->i2j1, m->i2j2, m->i2j3,
+                                    m->i3j1, m->i3j2, m->i3j3,
+                                    m->i4j1, m->i4j2, m->i4j3);
+
+    out->i2j1 = mat3f_determinate_f(m->i1j2, m->i1j3, m->i1j4,
+                                    m->i3j2, m->i3j3, m->i3j4,
+                                    m->i4j2, m->i4j3, m->i4j4);
+    out->i2j2 = mat3f_determinate_f(m->i1j1, m->i1j3, m->i1j4,
+                                    m->i3j1, m->i3j3, m->i3j4,
+                                    m->i4j1, m->i4j3, m->i4j4);
+    out->i2j3 = mat3f_determinate_f(m->i1j1, m->i1j2, m->i1j4,
+                                    m->i3j1, m->i3j2, m->i3j4,
+                                    m->i4j1, m->i4j2, m->i4j4);
+    out->i2j4 = mat3f_determinate_f(m->i1j1, m->i1j2, m->i1j3,
+                                    m->i3j1, m->i3j2, m->i3j3,
+                                    m->i4j1, m->i4j2, m->i4j3);
+
+    out->i3j1 = mat3f_determinate_f(m->i1j2, m->i1j3, m->i1j4,
+                                    m->i2j2, m->i2j3, m->i2j4,
+                                    m->i4j2, m->i4j3, m->i4j4);
+    out->i3j2 = mat3f_determinate_f(m->i1j1, m->i1j3, m->i1j4,
+                                    m->i2j1, m->i2j3, m->i2j4,
+                                    m->i4j1, m->i4j3, m->i4j4);
+    out->i3j3 = mat3f_determinate_f(m->i1j1, m->i1j2, m->i1j4,
+                                    m->i2j1, m->i2j2, m->i2j4,
+                                    m->i4j1, m->i4j2, m->i4j4);
+    out->i3j4 = mat3f_determinate_f(m->i1j1, m->i1j2, m->i1j3,
+                                    m->i2j1, m->i2j2, m->i2j3,
+                                    m->i4j1, m->i4j2, m->i4j3);
+
+    out->i4j1 = mat3f_determinate_f(m->i1j2, m->i1j3, m->i1j4,
+                                    m->i2j2, m->i2j3, m->i2j4,
+                                    m->i3j2, m->i3j3, m->i3j4);
+    out->i4j2 = mat3f_determinate_f(m->i1j1, m->i1j3, m->i1j4,
+                                    m->i2j1, m->i2j3, m->i2j4,
+                                    m->i3j1, m->i3j3, m->i3j4);
+    out->i4j3 = mat3f_determinate_f(m->i1j1, m->i1j2, m->i1j4,
+                                    m->i2j1, m->i2j2, m->i2j4,
+                                    m->i3j1, m->i3j2, m->i3j4);
+    out->i4j4 = mat3f_determinate_f(m->i1j1, m->i1j2, m->i1j3,
+                                    m->i2j1, m->i2j2, m->i2j3,
+                                    m->i3j1, m->i3j2, m->i3j3);
+}
+
+void mat4f_cofactors(mat4f_t *m, mat4f_t *out) {
+    out->i1j1 = m->i1j1;
+    out->i1j2 = m->i1j2 * -1.f;
+    out->i1j3 = m->i1j3;
+    out->i1j4 = m->i1j4 * -1.f;
+
+    out->i2j1 = m->i2j1 * -1.f;
+    out->i2j2 = m->i2j2;
+    out->i2j3 = m->i2j3 * -1.f;
+    out->i2j4 = m->i2j4;
+
+    out->i3j1 = m->i3j1;
+    out->i3j2 = m->i3j2 * -1.f;
+    out->i3j3 = m->i3j3;
+    out->i3j4 = m->i3j4 * -1.f;
+
+    out->i4j1 = m->i4j1 * -1.f;
+    out->i4j2 = m->i4j2;
+    out->i4j3 = m->i4j3 * -1.f;
+    out->i4j4 = m->i4j4;
+}
+
+void mat4f_adjugate(mat4f_t *m, mat4f_t *out) {
+    out->i1j1 = m->i1j1;
+    out->i1j2 = m->i2j1;
+    out->i1j3 = m->i3j1;
+    out->i1j4 = m->i4j1;
+
+    out->i2j1 = m->i1j2;
+    out->i2j2 = m->i2j2;
+    out->i2j3 = m->i3j2;
+    out->i2j4 = m->i4j2;
+
+    out->i3j1 = m->i1j3;
+    out->i3j2 = m->i2j3;
+    out->i3j3 = m->i3j3;
+    out->i3j4 = m->i4j3;
+
+    out->i4j1 = m->i1j4;
+    out->i4j2 = m->i2j4;
+    out->i4j3 = m->i3j4;
+    out->i4j4 = m->i4j4;
+}
+
+float mat4f_determinate(mat4f_t *m) {
+    return (
+        (m->i1j1 * mat3f_determinate_f(m->i2j2, m->i2j3, m->i2j4,
+                                       m->i3j2, m->i3j3, m->i3j4,
+                                       m->i4j2, m->i4j3, m->i4j4)) -
+        (m->i1j2 * mat3f_determinate_f(m->i2j1, m->i2j3, m->i2j4,
+                                       m->i3j1, m->i3j3, m->i3j4,
+                                       m->i4j1, m->i4j3, m->i4j4)) +
+        (m->i1j3 * mat3f_determinate_f(m->i2j1, m->i2j2, m->i2j4,
+                                       m->i3j1, m->i3j2, m->i3j4,
+                                       m->i4j1, m->i4j2, m->i4j4)) -
+        (m->i1j4 * mat3f_determinate_f(m->i2j1, m->i2j2, m->i2j3,
+                                       m->i3j1, m->i3j2, m->i3j3,
+                                       m->i4j1, m->i4j2, m->i4j3))
+    );
+}
+
+void mat4f_inverse(mat4f_t *m, mat4f_t *out) {
+    mat4f_t minors = {0};
+    mat4f_t cofactors = {0};
+    mat4f_t adjugate = {0};
+    
+    mat4f_minors(m, &minors);
+    mat4f_cofactors(&minors, &cofactors);
+    mat4f_adjugate(&cofactors, &adjugate);
+
+    float oneoverd = 1.f / mat4f_determinate(m);
+
+    out->i1j1 = adjugate.i1j1 * oneoverd;
+    out->i1j2 = adjugate.i1j2 * oneoverd;
+    out->i1j3 = adjugate.i1j3 * oneoverd;
+    out->i1j4 = adjugate.i1j4 * oneoverd;
+
+    out->i2j1 = adjugate.i2j1 * oneoverd;
+    out->i2j2 = adjugate.i2j2 * oneoverd;
+    out->i2j3 = adjugate.i2j3 * oneoverd;
+    out->i2j4 = adjugate.i2j4 * oneoverd;
+
+    out->i3j1 = adjugate.i3j1 * oneoverd;
+    out->i3j2 = adjugate.i3j2 * oneoverd;
+    out->i3j3 = adjugate.i3j3 * oneoverd;
+    out->i3j4 = adjugate.i3j4 * oneoverd;
+
+    out->i4j1 = adjugate.i4j1 * oneoverd;
+    out->i4j2 = adjugate.i4j2 * oneoverd;
+    out->i4j3 = adjugate.i4j3 * oneoverd;
+    out->i4j4 = adjugate.i4j4 * oneoverd;
+}
+
 void mat4f_mult_mat4f(mat4f_t *a, mat4f_t *b, mat4f_t *out) {
     out->i1j1 = a->i1j1 * b->i1j1 + a->i1j2 * b->i2j1 + a->i1j3 * b->i3j1 + a->i1j4 * b->i4j1;
     out->i2j1 = a->i2j1 * b->i1j1 + a->i2j2 * b->i2j1 + a->i2j3 * b->i3j1 + a->i2j4 * b->i4j1;
@@ -130,6 +277,13 @@ void mat4f_mult_mat4f(mat4f_t *a, mat4f_t *b, mat4f_t *out) {
     out->i2j4 = a->i2j1 * b->i1j4 + a->i2j2 * b->i2j4 + a->i2j3 * b->i3j4 + a->i2j4 * b->i4j4;
     out->i3j4 = a->i3j1 * b->i1j4 + a->i3j2 * b->i2j4 + a->i3j3 * b->i3j4 + a->i3j4 * b->i4j4;
     out->i4j4 = a->i4j1 * b->i1j4 + a->i4j2 * b->i2j4 + a->i4j3 * b->i3j4 + a->i4j4 * b->i4j4;
+}
+
+void mat4f_mult_vec4f(mat4f_t *a, vec4f_t *b, vec4f_t *out) {
+    out->x = (b->x * a->i1j1) + (b->y * a->i2j1) + (b->z * a->i3j1) + (b->w * a->i4j1);
+    out->y = (b->x * a->i1j2) + (b->y * a->i2j2) + (b->z * a->i3j2) + (b->w * a->i4j2);
+    out->z = (b->x * a->i1j3) + (b->y * a->i2j3) + (b->z * a->i3j3) + (b->w * a->i4j3);
+    out->w = (b->x * a->i1j4) + (b->y * a->i2j4) + (b->z * a->i3j4) + (b->w * a->i4j4);
 }
 
 static void mat4f_register_metatable(lua_State *L) {
@@ -260,10 +414,22 @@ void mat4f_rotatez(mat4f_t *m, float radians) {
     m->i2j2 = cosf(radians);
 }
 
+float mat3f_determinate_f(float a, float b, float c, float d, float e, float f, float g, float h, float i) {
+    return (
+        (a * mat2f_determinate_f(e, f, h, i)) -
+        (b * mat2f_determinate_f(d, f, g, i)) +
+        (c * mat2f_determinate_f(d, e, g, h))
+    );
+}
+
 void vec3f_crossproduct(vec3f_t *a, vec3f_t *b, vec3f_t *out) {
     out->x = a->y * b->z - a->z * b->y;
     out->y = a->z * b->x - a->x * b->z;
     out->z = a->x * b->y - a->y * b->x;
+}
+
+float mat2f_determinate_f(float a, float b, float c, float d) {
+    return (a * d) - (b * c);
 }
 
 void mat2f_rotate(mat2f_t *m, float radians) {
@@ -331,4 +497,44 @@ void vec3f_normalize(vec3f_t *in, vec3f_t *out) {
     out->x = in->x / len;
     out->y = in->y / len;
     out->z = in->z / len;
+}
+
+float vec3f_dot_vec3f(vec3f_t *a, vec3f_t *b) {
+    return (
+        (a->x * b->x) +
+        (a->y * b->y) +
+        (a->z * b->z)
+    );
+}
+
+void vec3f_mult_f(vec3f_t *a, float b,vec3f_t *out) {
+    out->x = a->x * b;
+    out->y = a->y * b;
+    out->z = a->z * b;
+}
+
+void vec3f_add_vec3f(vec3f_t *a, vec3f_t *b, vec3f_t *out) {
+    out->x = a->x + b->x;
+    out->y = a->y + b->y;
+    out->z = a->z + b->z;
+}
+
+void vec3f_sub_vec3f(vec3f_t *a, vec3f_t *b, vec3f_t *out) {
+    out->x = a->x - b->x;
+    out->y = a->y - b->y;
+    out->z = a->z - b->z;
+}
+
+float vec3f_length(vec3f_t *a) {
+    return fabsf(sqrtf(
+        powf(a->x, 2) +
+        powf(a->y, 2) +
+        powf(a->z, 2)
+    ));
+}
+
+void vec3f_from_vec3f(vec3f_t *in, vec3f_t *out) {
+    out->x = in->x;
+    out->y = in->y;
+    out->z = in->z;
 }

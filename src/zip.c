@@ -273,6 +273,14 @@ int zip_read_central_directory_file_header(FILE *zip, zip_cdfh_t *cdfh) {
     cdfh->file_offset            = read_uint32(zip); cd_read_size += 4;
 
     cdfh->file_name = read_string(zip, cdfh->file_name_len);
+
+    // ensure it's lower case
+    _strlwr_s(cdfh->file_name, cdfh->file_name_len+1);
+    // and using forward slashes
+    for (size_t i=0; i<cdfh->file_name_len; i++) {
+        if (cdfh->file_name[i]=='\\') cdfh->file_name[i] = '/';
+    }
+
     cd_read_size += cdfh->file_name_len;
 
     _fseek_nolock(zip, cdfh->extra_fld_len, SEEK_CUR); // extra field
@@ -390,7 +398,13 @@ int zip_lua_file_content(lua_State *L) {
 
     const char *file_path_orig = luaL_checkstring(L, 2);
     char *file_path = _strdup(file_path_orig);
+
+    // lower case
     _strlwr_s(file_path, strlen(file_path)+1);
+    // and ensure paths use forward slash
+    for (size_t i = 0; i < strlen(file_path); i++) {
+        if (file_path[i] == '\\') file_path[i] = '/';
+    }
 
     zip_cdfh_t *cdfh = NULL;
     for (zip_file_header_t *fh=zip->files;fh;fh=fh->next) {

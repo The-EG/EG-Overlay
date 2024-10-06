@@ -4,6 +4,7 @@ local logger = require 'logger'
 local overlay = require 'eg-overlay'
 local converters = require 'markers.converters'
 local mp = require 'markers.package'
+local xmlcleaner = require 'xml-cleaner'
 
 local loaders = {}
 
@@ -64,6 +65,21 @@ function base_loader.endtag.OverlayData(self)
     self.in_overlaydata = false
 end
 
+function base_loader:loaddatafile(path)
+    local df = self.mp:datafile(path)
+
+    if df:data()==nil then
+        local data = self:filecontent(path)
+        if not data then
+            return false
+        else
+            df:data(data)
+        end
+    end
+
+    return true
+end
+
 function base_loader.begintag.MarkerCategory(self, file, line, attrs)
     if not self.in_overlaydata then
         xmlerror(file, line, 'Got MarkerCategory outside of OverlayData.')
@@ -86,6 +102,22 @@ function base_loader.begintag.MarkerCategory(self, file, line, attrs)
 
     for p, v in pairs(props) do
         cat[p] = v
+    end
+
+    if props.defaulttoggle~=0 then
+        cat:active(true)
+    end
+
+    if props.iconfile then
+        if not self:loaddatafile(props.iconfile) then
+            xmlerror(file, line, "iconfile %s does not exist", props.iconfile)
+        end
+    end
+
+    if props.texture then
+        if not self:loaddatafile(props.texture) then
+            xmlerror(file, line, "texture %s does not exist", props.texture)
+        end
     end
 end
 
@@ -112,163 +144,101 @@ function base_loader.begintag.POI(self, file, line, attrs)
         return
     end
 
-    if attrs.xpos==nil or attrs.ypos==nil or attrs.zpos==nil then
-        xmlerror(file, line, 'POI with invalid location, ignoring.')
-        return
-    end
-
-    if attrs.MapID==nil then
-        xmlwarn(file, line, 'POI with no MapID.')
-    end
+    -- if attrs.xpos==nil or attrs.ypos==nil or attrs.zpos==nil then
+    --     xmlerror(file, line, 'POI with invalid location, ignoring.')
+    --     return
+    -- end
 
     local props = validatemarkerprops(file, line, attrs)
 
     local typeid = attrs.type
 
-    local cat = self.mp:category(typeid)
-    local poi = cat:newpoi()
+    local cat = self.mp:category(typeid, true)
+    local marker = cat:newmarker()
+
+    if props.mapid==nil then
+        xmlwarn(file, line, 'POI with no MapID.')
+    else
+        marker:mapid(props.mapid)
+    end
 
     for p, v in pairs(props) do
-        poi[p] = v
-    end
-end
-
-function base_loader:load_marker_category(node)
-    -- name can be a few different things...
-    local name = node:prop("name")
-    name = name or node:prop("Name")
-    name = name or node:prop("bh-name")
-
-    if not name then
-        node_error(node, "MarkerCategory must have a name attribute.")
-        return
+        marker[p] = v
     end
 
-    local cat_props = validate_poi_props(node)
-    local parentname = table.concat(self.category_typeids,'.')
-
-    local typeid = name
-    if parentname~='' then typeid = parentname .. '.' .. typeid end
-    local defactive = cat_props.defaulttoggle or cat_props.toggledefault or 1
-
-    local category = data.category(typeid, defactive)
-    for p,v in pairs(cat_props) do
-        category:prop(p, v)
-    end
-
-    if cat_props.iconfile then
-        local icon = data.datafile(cat_props.iconfile)
-
-        if not icon then
-            local icondata = self.zip:file_content(cat_props.iconfile)
-            if not icondata then
-                node_error(node, "iconFile %s does not exist.", cat_props.iconfile)
-                return
-            end
-
-            icon = data.datafile(cat_props.iconfile, icondata)
-        end
-    end
-
-    table.insert(self.category_typeids, name)
-    local child_cats = get_child_elements_by_tag(node, "MarkerCategory")
-    for i, cat in ipairs(child_cats) do
-        self:load_marker_category(cat)
-    end
-    table.remove(self.category_typeids)
-end
-
-function base_loader:load_poi(node)
-    local poi_props = validate_poi_props(node)
-
-    if not poi_props.mapid and not poi_props.type then
-        node_error(node, "POI element must have a MapID or type attribute. Ignoring POI.")
-        return
-    end
-
-    if not poi_props.xpos then
-        node_error(node, "POI element must have a xpos attribute. Ignoring POI.")
-        return
-    end
-    if not poi_props.ypos then
-        node_error(node, "POI element must have a ypos attribute. Ignoring POI.")
-        return
-    end
-    if not poi_props.zpos then
-        node_error(node, "POI element must have a zpos attribute. Ignoring POI.")
-        return
-    end
-
-    local r, err = pcall(self.db_mp.addpoi, self.db_mp, poi_props)
-    if not r then
-        node_error(node, "Failed to insert POI: %s", err)
-    end
-
-    if poi_props.iconfile then
-        local icon = data.datafile(poi_props.iconfile)
-
-        if not icon then
-            local icondata = self.zip:file_content(poi_props.iconfile)
-            if not icondata then
-                node_error(node, "iconFile %s does not exist.", poi_props.iconfile)
-                return
-            end
-
-            icon = data.datafile(poi_props.iconfile, icondata)
+    if props.iconfile then
+        if not self:loaddatafile(props.iconfile) then
+            xmlerror(file, line, "iconfile %s does not exist", props.iconfile)
         end
     end
 end
 
-function base_loader:load_trail(node)
-    local trail_props = validate_poi_props(node)
+function base_loader.begintag.Trail(self, file, line, attrs)
+    if attrs.type==nil then
+        xmlerror(file, line, 'Trail with no type, ignoring.')
+        return
+    end
+  
+    local props = validatemarkerprops(file, line, attrs)
 
-    if not trail_props.traildata then
-        node_error(node, "Trail element must have a trailData attribute, ignoring Trail.")
+    if not props.traildata then
+        xmlerror(file, line, 'Trail with no trailData, ignoring.')
         return
     end
 
-    if not trail_props['type'] then
-        node_error(node, "Trail element must have a type attribute, ignoring Trail.")
-        return
+    local typeid = attrs.type
+    local cat = self.mp:category(typeid, true)
+    local trail = cat:newtrail()
+
+    for p,v in pairs(props) do
+        trail[p] = v
     end
-    
-    local trail_file = self.zip:file_content(trail_props.traildata)
+
+
+    local trail_file = self:filecontent(props.traildata)
 
     if trail_file == nil then
-        node_warning(node, "trailData file (%s) does not exist, ignoring Trail.", trail_props.traildata)
+        xmlerror(file, line, "trailData file (%s) does not exist.", props.traildata)
         return
     end
 
     local trail_file_len = #trail_file
     if trail_file_len < 8 + 12 then
-        node_error(node, "Trail file too short.")
+        xmlerror(file, line, "Trail file too short.")
         return
     end
 
     local trailver, map_id = string.unpack('<I4I4', trail_file)
 
     if trailver~=0 then
-        node_error(node, "Trail data file unrecognized format.")
+        xmlerror(file, line, "Trail data file unrecognized format.")
         return
     end
 
-    if not trail_props.map_id then trail_props.mapid = map_id end
+    if not props.mapid then trail.mapid = map_id end
 
-    local trail_coords = {}
+    trail:mapid(map_id)
 
     local trail_file_pos = 9
     repeat
         local x, y, z, l = string.unpack('<fff', trail_file, trail_file_pos)
         trail_file_pos = l
         --if not l then break end
+        
+        trail:addpoint(x, y, z)
 
-        table.insert(trail_coords, { x, y, z })
     until trail_file_pos > trail_file_len
 
-    self.db_mp:addtrail(trail_props, trail_coords)
+    if props.texture then
+        if not self:loaddatafile(props.texture) then
+            xmlerror(file, line, "texture %s does not exist", props.texture)
+        end
+    end
 end
 
 function base_loader:loadxml(name, xmldata)
+    local cleanxml = xmlcleaner.cleanxml(xmldata, name)
+    --local cleanxml = xmldata
     local function startele(name, attrs, file, line)
         if self.begintag[name] then
             self.begintag[name](self, file, line, attrs)
@@ -283,10 +253,11 @@ function base_loader:loadxml(name, xmldata)
         end
     end
 
-    xml.read_string(xmldata, name, {
+    xml.read_string(cleanxml, name, {
         startelement = startele,
         endelement = endele
     })
+
 end
 
 loaders.zip_loader = {}
@@ -296,11 +267,16 @@ setmetatable(loaders.zip_loader, base_loader)
 function loaders.zip_loader:new(zip_path, pack_path)
     local z = base_loader:new()
     z.zip_path = zip_path
+    z.pack_path = pack_path
     z.mp = mp.markerpack:new(pack_path)
     z.categorystack = {}
 
     setmetatable(z, self)
     return z
+end
+
+function loaders.zip_loader:filecontent(path)
+    return self.zip:file_content(path)
 end
 
 function loaders.zip_loader:load()
@@ -316,38 +292,38 @@ function loaders.zip_loader:load()
     -- the categories they belong to.
     -- So, turn off foreign key checks now and then run a check after everything
     -- is loaded.
+    self.mp.db:execute('PRAGMA cache_size = 100000')
     self.mp.db:execute('PRAGMA foreign_keys = OFF')
-    self.mp.db:execute('BEGIN TRANSACTION')
+    --self.mp.db:execute('BEGIN IMMEDIATE TRANSACTION')
 
     for i,f in ipairs(files) do
         -- find all top level xml files
         if string.find(f, '[^/]+%.xml') == 1 then
             local fstr = self.zip:file_content(f)
-            loaders.log:info("%s...", f)
+            self.mp.db:execute('BEGIN TRANSACTION')
             self:loadxml(f, fstr)
+            self.mp.db:execute('COMMIT TRANSACTION')
             coroutine.yield()
         end
     end
 
-    self.mp.db:execute('COMMIT TRANSACTION')
+    --self.mp.db:execute('COMMIT TRANSACTION')
     self.mp.db:execute('PRAGMA foreign_keys = ON')
     
     -- loaders.log:info("Checking data integrity...")
-    -- local stmt = data.db:prepare('PRAGMA foreign_key_check(poi)')
-    -- local function poi_rows()
+    -- local stmt = self.mp.db:prepare('PRAGMA foreign_key_check(markers)')
+    -- local function marker_rows()
     --     return stmt:step()
     -- end
 
     -- local badtypeids = {}
     -- local badcount = 0
-    -- for row in poi_rows do
-    --     local ps = data.db:prepare('SELECT id, type, markerpack FROM poi WHERE rowid = ?')
+    -- for row in marker_rows do
+    --     local ps = self.mp.db:prepare('SELECT id, type FROM markers WHERE rowid = ?')
     --     ps:bind(1, row.rowid)
-    --     local poi = ps:step()
-    --     if poi.markerpack == self.db_mp.id then
-    --         badtypeids[poi.type] = true
-    --         badcount = badcount + 1
-    --     end
+    --     local marker = ps:step()
+    --     badtypeids[marker.type] = true
+    --     badcount = badcount + 1
     --     ps:finalize()
     -- end
     -- stmt:finalize()
@@ -363,9 +339,24 @@ function loaders.zip_loader:load()
 
     local endt = overlay.time()
     local dur = endt - start
-    local catcount = self.mp:categorycount()
+    local catcount = self.mp.db:execute([[SELECT COUNT(*) AS count FROM categories]]).count
+    local poicount = self.mp.db:execute([[SELECT COUNT(*) AS count FROM markers]]).count
+    local trailcount = self.mp.db:execute([[SELECT COUNT(*) AS count FROM trails]]).count
+    local trailpoints = self.mp.db:execute([[SELECT COUNT(*) AS count FROM trailcoords]]).count
+    local datacount = self.mp.db:execute([[SELECT COUNT(*) AS count FROM datafiles]]).count
     self.zip = nil
-    loaders.log:info("Loaded %s in %.3f seconds, %d categories",self.zip_path, dur, catcount)
+
+    loaders.log:info("Converted %s in %.3f seconds:", self.zip_path, dur)
+    loaders.log:info("  %d categories", catcount)
+    loaders.log:info("  %d POIs", poicount)
+    loaders.log:info("  %d trails", trailcount)
+    loaders.log:info("  %d trail points", trailpoints)
+    loaders.log:info("  %d data files", datacount)
+
+    loaders.log:info("Optimizing database...")
+    self.mp.db:execute('PRAGMA optimize')
+    loaders.log:info("Vacuuming...")
+    self.mp.db:execute('VACUUM')
 end
 
 return loaders

@@ -9,8 +9,11 @@ shader_srcs = [
     'image.vert',
     'image.frag',
 
-    'sprite-collection.vert',
-    'sprite-collection.frag',
+    '3dcommon.glsl',
+    'trail.vert',
+    'trail.frag',
+    'sprite-array.vert',
+    'sprite-array.frag',
 ]
 
 shaders = []

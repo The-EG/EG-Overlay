@@ -207,6 +207,18 @@ mumble_link_profession_t mumble_link_character_profression() {
     return json_integer_value(prof_json);
 }
 
+mumble_link_ui_size_t mumble_link_ui_size() {
+    mumble_link_check_identity_cache();
+    if (ml->identity_cache==NULL || !json_is_object(ml->identity_cache)) return -1;
+
+    json_t *uisz = json_object_get(ml->identity_cache, "uisz");
+    if (uisz==NULL) {
+        return -1;
+    }
+
+    return json_integer_value(uisz);
+}
+
 void mumble_link_avatar_position(float *x, float *y, float *z) {
     *x = ml->gw2_ml->avatar_position.x;
     *y = ml->gw2_ml->avatar_position.y;
@@ -231,6 +243,28 @@ float mumble_link_fov()  {
 
     json_t *fov = json_object_get(ml->identity_cache, "fov");
     return (float)json_number_value(fov);
+}
+
+void mumble_link_map_center(float *x, float *y) {
+    *x = ml->gw2_ml->context.map_center_x;
+    *y = ml->gw2_ml->context.map_center_y;
+}
+
+void mumble_link_map_size(uint16_t *width, uint16_t *height) {
+    *width = ml->gw2_ml->context.compass_width;
+    *height = ml->gw2_ml->context.compass_height;
+}
+
+float mumble_link_map_scale() {
+    return ml->gw2_ml->context.map_scale;
+}
+
+float mumble_link_map_rotation() {
+    return ml->gw2_ml->context.compass_rotation;
+}
+
+uint32_t mumble_link_ui_state() {
+    return ml->gw2_ml->context.ui_state;
 }
 
 void mumble_link_cleanup() {

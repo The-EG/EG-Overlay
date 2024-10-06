@@ -2,6 +2,7 @@
 #include <crtdbg.h>
 #include "lamath.h"
 #include <stdint.h>
+#include <wchar.h>
 #include <stdlib.h>
 
 #define egoverlay_calloc(num, size) _calloc_dbg(num, size, _CLIENT_BLOCK, __FILE__, __LINE__)
@@ -18,6 +19,8 @@ void pop_child_viewport(int *old_vp);
 
 int push_scissor(int x, int y, int width, int height, int *old_scissor);
 void pop_scissor(int *old_scissor);
+
+char *wchar_to_char(wchar_t *wstr);
 
 #ifndef UNUSED_PARAM
 #define UNUSED_PARAM(p) (void)p

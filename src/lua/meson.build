@@ -9,7 +9,9 @@ lua_srcs = [
     'logger.lua',
     'ui-helpers.lua',
     'db.lua',
-    'psna-tracker.lua'
+    'psna-tracker.lua',
+    'utils.lua',
+    'xml-cleaner.lua',
 ]
 
 lua_files = []

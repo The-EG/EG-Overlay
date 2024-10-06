@@ -17,4 +17,6 @@ settings_t *app_get_settings();
 void app_setclipboard_text(const char *text);
 char *app_getclipboard_text();
 
+void app_get_mouse_coords(int *x, int *y);
+
 void app_exit();

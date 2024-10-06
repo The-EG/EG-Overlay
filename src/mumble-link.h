@@ -22,6 +22,13 @@ typedef enum mumble_link_profession_t {
 #define MUMBLE_LINK_UI_STATE_TEXTBOX_FOCUS     (0x01 << 5)
 #define MUMBLE_LINK_UI_STATE_IN_COMBAT         (0x01 << 6)
 
+typedef enum mumble_link_ui_size_t {
+    MUMBLE_LINK_UI_SIZE_SMALL = 0,
+    MUMBLE_LINK_UI_SIZE_NORMAL,
+    MUMBLE_LINK_UI_SIZE_LARGE,
+    MUMBLE_LINK_UI_SIZE_LARGER
+} mumble_link_ui_size_t;
+
 void mumble_link_init();
 
 uint32_t mumble_link_tick();
@@ -39,5 +46,13 @@ float mumble_link_fov();
 size_t mumble_link_character_name(char *name, size_t max_size);
 mumble_link_profession_t mumble_link_character_profression();
 
+void mumble_link_map_center(float *x, float *y);
+void mumble_link_map_size(uint16_t *width, uint16_t *height);
+float mumble_link_map_scale();
+float mumble_link_map_rotation();
+
+uint32_t mumble_link_ui_state();
+
+mumble_link_ui_size_t mumble_link_ui_size();
 
 void mumble_link_cleanup();
