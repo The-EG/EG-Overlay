@@ -219,11 +219,14 @@ void mat4f_camera_facing(mat4f_t *m, vec3f_t *camera, vec3f_t *forward, vec3f_t 
     //vec3f_crossproduct(&ns, forward, &u);
     vec3f_crossproduct(forward, &ns, &u);
 
+    vec3f_t nu = {0};
+    vec3f_normalize(&u, &nu);
+
     // transposed, column major
     mat4f_t M = {
-        s.x, u.x, forward->x, 0.f,
-        s.y, u.y, forward->y, 0.f,
-        s.z, u.z, forward->z, 0.f,
+        ns.x, nu.x, forward->x, 0.f,
+        ns.y, nu.y, forward->y, 0.f,
+        ns.z, nu.z, forward->z, 0.f,
         0.f, 0.f, 0.f, 1.f
     };
     
