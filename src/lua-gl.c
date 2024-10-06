@@ -39,7 +39,7 @@ void overlay_3d_init() {
     );
     gl_shader_program_link(overlay_3d->sprite_program);
 
-    lua_manager_add_module_opener("overlay-3d", &overlay_3d_lua_open_module);
+    lua_manager_add_module_opener("eg-overlay-3d", &overlay_3d_lua_open_module);
 }
 
 void overlay_3d_cleanup() {
@@ -61,16 +61,16 @@ void overlay_3d_end_frame() {
 }
 
 /*** RST
-overlay-3d
+eg-overlay-3d
 ==========
 
-.. lua:module:: overlay-3d
+.. lua:module:: eg-overlay-3d
 
 .. code-block:: lua
 
-    local overlay3d = require 'overlay-3d'
+    local overlay3d = require 'eg-overlay-3d'
 
-The :lua:mod:`overlay-3d` module contains functions and classes that can be used
+The :lua:mod:`eg-overlay-3d` module contains functions and classes that can be used
 to draw in the 3D scene, below the UI. 
 
 .. important::
@@ -266,6 +266,10 @@ int texture_lua_new(lua_State *L) {
     texture_t *tex = lua_newuserdata(L, sizeof(texture_t));
     size_t texdatalen = 0;
     const uint8_t *texdata = (const uint8_t*)luaL_checklstring(L, 1, &texdatalen);
+
+    if (texdatalen==0) {
+        return luaL_error(L, "Texture data expected, got nil.");
+    }
 
     memset(tex, 0, sizeof(texture_t));
 
