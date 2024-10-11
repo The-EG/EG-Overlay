@@ -58,6 +58,7 @@ executable(
     dependencies: [
       glfw_lib,
       winmm_lib,
+      rpcrt_lib,
       freetype2_dep,
       curl_dep,
       curl_link_libs,

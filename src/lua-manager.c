@@ -1,5 +1,6 @@
 #include <windows.h>
 #include <rpc.h>
+#include <wincrypt.h>
 #include <ShlObj.h>
 #include <psapi.h>
 #include <glad/gl.h>
@@ -81,8 +82,10 @@ int overlay_process_time(lua_State *L);
 int overlay_data_folder(lua_State *L);
 int overlay_clipboard_text(lua_State *L);
 int overlay_exit(lua_State *L);
-
 int overlay_findfiles(lua_State *L);
+int overlay_uuid(lua_State *L);
+int overlay_uuidtobase64(lua_State *L);
+int overlay_uuidfrombase64(lua_State *L);
 
 luaL_Reg overlay_funcs[] = {
     "add_event_handler"   , &overlay_add_event_handler,
@@ -97,6 +100,9 @@ luaL_Reg overlay_funcs[] = {
     "clipboard_text"      , &overlay_clipboard_text,
     "exit"                , &overlay_exit,
     "findfiles"           , &overlay_findfiles,
+    "uuid"                , &overlay_uuid,
+    "uuidtobase64"        , &overlay_uuidtobase64,
+    "uuidfrombase64"      , &overlay_uuidfrombase64,
     NULL                  ,  NULL
 };
 
@@ -1115,6 +1121,130 @@ int overlay_findfiles(lua_State *L) {
 
     FindClose(h);
  
+    return 1;
+}
+
+/*** RST
+.. lua:function:: uuid()
+
+    Return a new Universally Unique Identifier (UUID).
+
+    The returned UUID is a string in '8-4-4-12' format.
+
+    :rtype: string
+
+    .. versionhistory::
+        :0.1.0: Added
+*/
+int overlay_uuid(lua_State *L) {
+    UUID newid = {0};
+    if (UuidCreate(&newid)!=RPC_S_OK) {
+        return luaL_error(L, "Can't create new UUID: UuidCreate failed.");
+    }
+
+    RPC_CSTR idstr = NULL;
+    if (UuidToString(&newid, &idstr)!=RPC_S_OK) {
+        return luaL_error(L, "Can't create new UUID: UuidToString failed.");
+    }
+
+    lua_pushstring(L, (char*)idstr);
+    RpcStringFree(&idstr);
+
+    return 1;
+}
+
+/*** RST
+.. lua:function:: uuidtobase64(uuid)
+
+    Convert a UUID from an '8-4-4-12' format string to a BASE64 encoded string.
+
+    :param string uuid:
+    :rtype: string
+
+    .. versionhistory::
+        :0.1.0: Added
+*/
+int overlay_uuidtobase64(lua_State *L) {
+    const char *uuidstr = luaL_checkstring(L, 1);
+    UUID uuid = {0};
+
+    if (UuidFromString((RPC_CSTR)uuidstr, &uuid)!=RPC_S_OK) {
+        return luaL_error(L, "Invalid UUID string.");
+    }
+
+    DWORD base64strlen = 0;
+    char *base64str = NULL;
+
+    if (CryptBinaryToString(
+        (const BYTE *)&uuid,
+        sizeof(UUID),
+        CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF,
+        NULL,
+        &base64strlen)!=TRUE
+    ) {
+        return luaL_error(L, "Couldn't get base64 string length.");
+    }
+
+    if (base64strlen==0) {
+        return luaL_error(L, "base64 string length = 0.");
+    }
+
+    base64str = egoverlay_calloc(base64strlen, sizeof(char));
+
+    if (CryptBinaryToString(
+        (const BYTE *)&uuid,
+        sizeof(UUID),
+        CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF,
+        base64str,
+        &base64strlen)!=TRUE
+    ) {
+        egoverlay_free(base64str);
+        return luaL_error(L, "Couldn't convert to base64.");
+    }
+
+    lua_pushstring(L, base64str);
+    egoverlay_free(base64str);
+
+    return 1;
+}
+
+/*** RST
+.. lua:function:: uuidfrombase64(base64uuid)
+
+    Convert a UUID from a BASE64 encoded string to an '8-4-4-12' format string.
+
+    :param string base64uuid:
+    :rtype: string
+
+    .. versionhistory::
+        :0.1.0: Added
+*/
+int overlay_uuidfrombase64(lua_State *L) {
+    const char *base64uuid = luaL_checkstring(L, 1);
+
+    UUID uuid = {0};
+    DWORD uuidlen = sizeof(UUID);
+
+    if (CryptStringToBinary(
+        base64uuid,
+        0,
+        CRYPT_STRING_BASE64,
+        (BYTE *)&uuid,
+        &uuidlen,
+        NULL,
+        NULL)!=TRUE
+    ) {
+        return luaL_error(L, "Couldn't convert base64 to UUID.");
+    }
+
+    RPC_CSTR uuidstr = NULL;
+    if (UuidToString(&uuid, &uuidstr)!=RPC_S_OK) {
+        return luaL_error(L, "Couldn't convert UUID to string.");
+    }
+
+    lua_pushstring(L, (char*)uuidstr);
+    RpcStringFree(&uuidstr);
+
     return 1;
 }
 

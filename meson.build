@@ -32,6 +32,7 @@ stb_inc = include_directories('contrib/stb', is_system: true)
 glad_inc = include_directories('contrib/glad/include', is_system: true)
 
 winmm_lib = cc.find_library('winmm')
+rpcrt_lib = cc.find_library('rpcrt4')
 
 zlib_dep = dependency('zlib')
 
