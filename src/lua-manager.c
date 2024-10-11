@@ -1,4 +1,5 @@
 #include <windows.h>
+#include <rpc.h>
 #include <ShlObj.h>
 #include <psapi.h>
 #include <glad/gl.h>
@@ -69,21 +70,21 @@ static lua_manager_t *lua = NULL;
 
 char *get_lua_module_path(lua_State *L, int stack_depth);
 
-static int overlay_add_event_handler(lua_State *L);
-static int overlay_remove_event_handler(lua_State *L);
-static int overlay_queue_event(lua_State *L);
-static int overlay_log(lua_State *L);
-static int overlay_time(lua_State *L);
-static int overlay_settings(lua_State *L);
-static int overlay_mem_usage(lua_State *L);
-static int overlay_process_time(lua_State *L);
-static int overlay_data_folder(lua_State *L);
-static int overlay_clipboard_text(lua_State *L);
-static int overlay_exit(lua_State *L);
+int overlay_add_event_handler(lua_State *L);
+int overlay_remove_event_handler(lua_State *L);
+int overlay_queue_event(lua_State *L);
+int overlay_log(lua_State *L);
+int overlay_time(lua_State *L);
+int overlay_settings(lua_State *L);
+int overlay_mem_usage(lua_State *L);
+int overlay_process_time(lua_State *L);
+int overlay_data_folder(lua_State *L);
+int overlay_clipboard_text(lua_State *L);
+int overlay_exit(lua_State *L);
 
 int overlay_findfiles(lua_State *L);
 
-static luaL_Reg overlay_funcs[] = {
+luaL_Reg overlay_funcs[] = {
     "add_event_handler"   , &overlay_add_event_handler,
     "remove_event_handler", &overlay_remove_event_handler,
     "queue_event"         , &overlay_queue_event,
@@ -99,14 +100,14 @@ static luaL_Reg overlay_funcs[] = {
     NULL                  ,  NULL
 };
 
-static int open_overlay_module(lua_State *L) {
+int open_overlay_module(lua_State *L) {
     lua_newtable(L);
     luaL_setfuncs(L, overlay_funcs, 0);
 
     return 1;
 }
 
-static int embedded_module_searcher(lua_State *L) {
+int embedded_module_searcher(lua_State *L) {
     const char *name = luaL_checkstring(L, 1);
 
     lua_manager_module_opener_t *mo = lua->module_openers;
@@ -328,7 +329,7 @@ Functions
     .. versionhistory::
         :0.0.1: Added
 */
-static int overlay_add_event_handler(lua_State *L) {
+int overlay_add_event_handler(lua_State *L) {
     const char *event = luaL_checkstring(L, 1);
 
     if (lua_type(L, 2)!=LUA_TFUNCTION) {
@@ -390,7 +391,7 @@ static int overlay_add_event_handler(lua_State *L) {
     .. versionhistory::
         :0.0.1: Added
 */
-static int overlay_remove_event_handler(lua_State *L) {
+int overlay_remove_event_handler(lua_State *L) {
     const char *event = luaL_checkstring(L, 1);
     int cbi = (int)luaL_checkinteger(L, 2);
 
@@ -450,7 +451,7 @@ static int overlay_remove_event_handler(lua_State *L) {
     .. versionhistory::
         :0.0.1: Added
 */
-static int overlay_queue_event(lua_State *L) {
+int overlay_queue_event(lua_State *L) {
     const char *event = luaL_checkstring(L, 1);
     int data_cbi = 0;
 
@@ -477,7 +478,7 @@ static int overlay_queue_event(lua_State *L) {
     return 0;
 }
 
-static int overlay_log(lua_State *L) {
+int overlay_log(lua_State *L) {
     const char *name = luaL_checkstring(L, 1);
     enum LOGGER_LEVEL level = (enum LOGGER_LEVEL)luaL_checkinteger(L, 2);
     const char *message = luaL_checkstring(L, 3);
@@ -500,7 +501,7 @@ static int overlay_log(lua_State *L) {
     .. versionhistory::
         :0.0.1: Added
 */
-static int overlay_time(lua_State *L) {
+int overlay_time(lua_State *L) {
     lua_pushnumber(L, glfwGetTime());
 
     return 1;
@@ -517,7 +518,7 @@ static int overlay_time(lua_State *L) {
     .. versionhistory::
         :0.0.1: Added
 */
-static int overlay_settings(lua_State *L) {
+int overlay_settings(lua_State *L) {
     lua_pushsettings(L, app_get_settings());
         
     return 1;
@@ -561,7 +562,7 @@ void lua_manager_add_event_callback(lua_manager_event_callback *cb, void *data) 
     l->next = e;
 }
 
-static lua_event_handler_t *get_event_handlers(const char *event) {
+lua_event_handler_t *get_event_handlers(const char *event) {
     uint32_t event_hash = djb2_hash_string(event);
     uint32_t event_ind = event_hash % lua->event_handler_table_size;
 
@@ -826,7 +827,7 @@ void lua_manager_queue_event(const char *event, json_t *data) {
     .. versionhistory::
         :0.0.1: Added
 */
-static int overlay_mem_usage(lua_State *L) {
+int overlay_mem_usage(lua_State *L) {
     PROCESS_MEMORY_COUNTERS mem_counters = {0};
     mem_counters.cb = sizeof(PROCESS_MEMORY_COUNTERS);
 
@@ -863,7 +864,7 @@ static int overlay_mem_usage(lua_State *L) {
     .. versionhistory::
         :0.0.1: Added
 */
-static int overlay_process_time(lua_State *L) {
+int overlay_process_time(lua_State *L) {
     FILETIME create_time = {0};
     FILETIME exit_time = {0};
     FILETIME kernel_time = {0};
@@ -954,7 +955,7 @@ static int overlay_process_time(lua_State *L) {
     .. versionhistory::
         :0.0.1: Added
 */
-static int overlay_data_folder(lua_State *L) {
+int overlay_data_folder(lua_State *L) {
     const char *name = luaL_checkstring(L, 1);
 
     size_t proc_path_len = MAX_PATH;
@@ -1016,7 +1017,7 @@ static int overlay_data_folder(lua_State *L) {
     .. versionhistory::
         :0.0.1: Added
 */
-static int overlay_clipboard_text(lua_State *L) {    
+int overlay_clipboard_text(lua_State *L) {    
     if (lua_gettop(L)==1) {
         const char *text = luaL_checkstring(L, 1);
         app_setclipboard_text(text);
@@ -1040,7 +1041,7 @@ static int overlay_clipboard_text(lua_State *L) {
     .. versionhistory::
         :0.0.1: Added
 */
-static int overlay_exit(lua_State *L) {
+int overlay_exit(lua_State *L) {
     UNUSED_PARAM(L);
     
     app_exit();
