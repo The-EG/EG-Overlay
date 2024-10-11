@@ -62,7 +62,7 @@ void overlay_3d_end_frame() {
 
 /*** RST
 eg-overlay-3d
-==========
+=============
 
 .. lua:module:: eg-overlay-3d
 
@@ -162,19 +162,13 @@ luaL_Reg texture_funcs[] = {
 };
 
 /*** RST
-.. lua:function:: spritecollection(texturedata)
+.. lua:function:: spritecollection(texture)
 
     Create a new :lua:class:`o3dspritecollection` object with the given texture.
 
-    :param string texturedata: The data from a texture image (a png, jpg, etc.).
-        This can be read from a file or downloaded from a server, etc.
+    :param o3dtexture texture:
 
     :rtype: o3dspritecollection
-
-    .. admonition:: Implementation Detail
-
-        EG-Overlay uses `stb_image <https://github.com/nothings/stb>`_ to
-        load the texture data, so any format supported by it can be used.
 
     .. versionhistory::
         :0.1.0: Added
@@ -261,6 +255,15 @@ int sprite_collection_lua_del(lua_State *L) {
 
 /*** RST
 .. lua:function:: texture(texturedata)
+
+    Create a new :lua:class:`o3dtexture`.
+
+    :param string texturedata: The binary data for the texture. This should be
+        an image supported by stb_image.
+    :rtype: o3dtexture
+
+    .. versionhistory::
+        :0.1.0: Added
 */
 int texture_lua_new(lua_State *L) {
     texture_t *tex = lua_newuserdata(L, sizeof(texture_t));
@@ -347,6 +350,10 @@ int texture_lua_del(lua_State *L) {
 Classes
 -------
 
+.. lua:class:: o3dtexture
+
+    A texture that can be used with other :lua:mod:`eg-overlay-3d` elements.
+
 .. lua:class:: o3dspritecollection
 
     A sprite collection can be used to efficiently draw instances of the same
@@ -364,7 +371,9 @@ Classes
 
         local texdata = texture:read('a')
 
-        local sprite = o3d.spritecollection(texdata)
+        local tex = o3d.texture(texdata)
+
+        local sprite = o3d.spritecollection(tex)
 
         sprite:updatelocations({
             {x=0, y=0, z= 0},
@@ -392,16 +401,23 @@ Classes
 
         Each location table can have the following fields:
 
-        ========= ============================================================
-        Field     Description
-        ========= ============================================================
-        x         The location x coordinate. In map units. Default ``0``.
-        y         The location y coordinate. In map units. Default ``0``.
-        z         The location z coordinate. In map units. Default ``0``.
-        sizeratio A size factor controlling how large/small this location will
-                  be drawn compared to the size set on this spritecollection.
-        color     Tint color and opacity, see :ref:`colors`.
-        ========= ============================================================
+        ========== ============================================================
+        Field      Description
+        ========== ============================================================
+        x          The location x coordinate. In map units. Default ``0``.
+        y          The location y coordinate. In map units. Default ``0``.
+        z          The location z coordinate. In map units. Default ``0``.
+        sizeratio  A size factor controlling how large/small this location will
+                   be drawn compared to the size set on this spritecollection.
+        color      Tint color and opacity, see :ref:`colors`.
+        billboard  A boolean indicating if the texture should always face the
+                   camera. Default: ``true``
+        centerfade A boolean indicating if the sprite is displayed more
+                   transparent near the center of the screen. Default: ``true``
+        rotation   A sequence of 3 numbers indicating the rotation to be
+                   applied to the sprite along the X, Y, and Z axes in that
+                   order. Only applicable if ``billboard`` is ``false``.
+        ========== ============================================================
 
         :param table locations: (Optional) If omitted, the locations for this
             :lua:class:`o3dspritecollection` are cleared.
@@ -534,7 +550,7 @@ int sprite_collection_lua_updatelocations(lua_State *L) {
 /*** RST
     .. lua:method:: draw()
 
-        Draw this sprite at the positions previously set with :lua:meth:`setpositions`.
+        Draw this sprite at the positions previously set with :lua:meth:`updatelocations`.
 
         .. important::
             This method can only be called during :overlay:event:`draw-3d`. Attempts
