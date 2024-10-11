@@ -177,4 +177,24 @@ function uih.textentry(text, hint)
     return entry
 end
 
+--[[ RST
+.. lua:function:: colorsetalphaf(color, alpha)
+
+    Set the alpha component of a color to the given value as a float.
+
+    :param integer color: A :ref:`color <colors>`.
+    :param float alpha: The new alpha value, from 0.0 to 1.0.
+    :rtype: integer
+
+    .. versionhistory::
+        :0.1.0: Added
+]]--
+function uih.colorsetalphaf(color, alpha)
+    if alpha < 0 then alpha = 0 end
+    if alpha > 1 then alpha = 1.0 end
+
+    local aint = math.tointeger(math.floor(alpha * 255)) & 0xFF
+    return (color & 0xFFFFFF00) | aint
+end
+
 return uih
