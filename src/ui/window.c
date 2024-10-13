@@ -384,6 +384,8 @@ int ui_window_lua_hide(lua_State *L);
 int ui_window_lua_min_size(lua_State *L);
 int ui_window_lua_resizable(lua_State *L);
 int ui_window_lua_settings(lua_State *L);
+int ui_window_lua_position(lua_State *L);
+int ui_window_lua_caption(lua_State *L);
 
 int ui_window_lua_set_child(lua_State *L);
 
@@ -395,6 +397,8 @@ luaL_Reg window_funcs[] = {
     "min_size" , &ui_window_lua_min_size,
     "resizable", &ui_window_lua_resizable,
     "settings" , &ui_window_lua_settings,
+    "position" , &ui_window_lua_position,
+    "caption"  , &ui_window_lua_caption,
     NULL       ,  NULL
 };
 
@@ -634,6 +638,49 @@ int ui_window_lua_settings(lua_State *L) {
     settings_ref(settings);
 
     ui_window_update_from_settings(win);
+
+    return 0;
+}
+
+/*** RST
+    .. lua:method:: position(x, y)
+
+        Set the window position.
+
+        :param integer x:
+        :param integer y:
+
+        .. versionhistory::
+            :0.1.0: Added
+*/
+int ui_window_lua_position(lua_State *L) {
+    ui_window_t *win = lua_checkuiwindow(L, 1);
+    int x = (int)luaL_checkinteger(L, 2);
+    int y = (int)luaL_checkinteger(L, 3);
+
+    win->element.x = x;
+    win->element.y = y;
+
+    return 0;
+}
+
+/*** RST
+    .. lua:method:: caption(text)
+
+        Set the window caption
+
+        :param string text:
+
+        .. versionhistory::
+            :0.1.0: Added
+*/
+int ui_window_lua_caption(lua_State *L) {
+    ui_window_t *win = lua_checkuiwindow(L, 1);
+    const char *newcaption = luaL_checkstring(L, 2);
+
+    egoverlay_free(win->caption);
+    win->caption = egoverlay_calloc(strlen(newcaption)+1, sizeof(char));
+    memcpy(win->caption, newcaption, strlen(newcaption));
 
     return 0;
 }
