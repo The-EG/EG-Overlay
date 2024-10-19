@@ -24,6 +24,7 @@ EG-Overlay Modules
     /src/ui/ui
     /src/lua/ui-helpers
     /src/lua-gl
+    /src/lua/utils
 
 
 Lua Types
