@@ -197,4 +197,24 @@ function uih.colorsetalphaf(color, alpha)
     return (color & 0xFFFFFF00) | aint
 end
 
+--[[ RST
+.. lua:function:: rgbtorgba(rgbcolor[, alpha])
+
+    Convert a 24bit RGB color to a 32bit RGBA color.
+
+    :param integer rgbcolor: A 24bit RGB color, ie. ``0xFFFFFF``
+    :param integer alpha: (Optional) An 8bit alpha value, ie. ``0xFF``. Default:
+        ``0xFF``
+    :rtype: integer
+    
+    .. versionhistory::
+        :0.1.0: Added
+
+]]--
+function uih.rgbtorgba(rgbcolor, alpha)
+    if alpha == nil then alpha = 0xFF end
+
+    return (rgbcolor << 8) | (alpha & 0xFF)
+end
+
 return uih
