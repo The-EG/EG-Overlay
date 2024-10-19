@@ -309,9 +309,15 @@ void settings_set_internal(settings_t *settings, const char *key, json_t *value)
         egoverlay_free(parent_path);
     }
 
-    size_t node_key_len = keylen - last_dot;
-    char *node_key = egoverlay_calloc(node_key_len + 1, sizeof(char));
-    memcpy(node_key, key + last_dot + 1, node_key_len);
+    char *node_key = NULL;
+    if (last_dot) {
+        size_t node_key_len = keylen - last_dot;
+        node_key = egoverlay_calloc(node_key_len + 1, sizeof(char));
+        memcpy(node_key, key + last_dot + 1, node_key_len);
+    } else {
+        node_key = egoverlay_calloc(keylen + 1, sizeof(char));
+        memcpy(node_key, key, keylen);
+    }
     
     json_object_set(parent, node_key, value);
     egoverlay_free(node_key);
