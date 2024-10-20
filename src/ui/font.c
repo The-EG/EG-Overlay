@@ -370,6 +370,7 @@ void ui_font_render_text(
     // we get text as individual 8 bit characters, but we assume it's UTF-8.
     // each codepoint could be up to 4 bytes long.
     uint32_t codepoint = 0;
+    int glyph_bytes = 0;
     int bytes_remaining = 0;
 
     for (size_t c=0;c<count;c++) {
@@ -399,6 +400,7 @@ void ui_font_render_text(
             codepoint |= (text[c] & 0x3F) << shift_bits;
             bytes_remaining--;
         }
+        glyph_bytes++;
         if (bytes_remaining) continue;
 
         glyph = FT_Get_Char_Index(font->face, codepoint);
@@ -431,7 +433,8 @@ void ui_font_render_text(
             ui_font_render_glyph(font, codepoint);
             ui_font_update_textures(font);
             // go back and restart this part of the for loop for this glyph
-            c--;
+            c -= glyph_bytes;
+            codepoint = 0;
             continue;
         }
 
@@ -466,6 +469,7 @@ void ui_font_render_text(
 
         penx += (float)char_page->metrics[char_ind].advance_x;
         prev_glyph = glyph;
+        glyph_bytes = 0;
     }
 
 
@@ -518,7 +522,8 @@ uint32_t ui_font_get_text_width(ui_font_t *font, const char *text, int count) {
     FT_UInt prev_glyph = 0;
 
     int penx = 0;
-
+    
+    int glyph_bytes = 0;
     uint32_t codepoint = 0;
     int bytes_remaining = 0;
 
@@ -548,6 +553,10 @@ uint32_t ui_font_get_text_width(ui_font_t *font, const char *text, int count) {
             codepoint |= (text[c] & 0x3F) << shift_bits;
             bytes_remaining--;
         }
+        // track the number of bytes in each glyph
+        // so that we can back that out of c below if the glyph needs to be
+        // rendered first. otherwise a goto is needed, and no one likes those
+        glyph_bytes++;
         if (bytes_remaining) continue;
 
         glyph = FT_Get_Char_Index(font->face, codepoint);
@@ -580,12 +589,14 @@ uint32_t ui_font_get_text_width(ui_font_t *font, const char *text, int count) {
             // this glyph isn't in a texture yet, so render it
             ui_font_render_glyph(font, codepoint);
             ui_font_update_textures(font);
-            // go back and restart this part of the for loop for this glyph
-            c--;
+            c -= glyph_bytes;
+            glyph_bytes = 0;
+            codepoint = 0;
             continue;
         }
 
         prev_glyph = glyph;
+        glyph_bytes = 0;
 
         penx += (int)char_page->metrics[char_ind].advance_x;
     }
