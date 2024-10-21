@@ -284,6 +284,8 @@ int mumble_link_lua_camera_top(lua_State *L);
 int mumble_link_lua_map_type(lua_State *L);
 int mumble_link_lua_map_id(lua_State *L);
 int mumble_link_lua_ui_state(lua_State *L);
+int mumble_link_lua_map_open(lua_State *L);
+int mumble_link_lua_in_combat(lua_State *L);
 
 int mumble_link_lua_index(lua_State *L) {
     const char *key = luaL_checkstring(L, 2);
@@ -304,6 +306,8 @@ int mumble_link_lua_index(lua_State *L) {
     else if (strcmp(key, "map_type"                )==0) return mumble_link_lua_map_type(L);
     else if (strcmp(key, "map_id"                  )==0) return mumble_link_lua_map_id(L);
     else if (strcmp(key, "ui_state"                )==0) return mumble_link_lua_ui_state(L);
+    else if (strcmp(key, "mapopen"                 )==0) return mumble_link_lua_map_open(L);
+    else if (strcmp(key, "incombat"                )==0) return mumble_link_lua_in_combat(L);
 
     char *mod_name = lua_manager_get_lua_module_name(L);
     logger_warn(ml->log, "%s tried to read mumble_link.%s, does not exist.", mod_name, key);
@@ -719,6 +723,38 @@ int mumble_link_lua_ui_state(lua_State *L) {
     */
     lua_pushinteger(L, ml->gw2_ml->context.ui_state);
 
+    return 1;
+}
+
+/*** RST
+.. lua:data:: mapopen
+
+    :type: boolean
+
+    A boolean indicating if the first bit of :lua:data:`ui_state` is set, which
+    indicates if the map is open fullscreen.
+
+    .. versionhistory::
+        :0.1.0: Added
+*/
+int mumble_link_lua_map_open(lua_State *L) {
+    lua_pushboolean(L, ml->gw2_ml->context.ui_state & MUMBLE_LINK_UI_STATE_MAP_OPEN);
+    return 1;
+}
+
+/*** RST
+.. lua:data:: incombat
+    
+    :type: boolean
+
+    A boolean indicating if the seventh bit of :lua:data:`ui_state` is set,
+    which indicates if the player is currently in combat.
+
+    .. versionhistory::
+        :0.1.0: Added
+*/
+int mumble_link_lua_in_combat(lua_State *L) {
+    lua_pushboolean(L, ml->gw2_ml->context.ui_state & MUMBLE_LINK_UI_STATE_IN_COMBAT);
     return 1;
 }
 
