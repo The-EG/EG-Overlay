@@ -67,7 +67,7 @@ void ui_scroll_view_free(ui_scroll_view_t *scroll) {
 void ui_scroll_view_set_child(ui_scroll_view_t *scroll, ui_element_t *child) {
     if (scroll->child) ui_element_unref(scroll->child);
     scroll->child = child;
-    ui_element_ref(child);
+    if (child) ui_element_ref(child);
 }
 
 void ui_scroll_view_draw(ui_scroll_view_t *scroll, int offset_x, int offset_y, mat4f_t *proj) {
@@ -334,6 +334,7 @@ luaL_Reg scroll_view_funcs[] = {
     "set_child"    , &ui_scroll_view_lua_set_child,
     "scroll_max_y" , &ui_scroll_view_lua_scroll_max_y,
     "scroll_amount", &ui_scroll_view_lua_scroll_amount,
+    "background"   , &ui_element_lua_background,
     NULL,             NULL
 };
 
@@ -446,6 +447,11 @@ int ui_scroll_view_lua_pos(lua_State *L) {
 int ui_scroll_view_lua_set_child(lua_State *L) {
     ui_scroll_view_t *sv = lua_checkuiscrollview(L, 1);
 
+    if (lua_type(L, 2)==LUA_TNIL) {
+        ui_scroll_view_set_child(sv, NULL);
+        return 0;
+    }
+
     ui_element_t *child = lua_checkuielement(L, 2);
 
     ui_scroll_view_set_child(sv, child);
@@ -488,3 +494,7 @@ int ui_scroll_view_lua_scroll_amount(lua_State *L) {
 
     return 0;
 }
+
+/*** RST
+    .. include:: /docs/_include/ui_element_color.rst
+*/
