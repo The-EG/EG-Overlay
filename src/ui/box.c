@@ -258,6 +258,7 @@ int ui_box_lua_set_align(lua_State *L);
 int ui_box_lua_spacing(lua_State *L);
 int ui_box_lua_item_count(lua_State *L);
 int ui_box_lua_pop_start(lua_State *L);
+int ui_box_lua_pop_end(lua_State *L);
 int ui_box_lua_events(lua_State *L);
 
 luaL_Reg ui_box_funcs[] = {
@@ -268,6 +269,7 @@ luaL_Reg ui_box_funcs[] = {
     "spacing"           , &ui_box_lua_spacing,
     "item_count"        , &ui_box_lua_item_count,
     "pop_start"         , &ui_box_lua_pop_start,
+    "pop_end"           , &ui_box_lua_pop_end,
     "events"            , &ui_box_lua_events,
     "addeventhandler"   , &ui_element_lua_addeventhandler,
     "removeeventhandler", &ui_element_lua_removeeventhandler,
@@ -516,6 +518,34 @@ int ui_box_lua_pop_start(lua_State *L) {
         box->items = f->next;
         ui_element_unref(f->item);
         egoverlay_free(f);
+    }
+
+    return 0;
+}
+
+/*** RST
+    .. lua:method:: pop_end()
+
+        Remove the last child element from this box.
+
+        .. versionhistory::
+            :0.1.0: Added
+*/
+int ui_box_lua_pop_end(lua_State *L) {
+    ui_box_t *box = lua_checkuibox(L, 1);
+
+    ui_box_item_t *f = box->items;
+
+    if (f) {
+        ui_box_item_t *prev = NULL;
+        while (f->next) {
+            prev = f;
+            f = f->next;
+        }
+
+        ui_element_unref(f->item);
+        egoverlay_free(f);
+        if (prev) prev->next = NULL;
     }
 
     return 0;
