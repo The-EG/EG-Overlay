@@ -554,7 +554,7 @@ static DWORD WINAPI app_render_thread(LPVOID lpParam) {
             mumble_link_camera_position(&camera.x, &camera.y, &camera.z);
             mumble_link_camera_front(&camera_front.x, &camera_front.y, &camera_front.z);
             
-            mat4f_perpsective_lh(&sceneproj, fov, (float)width/(float)height, 1.f, 10000.f);
+            mat4f_perpsective_lh(&sceneproj, fov, (float)width/(float)height, 1.f, 50000.f);
 
             avatar.x *= 39.3701f;
             avatar.y *= 39.3701f;
