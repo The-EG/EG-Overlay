@@ -657,15 +657,25 @@ int app_run() {
     }
 
     HWND lastwin = NULL;
-    char fg_cls[512];
+    char *fg_cls = egoverlay_calloc(513, sizeof(char));
+    char *target_cls = egoverlay_calloc(513, sizeof(char));
+
+    int curwinw = 0;
+    int curwinh = 0;
+    int curwinx = 0;
+    int curwiny = 0;
+    RECT *target_rect = egoverlay_calloc(1, sizeof(RECT));
+    POINT *target_pos = egoverlay_calloc(1, sizeof(POINT));
+
+    HWND fg_win = NULL;
 
     while (!glfwWindowShouldClose(app->win)) {
         glfwPollEvents();
 
-        HWND fg_win = GetForegroundWindow();
+        fg_win = GetForegroundWindow();
 
         if (fg_win && fg_win!=lastwin) {
-            memset(fg_cls, 0, 512);
+            memset(fg_cls, 0, 513);
             GetClassName(fg_win, fg_cls, 512);
 
             if (strcmp(fg_cls, app->target_win_class)==0) {
@@ -673,31 +683,27 @@ int app_run() {
                 glfwShowWindow(app->win);
                 app->target_hwnd = fg_win;
 
-                RECT target_rect;
-                GetClientRect(app->target_hwnd, &target_rect);
-                POINT target_pos = { target_rect.left, target_rect.top };
-                ClientToScreen(app->target_hwnd, &target_pos);
+                GetClientRect(app->target_hwnd, target_rect);
+                target_pos->x = target_rect->left;
+                target_pos->y = target_rect->top;
+                ClientToScreen(app->target_hwnd, target_pos);
 
-                int curwinw;
-                int curwinh;
                 glfwGetWindowSize(app->win, &curwinw, &curwinh);
 
-                int curwinx;
-                int curwiny;
                 glfwGetWindowPos(app->win, &curwinx, &curwiny);
                 
-                if (curwinx != target_pos.x || curwiny != target_pos.y) {
-                    glfwSetWindowPos(app->win, target_pos.x, target_pos.y);
+                if (curwinx != target_pos->x || curwiny != target_pos->y) {
+                    glfwSetWindowPos(app->win, target_pos->x, target_pos->y);
                 }
 
                 if (
-                    curwinw != target_rect.right - target_rect.left ||
-                    curwinh != target_rect.bottom - target_rect.top
+                    curwinw != target_rect->right - target_rect->left ||
+                    curwinh != target_rect->bottom - target_rect->top
                 ) {
                     glfwSetWindowSize(
                         app->win,
-                        target_rect.right - target_rect.left,
-                        target_rect.bottom - target_rect.top - 1
+                        target_rect->right - target_rect->left,
+                        target_rect->bottom - target_rect->top - 1
                     );
                 }
             }
@@ -710,7 +716,7 @@ int app_run() {
                 SetWindowPos(app->win_hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
             }
         } else {
-            char target_cls[512];
+            memset(target_cls, 0, 513);
             
             if (
                 app->target_hwnd &&
@@ -726,6 +732,11 @@ int app_run() {
 
         Sleep(10);
     }
+
+    egoverlay_free(fg_cls);
+    egoverlay_free(target_cls);
+    egoverlay_free(target_rect);
+    egoverlay_free(target_pos);
 
     logger_debug(app->log, "Waiting for render thread to end...");
     WaitForSingleObject(render_thread, INFINITE);
