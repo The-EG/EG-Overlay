@@ -42,6 +42,8 @@
 
 #define WM_SYSTRAYEVENT (WM_APP + 1)
 #define WM_SYSTRAYQUIT  (WM_APP + 2)
+#define WM_SYSTRAYLOG   (WM_APP + 3)
+#define WM_SYSTRAYDOCS  (WM_APP + 4)
 
 typedef struct {
     logger_t *log;
@@ -72,7 +74,7 @@ static LRESULT CALLBACK winproc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
             // if the window isn't foreground the menu will not close if the user clicks out of it
             // https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-trackpopupmenu
             SetForegroundWindow(app->message_win); 
-            int doquit = TrackPopupMenu(
+            int systraycmd = TrackPopupMenu(
                 app->sys_tray_menu,
                 TPM_RETURNCMD,
                 GET_X_LPARAM(wParam),
@@ -81,10 +83,23 @@ static LRESULT CALLBACK winproc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
                 app->message_win,
                 NULL
             );
-            if (doquit==WM_SYSTRAYQUIT) {
+            switch(systraycmd) {
+            case WM_SYSTRAYQUIT:
                 logger_debug(app->log,"Quit selected.");
                 glfwSetWindowShouldClose(app->win, GLFW_TRUE);
+                break;
+            case WM_SYSTRAYLOG:
+                logger_debug(app->log, "Opening log file...");
+                ShellExecute(NULL, "open", "eg-overlay.log", NULL, NULL, SW_SHOWNORMAL);
+                break;
+            case WM_SYSTRAYDOCS:
+                logger_debug(app->log, "Opening documentation...");
+                ShellExecute(NULL, "open", "https://the-eg.github.io/EG-Overlay", NULL, NULL, SW_SHOWNORMAL);
+                break;
+            default:
+                logger_error(app->log, "Unknown system tray menu command: %d", systraycmd);
             }
+
             PostMessage(app->message_win, WM_NULL, 0, 0);
         }
         break;
@@ -294,7 +309,7 @@ void app_init(HINSTANCE hinst, int argc, char **argv) {
     logger_set_default(log);
 
     logger_info(log, "====================================================");
-    logger_info(log, "EG Overlay startup");
+    logger_info(log, "EG-Overlay startup");
     logger_info(log, "Version " VERSION_STR);
     logger_info(log, "Git Commit: " GITHASHSTR);
     logger_info(log, "----------------------------------------------------");
@@ -454,7 +469,12 @@ void app_init(HINSTANCE hinst, int argc, char **argv) {
     }
 
     app->sys_tray_menu = CreatePopupMenu();
-    AppendMenu(app->sys_tray_menu, MF_ENABLED | MF_STRING, WM_SYSTRAYQUIT, "Quit");
+    AppendMenu(app->sys_tray_menu, MF_GRAYED | MF_STRING , 0             , "EG-Overlay " VERSION_STR);
+    AppendMenu(app->sys_tray_menu, MF_SEPARATOR          , 0             , NULL                     );
+    AppendMenu(app->sys_tray_menu, MF_ENABLED | MF_STRING, WM_SYSTRAYDOCS, "Open documentation"     );
+    AppendMenu(app->sys_tray_menu, MF_ENABLED | MF_STRING, WM_SYSTRAYLOG , "Open log file"          );
+    AppendMenu(app->sys_tray_menu, MF_SEPARATOR          , 0             , NULL                     );
+    AppendMenu(app->sys_tray_menu, MF_ENABLED | MF_STRING, WM_SYSTRAYQUIT, "Quit"                   );
 }
 
 void app_cleanup() {
@@ -471,7 +491,7 @@ void app_cleanup() {
     settings_unref(app->settings);
 
     logger_info(app->log, "----------------------------------------------------");
-    logger_info(app->log, "EG Overlay shutdown");
+    logger_info(app->log, "EG-Overlay shutdown");
     logger_info(app->log, "====================================================");
 
     logger_free(app->log);
@@ -625,7 +645,7 @@ int app_run() {
     nid.uCallbackMessage = WM_SYSTRAYEVENT;
     nid.uVersion = NOTIFYICON_VERSION_4;
     nid.hIcon = LoadIcon(app->inst, MAKEINTRESOURCE(IDI_EGOVERLAY_16x16));
-    memcpy(nid.szTip, "EG-Overlay", strlen("EG-Overlay"));
+    memcpy(nid.szTip, "EG-Overlay " VERSION_STR, strlen("EG-Overlay " VERSION_STR));
     
     Shell_NotifyIcon(NIM_ADD, &nid);
     Shell_NotifyIcon(NIM_SETVERSION, &nid);
