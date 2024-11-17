@@ -308,11 +308,11 @@ void app_init(HINSTANCE hinst, int argc, char **argv) {
 
     logger_set_default(log);
 
-    logger_info(log, "====================================================");
+    logger_info(log, "============================================================");
     logger_info(log, "EG-Overlay startup");
     logger_info(log, "Version " VERSION_STR);
     logger_info(log, "Git Commit: " GITHASHSTR);
-    logger_info(log, "----------------------------------------------------");
+    logger_info(log, "------------------------------------------------------------");
 
     app = egoverlay_calloc(1, sizeof(app_t));
     app->target_win_class = "ArenaNet_Gr_Window_Class";
@@ -419,11 +419,11 @@ void app_init(HINSTANCE hinst, int argc, char **argv) {
         glDebugMessageCallback(&gl_debug_output, NULL);
         glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, NULL, GL_TRUE);
 
-        logger_warn(app->log, "OpenGL debug logging enabled.");
+        logger_debug(app->log, "OpenGL debug logging enabled.");
     }
 
     logger_info(app->log, "OpenGL Initialized");
-    logger_info(app->log, "----------------------------------------------");
+    logger_info(app->log, "------------------------------------------------------------");
     logger_info(app->log, "Version       %s", (char*)glGetString(GL_VERSION));
     logger_info(app->log, "Renderer:     %s", (char*)glGetString(GL_RENDERER));
     logger_info(app->log, "Vendor:       %s", (char*)glGetString(GL_VENDOR));
@@ -439,7 +439,7 @@ void app_init(HINSTANCE hinst, int argc, char **argv) {
     }
     */
 
-    logger_info(app->log, "----------------------------------------------");
+    logger_info(app->log, "------------------------------------------------------------");
 
     glfwSwapInterval(0); // no V-sync
 
@@ -490,9 +490,9 @@ void app_cleanup() {
     
     settings_unref(app->settings);
 
-    logger_info(app->log, "----------------------------------------------------");
+    logger_info(app->log, "------------------------------------------------------------");
     logger_info(app->log, "EG-Overlay shutdown");
-    logger_info(app->log, "====================================================");
+    logger_info(app->log, "============================================================");
 
     logger_free(app->log);
     logger_cleanup();
