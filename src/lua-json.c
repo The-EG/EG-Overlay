@@ -29,10 +29,14 @@ int json_lua_mod_loads(lua_State *L);
 int json_lua_mod_dumps(lua_State *L);
 int json_lua_mod_JSON_INDENT(lua_State *L);
 int json_lua_mod_JSON_REAL_PRECISION(lua_State *L);
+int json_lua_mod_array(lua_State *L);
+int json_lua_mod_object(lua_State *L);
 
 luaL_Reg json_mod_funcs[] = {
     "loads"              , &json_lua_mod_loads,
     "dumps"              , &json_lua_mod_dumps,
+    "array"              , &json_lua_mod_array,
+    "object"             , &json_lua_mod_object,
     "JSON_INDENT"        , &json_lua_mod_JSON_INDENT,
     "JSON_REAL_PRECISION", &json_lua_mod_JSON_REAL_PRECISION,
     NULL                 ,  NULL
@@ -257,6 +261,40 @@ int json_lua_mod_dumps(lua_State *L) {
     free(str);
 
     return 1;    
+}
+
+/*** RST
+    .. lua:function:: array()
+
+        Create a new empty JSON array.
+
+        :rtype: JSON.json
+
+        ..versionhistory::
+            :0.1.0: Added
+*/
+int json_lua_mod_array(lua_State *L) {
+    json_t *arr = json_array();
+
+    lua_pushjson(L, arr);
+    return 1;
+}
+
+/*** RST
+    .. lua:function:: object()
+
+        Create a new empty JSON object.
+
+        :rtype: JSON.json
+
+        .. versionhistory::
+            :0.1.0: Added
+*/
+int json_lua_mod_object(lua_State *L) {
+    json_t *obj = json_object();
+
+    lua_pushjson(L, obj);
+    return 1;
 }
 
 int json_lua_mod_JSON_INDENT(lua_State *L) {
