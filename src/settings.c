@@ -82,11 +82,31 @@ settings_t *settings_new(const char *name) {
     settings->data = json_load_file(settings->file_path, 0, &error);
 
     if (!settings->data) {
-        logger_warn(settings->log, "Couldn't load %s: %s", settings->file_path, error.text);
-        logger_warn(settings->log, "Creating new settings file: %s", settings->file_path);
+        enum json_error_code errcode = json_error_code(&error);
+        if (errcode==json_error_cannot_open_file) {
+            logger_warn(settings->log, "Couldn't load %s: %s", settings->file_path, error.text);
+            logger_warn(settings->log, "Creating new settings file: %s", settings->file_path);
 
-        settings->data = json_object();
-        settings_save(settings);
+            settings->data = json_object();
+            settings_save(settings);
+        } else {
+            logger_error(
+                settings->log,
+                "Couldn't load %s: %s at %d:%d",
+                settings->file_path,
+                error.text,
+                error.line,
+                error.column
+            );
+            error_and_exit(
+                "EG-Overlay: Settings Error",
+                "Couldn't load %s:\n%s\nat %d:%d",
+                settings->file_path,
+                error.text,
+                error.line,
+                error.column
+            );
+        }
     }
 
     settings->default_values_hash_size = 64;
@@ -699,11 +719,13 @@ int settings_lua_set_default(lua_State *L) {
     const char *key = luaL_checkstring(L, 2);
 
     switch(lua_type(L, 3)) {
+    /*
     case LUA_TUSERDATA: { 
         json_t *val = lua_checkjson(L, 3);
         settings_set_default(s, key, val);
         json_decref(val);
         break; }
+    */
     case LUA_TNUMBER: {
         if (lua_isinteger(L, 3)) {
             int val = (int)lua_tointeger(L, 3);
@@ -725,7 +747,7 @@ int settings_lua_set_default(lua_State *L) {
         settings_set_default_string(s, key, val);
         break;}
     default:
-        logger_error(s->log, "Don't know how to handle lua data type.");
+        return luaL_error(L, "Value can't be used as settings default.");
         break;
     }
 
