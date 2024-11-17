@@ -236,7 +236,12 @@ void lua_manager_run_file(const char *path) {
     if (r!=LUA_OK) {
         // error occurred
         const char *errmsg = luaL_checkstring(thread, -1);
-        logger_error(lua->log, "Error occurred during lua run file: %s", errmsg);
+        luaL_traceback(lua->lua, thread, errmsg, 0);
+        const char *traceback = luaL_checkstring(lua->lua, -1);
+        logger_error(lua->log, "Error occurred during lua run file: %s", traceback);
+
+        lua_pop(lua->lua, 1);
+
         lua_pop(thread, 1);
         // pop the thread
         lua_closethread(thread, NULL);
@@ -631,7 +636,6 @@ void lua_manager_run_events() {
         lua_State *cothread = lua_newthread(lua->lua);
 
         int narg = e->cb(cothread, e->data);
-
         
         int nres = 0;
         int status = lua_resume(cothread, NULL, narg, &nres);
@@ -652,7 +656,11 @@ void lua_manager_run_events() {
         } else {
             // error occurred
             const char *errmsg = luaL_checkstring(cothread, -1);
-            logger_error(lua->log, "Error occurred during lua callback event handler: %s", errmsg);
+            luaL_traceback(lua->lua, cothread, errmsg, 0);
+            const char *traceback = luaL_checkstring(lua->lua, -1);
+
+            logger_error(lua->log, "Error occurred while running event callback: %s", traceback);
+            lua_pop(lua->lua, 1);
             lua_pop(cothread, 1);
             // pop the thread
             lua_pop(lua->lua, 1);
@@ -691,7 +699,11 @@ int lua_manager_resume_coroutines() {
         } else {
             // error, clean up the thread
             const char *errmsg = luaL_checkstring(c->thread, -1);
-            logger_error(lua->log, "Error while resuming event coroutine: %s", errmsg);
+            luaL_traceback(lua->lua, c->thread, errmsg, 0);
+            const char *traceback = luaL_checkstring(lua->lua, -1);
+
+            logger_error(lua->log, "Error occurred while resuming event coroutine: %s", traceback);
+            lua_pop(lua->lua, 1);
             lua_pop(c->thread, 1);
             luaL_unref(lua->lua, LUA_REGISTRYINDEX, c->threadi);
             lua_closethread(c->thread, NULL);
@@ -741,7 +753,11 @@ void lua_manager_call_event_handlers(const char *event, int data_cbi) {
         } else {
             // error occurred
             const char *errmsg = luaL_checkstring(cothread, -1);
-            logger_error(lua->log, "Error occurred during lua event handler (%s): %s", event, errmsg);
+            luaL_traceback(lua->lua, cothread, errmsg, 0);
+            const char *traceback = luaL_checkstring(lua->lua, -1);
+
+            logger_error(lua->log, "Error occurred during lua event handler (%s): %s", event, traceback);
+            lua_pop(lua->lua, 1);
             lua_pop(cothread, 1);
             // pop the thread
             lua_pop(lua->lua, 1);
