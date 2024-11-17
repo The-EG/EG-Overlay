@@ -1,14 +1,14 @@
 /*** RST
-JSON
-====
+jansson
+=======
 
-.. lua:module:: JSON
+.. lua:module:: jansson
 
 .. code-block:: lua
 
-    local JSON = require 'JSON'
+    local json = require 'jansson'
 
-The :lua:mod:`JSON` Module provides JSON parsing, manipulation, and
+The :lua:mod:`jansson` Module provides JSON parsing, manipulation, and
 serialization. It is a thin wrapper of the Jansson library.
 */
 
