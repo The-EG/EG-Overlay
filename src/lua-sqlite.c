@@ -413,8 +413,9 @@ int statement_lua_step(lua_State *L) {
 
     if (r==SQLITE_ROW) {
         // put the row into a table
-        lua_newtable(L);
-        for (int c=0;c<sqlite3_column_count(stmt->stmt);c++) {
+        int colcount = sqlite3_column_count(stmt->stmt);
+        lua_createtable(L, 0, colcount);
+        for (int c=0;c<colcount;c++) {
             const char *cname = sqlite3_column_name(stmt->stmt, c);
 
             switch (sqlite3_column_type(stmt->stmt, c)) {
