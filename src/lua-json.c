@@ -442,7 +442,7 @@ int json_lua_new_index(lua_State *L) {
     if (json_is_array(json)) {
         int ind = (int)luaL_checkinteger(L, 2);
         ind--; // lua indexes start at 1, we start at 0
-        if (ind < 0 || ind >= json_array_size(json)) {
+        if (ind < 0 || ind > json_array_size(json)) {
             return luaL_error(L, "JSON array index %d out of range.", ind);
         }
         json_t *val = lua_tojson(L, 3);
@@ -472,7 +472,7 @@ int json_lua_len(lua_State *L) {
         lua_pushinteger(L, 0);
     } else {
         // this should never happen
-        return luaL_error(L, "JSON object is not an array or an object, can't be indexed.");
+        return luaL_error(L, "JSON object is not an array or an object, can't be indexed. (%d)", json_typeof(json));
     }
 
     return 1;
