@@ -849,6 +849,7 @@ int lua_checkuialign(lua_State *L, int ind) {
 }
 
 ui_element_t *lua_checkuielement(lua_State *L, int ind) {
+    if (lua_type(L, ind)!=LUA_TUSERDATA) luaL_error(L, "Argument #%d is not a UI element.", ind);
     ui_element_t *e = *(ui_element_t**)lua_touserdata(L, ind);
 
     if (e==NULL) luaL_error(L, "Argument #%d is not a UI element.", ind);
