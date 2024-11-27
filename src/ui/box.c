@@ -542,7 +542,7 @@ int ui_box_lua_pop_end(lua_State *L) {
             prev = f;
             f = f->next;
         }
-
+        if (box->items == f) box->items = NULL;
         ui_element_unref(f->item);
         egoverlay_free(f);
         if (prev) prev->next = NULL;
