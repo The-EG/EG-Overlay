@@ -1,6 +1,6 @@
 #include "../gl.h"
 #include "ui.h"
-#include "../logging/helpers.h"
+#include "../logging/logger.h"
 #include "rect.h"
 #include "../utils.h"
 #include "../lamath.h"

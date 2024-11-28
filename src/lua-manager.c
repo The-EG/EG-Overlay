@@ -7,7 +7,7 @@
 #include <glfw/glfw3.h>
 #include "app.h"
 #include "lua-manager.h"
-#include "logging/helpers.h"
+#include "logging/logger.h"
 #include "utils.h"
 #include <lua.h>
 #include <lualib.h>

@@ -2,7 +2,7 @@
 #include <lauxlib.h>
 #include <string.h>
 #include "image.h"
-#include "../logging/helpers.h"
+#include "../logging/logger.h"
 #include "../utils.h"
 #include "../gl.h"
 

@@ -22,7 +22,7 @@ void log_file_sink_write(log_file_sink_t *sink, enum LOGGER_LEVEL level, const c
     
     fprintf(sink->f, "%s\n", message);
 
-    fflush(sink->f);
+    if (level==LOGGER_LEVEL_WARNING || level==LOGGER_LEVEL_ERROR) fflush(sink->f);
 }
 
 log_sink_t *log_file_sink_clone(log_file_sink_t *sink) {

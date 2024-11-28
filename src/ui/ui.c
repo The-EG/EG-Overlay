@@ -1,6 +1,6 @@
 #include <windows.h>
 #include "ui.h"
-#include "logging/helpers.h"
+#include "logging/logger.h"
 #include "utils.h"
 #include "lamath.h"
 #include "rect.h"

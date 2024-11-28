@@ -10,6 +10,7 @@
 
 #include "app.h"
 #include "logging/logger.h"
+#include "logging/console-sink.h"
 #include "logging/file-sink.h"
 #include "logging/event-sink.h"
 #include "logging/dbg-sink.h"
@@ -304,7 +305,19 @@ void app_init(HINSTANCE hinst, int argc, char **argv) {
     logger_add_sink(log, file_sink);
     logger_add_sink(log, lua_sink);
 
-    if (IsDebuggerPresent()) {
+    // attach additional log output
+    if (AttachConsole(ATTACH_PARENT_PROCESS)) {
+        // First, if the overlay was launched from a console window of some sort
+        // just use that console's standard error.
+        // At this point EG-Overlay is attached to the console, so if it is
+        // closed, our process exits too.
+        log_sink_t *con_sink = log_console_sink_new();
+        logger_add_sink(log, con_sink);
+    } else if (IsDebuggerPresent()) {
+        // If no console exists, see if we are in a debugging session, and if
+        // so, output there. We only do this if not already attached to a
+        // console because doing both would mean duplicate output on a console
+        // debugger.
         log_sink_t *dbg_sink = log_dbg_sink_new();
         logger_add_sink(log, dbg_sink);
     }

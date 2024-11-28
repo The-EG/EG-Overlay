@@ -1,7 +1,7 @@
 #include <math.h>
 #include "font.h"
 #include "../utils.h"
-#include "../logging/helpers.h"
+#include "../logging/logger.h"
 #include "../gl.h"
 #include "../utils.h"
 
