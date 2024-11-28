@@ -13,7 +13,7 @@ copyright = '2024, Taylor Talkington'
 author = 'Taylor Talkington'
 
 version = '0.1.0'
-release = '0.1.0-pre'
+release = '0.1.0-dev'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
