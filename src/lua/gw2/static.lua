@@ -846,6 +846,7 @@ local function runupdateachievements()
 
         table.insert(curbucket, id)
     end
+    if #curbucket > 0 then table.insert(idbuckets, curbucket) end
 
     static.log:info('%d achievements, fetching in %d groups of 100', #achievement_ids, #idbuckets)
 
