@@ -1,15 +1,17 @@
 #version 460
 
-layout(location = 0) in vec4 fragColor;
-layout(location = 1) in vec2 fragTexCoord;
+layout(location = 0) in vec3 fragTexCoord;
+
+layout(location = 1) uniform vec4 color;
 
 layout(location = 0) out vec4 outColor;
 
-uniform sampler2DRect texSampler;
+layout(binding = 0) uniform sampler2DArray texSampler;
 
 void main() {
-    vec4 t = texture(texSampler, fragTexCoord);
+    ivec3 c = ivec3(floor(fragTexCoord.x), floor(fragTexCoord.y), floor(fragTexCoord.z));
+    vec4 t = texelFetch(texSampler, c, 0);
 
-    float alpha = t.r * fragColor.a;
-    outColor = vec4(fragColor.rgb * alpha, alpha);
+    float alpha = t.r * color.a;
+    outColor = vec4(color.rgb * alpha, alpha);
 }

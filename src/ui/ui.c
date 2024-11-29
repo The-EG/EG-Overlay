@@ -689,27 +689,18 @@ If style parameters are omitted, defaults will be used.
 .. admonition:: Implementation Detail
 
     Fonts are rendered using a textured quad for each glyph. To attain useable
-    performance, glyphs are pre-rendered to a texture that is then used to
+    performance, glyphs are pre-rendered to a texture array that is then used to
     render glyphs each frame.
 
     Unlike many other UI frameworks, this pre-rendering is not static. Each font
-    face, size, weight, slant, and width combination has a set of 512x512
-    texture 'pages' where glyphs are pre-rendered. When a unique font combination
-    is requested a new page is created and pre-rendered with the standard ASCII
-    glyphs. 
+    face, size, weight, slant, and width combination has a 512x512xN texture
+    array, where N is a variable number of layers that are created as needed.
+    When a unique font combination is requested a texture array with a single
+    layer is created and pre-rendered with the standard ASCII glyphs. 
 
     Additional glyphs are pre-rendered the first time they are requested. This
     means that the UI may suffer a performance hit on the first frame a new
     glyph is rendered, but all subsequent frames should be unaffected.
-
-    Due to the fact that the texture pages are a fixed size (512x512), larger
-    font sizes will require more pages. Additional pages will have a small
-    negative impact on render performance since each time a glyph is rendered,
-    each page must be searched for it in sequence. Since all ASCII glyphs are
-    pre-rendered first, this should put the most common glyphs on the first page
-    and most commonly used font sizes should have extra room on the first page
-    after that. In reality, this should only be a concern for huge font sizes
-    (> 40).
 
 .. _ui-events:
 

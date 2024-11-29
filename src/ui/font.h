@@ -3,6 +3,7 @@
 #include "../lamath.h"
 
 typedef struct ui_font_t ui_font_t;
+typedef struct ui_font_vbo_data_t ui_font_vbo_data_t;
 
 void ui_font_init();
 void ui_font_cleanup();
@@ -25,4 +26,4 @@ uint32_t ui_font_get_line_spacing(ui_font_t *font);
 
 uint32_t ui_font_get_index_of_width(ui_font_t *font, const char *text, int width);
 
-int ui_font_get_text_wrap_indices(ui_font_t *font, const char *text, int width, int **wrap_indices);
+//int ui_font_get_text_wrap_indices(ui_font_t *font, const char *text, int width, int **wrap_indices);
