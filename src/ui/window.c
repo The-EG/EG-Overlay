@@ -47,8 +47,15 @@ struct ui_window_s {
 
     int showtitlebar;
 
+    ui_color_t bg_color;
+    ui_color_t border_color;
+    ui_color_t border_hl_color;
+    ui_color_t titlebar_text_color;
+
     int shown;
 };
+
+static ui_font_t *win_font = NULL;
 
 void ui_window_free(ui_window_t *window);
 
@@ -61,60 +68,40 @@ void ui_window_save_to_settings(ui_window_t *win);
 void ui_window_set_showtitlebar(ui_window_t *win, int showtitlebar);
 
 static void ui_window_draw_decorations(ui_window_t *win, int offset_x, int offset_y, mat4f_t *proj) {
-    ui_color_t bg_color = 0;
-    ui_color_t border_color = 0;
-    ui_color_t border_highlight_color = 0;
-    ui_color_t text_color = 0;
-
-    char *font_path;
-    int font_size = 0;
-    int font_weight = INT_MIN;
-    
-    GET_APP_SETTING_INT("overlay.ui.colors.windowBG",              (int*)&bg_color);
-    GET_APP_SETTING_INT("overlay.ui.colors.windowBorder",          (int*)&border_color);
-    GET_APP_SETTING_INT("overlay.ui.colors.windowBorderHighlight", (int*)&border_highlight_color);
-    GET_APP_SETTING_INT("overlay.ui.colors.text",                  (int*)&text_color);
-
     int win_x = offset_x + win->element.x;
     int win_y = offset_y + win->element.y;
 
     // background
-    ui_rect_draw(win_x, win_y, win->element.width, win->element.height, bg_color, proj);
+    ui_rect_draw(win_x, win_y, win->element.width, win->element.height, win->bg_color, proj);
 
     // borders
-    ui_rect_draw(win_x, win_y, 1, win->element.height, border_color, proj); // left
-    ui_rect_draw(win_x, win_y + win->element.height - 1, win->element.width, 1, border_color, proj); // bottom
-    ui_rect_draw(win_x + win->element.width - 1, win_y, 1, win->element.height, border_color, proj); // right
+    ui_rect_draw(win_x, win_y, 1, win->element.height, win->border_color, proj); // left
+    ui_rect_draw(win_x, win_y + win->element.height - 1, win->element.width, 1, win->border_color, proj); // bottom
+    ui_rect_draw(win_x + win->element.width - 1, win_y, 1, win->element.height, win->border_color, proj); // right
 
     if (win->showtitlebar) {
         int titlebar_height = win->child_y_offset - 1;
 
-        GET_APP_SETTING_STR("overlay.ui.font.path", &font_path);
-        GET_APP_SETTING_INT("overlay.ui.font.size", &font_size);
-        GET_APP_SETTING_INT("overlay.ui.font.weight", &font_weight);
-
-        ui_font_t *font = ui_font_get(font_path, font_size, font_weight, INT_MIN, INT_MIN);
-
         // titlebar
         ui_rect_draw(win_x, win_y, win->element.width, titlebar_height, 
-                     win->highlight_title ? border_highlight_color : border_color, proj);
+                     win->highlight_title ? win->border_hl_color : win->border_color, proj);
 
         // caption
         int old_scissor[4];
         push_scissor(win_x + 1, win_y + 1, win->element.width - 2, win->child_y_offset - 2, old_scissor);
 
-        ui_font_render_text(font, proj, win_x + 3, win_y + 3, win->caption, strlen(win->caption), text_color);
+        ui_font_render_text(win_font, proj, win_x + 3, win_y + 3, win->caption, strlen(win->caption), win->titlebar_text_color);
 
         pop_scissor(old_scissor);
     } else {
         // top border
-        ui_rect_draw(win_x, win_y, win->element.width, 1, border_color, proj);
+        ui_rect_draw(win_x, win_y, win->element.width, 1, win->border_color, proj);
     }
 
     // resize box
     if (win->resizable && win->draw_resizer) {
         ui_rect_draw(win_x + win->element.width - 11, win_y + win->element.height - 11,
-                     10, 10, border_highlight_color, proj);
+                     10, 10, win->border_hl_color, proj);
     }
 }
 
@@ -139,6 +126,22 @@ ui_window_t *ui_window_new(const char *caption, int x, int y) {
 
     win->vanchor = -1;
     win->hanchor = -1;
+
+    GET_APP_SETTING_INT("overlay.ui.colors.windowBG",              (int*)&win->bg_color);
+    GET_APP_SETTING_INT("overlay.ui.colors.windowBorder",          (int*)&win->border_color);
+    GET_APP_SETTING_INT("overlay.ui.colors.windowBorderHighlight", (int*)&win->border_hl_color);
+    GET_APP_SETTING_INT("overlay.ui.colors.text",                  (int*)&win->titlebar_text_color);
+
+    if (!win_font) {
+        char *font_path;
+        int font_size = 0;
+        int font_weight = INT_MIN;
+
+        GET_APP_SETTING_STR("overlay.ui.font.path", &font_path);
+        GET_APP_SETTING_INT("overlay.ui.font.size", &font_size);
+        GET_APP_SETTING_INT("overlay.ui.font.weight", &font_weight);
+        win_font = ui_font_get(font_path, font_size, font_weight, INT_MIN, INT_MIN);
+    }
 
     ui_window_set_showtitlebar(win, 1);
     

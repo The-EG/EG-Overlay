@@ -12,6 +12,8 @@
 
 typedef void menu_item_free_fn(void *menu_item);
 
+static ui_font_t *submenu_font = NULL;
+
 struct ui_menu_item_t {
     ui_element_t element;
 
@@ -38,7 +40,8 @@ struct ui_menu_t {
     ui_menu_t *parent_menu;
 
     ui_box_t *box;
-
+    ui_color_t bg_color;
+    ui_color_t border_color;
 };
 
 void ui_menu_free(ui_menu_t *menu);
@@ -96,13 +99,7 @@ void ui_menu_item_draw(ui_menu_item_t *item, int offset_x, int offset_y, mat4f_t
     }
 
     if (item->sub_menu) {
-        char *font_path;
-        int font_size = 0;
-
-        GET_APP_SETTING_STR("overlay.ui.font.path", &font_path);
-        GET_APP_SETTING_INT("overlay.ui.font.size", &font_size);
-        ui_font_t *post_font = ui_font_get(font_path, font_size, 900, INT_MIN, INT_MIN);
-        ui_font_render_text(post_font, proj, offset_x + item->element.x + item->element.width - item->post_size,
+        ui_font_render_text(submenu_font, proj, offset_x + item->element.x + item->element.width - item->post_size,
                             offset_y + item->element.y + 2, "\u21b4", 4, 0xFFFFFFFF);
     }
 }
@@ -171,15 +168,9 @@ void ui_menu_draw(ui_menu_t *menu, int offset_x, int offset_y, mat4f_t *proj) {
     menu->element.width = boxw + 2;
     menu->element.height = boxh + 2;
 
-    ui_color_t bg_color;
-    ui_color_t border_color;
-    settings_t *app_settings = app_get_settings();
-    settings_get_int(app_settings, "overlay.ui.colors.menuBG", (int*)&bg_color);
-    settings_get_int(app_settings, "overlay.ui.colors.menuBorder", (int*)&border_color);
-
     // background
     ui_rect_draw(offset_x + menu->element.x, offset_y + menu->element.y,
-                 menu->element.width, menu->element.height, bg_color, proj);
+                 menu->element.width, menu->element.height, menu->bg_color, proj);
 
     // border
     ui_rect_draw( // left
@@ -187,7 +178,7 @@ void ui_menu_draw(ui_menu_t *menu, int offset_x, int offset_y, mat4f_t *proj) {
         offset_y + menu->element.y,
         1,
         menu->element.height,
-        border_color,
+        menu->border_color,
         proj
     );
     ui_rect_draw( // right
@@ -195,7 +186,7 @@ void ui_menu_draw(ui_menu_t *menu, int offset_x, int offset_y, mat4f_t *proj) {
         offset_y + menu->element.y,
         1,
         menu->element.height,
-        border_color,
+        menu->border_color,
         proj
     );
     ui_rect_draw( // top
@@ -203,7 +194,7 @@ void ui_menu_draw(ui_menu_t *menu, int offset_x, int offset_y, mat4f_t *proj) {
         offset_y + menu->element.y,
         menu->element.width,
         1,
-        border_color,
+        menu->border_color,
         proj
     );
     ui_rect_draw( // bottom
@@ -211,7 +202,7 @@ void ui_menu_draw(ui_menu_t *menu, int offset_x, int offset_y, mat4f_t *proj) {
         offset_y + menu->element.y + menu->element.height - 1,
         menu->element.width,
         1,
-        border_color,
+        menu->border_color,
         proj
     );
 
@@ -232,6 +223,19 @@ ui_menu_t *ui_menu_new() {
     menu->element.free = &ui_menu_free;
 
     menu->box = ui_box_new(UI_BOX_ORIENTATION_VERTICAL);
+
+    settings_t *app_settings = app_get_settings();
+    settings_get_int(app_settings, "overlay.ui.colors.menuBG", (int*)&menu->bg_color);
+    settings_get_int(app_settings, "overlay.ui.colors.menuBorder", (int*)&menu->border_color);
+
+    if (!submenu_font) {
+        char *font_path;
+        int font_size = 0;
+
+        GET_APP_SETTING_STR("overlay.ui.font.path", &font_path);
+        GET_APP_SETTING_INT("overlay.ui.font.size", &font_size);
+        submenu_font = ui_font_get(font_path, font_size, 900, INT_MIN, INT_MIN);
+    }
 
     ui_element_ref(menu);
 

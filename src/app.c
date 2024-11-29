@@ -556,6 +556,8 @@ static DWORD WINAPI app_render_thread(LPVOID lpParam) {
     double frame_begin;
     double frame_end;
     double frame_target;
+
+    settings_get_double(app->settings, "overlay.frameTargetTime", &frame_target);        
     
     vec3f_t avatar = {0,0,0};
     vec3f_t camera = {0,0,0};
@@ -570,7 +572,6 @@ static DWORD WINAPI app_render_thread(LPVOID lpParam) {
     //glStencilMask(0x0);
 
     while (!glfwWindowShouldClose(app->win)) {
-        settings_get_double(app->settings, "overlay.frameTargetTime", &frame_target);        
         frame_begin = glfwGetTime();
 
         int width;

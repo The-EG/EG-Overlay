@@ -31,6 +31,10 @@ struct ui_text_entry_t {
     int caret_x;
 
     int lua_cbi;
+
+    ui_color_t border_color;
+    ui_color_t border_hl_color;
+    ui_color_t text_color;
 };
 
 void ui_text_entry_free(ui_text_entry_t *entry);
@@ -61,6 +65,10 @@ ui_text_entry_t *ui_text_entry_new(ui_font_t *font) {
 
     entry->pref_width = 50;
     entry->pref_height = ui_font_get_line_spacing(entry->font) + 4;
+
+    GET_APP_SETTING_INT("overlay.ui.colors.windowBorder",          (int*)&entry->border_color);
+    GET_APP_SETTING_INT("overlay.ui.colors.windowBorderHighlight", (int*)&entry->border_hl_color);
+    GET_APP_SETTING_INT("overlay.ui.colors.text",                  (int*)&entry->text_color);
 
     ui_element_ref(entry);
 
@@ -114,17 +122,10 @@ int ui_text_entry_get_preferred_size(ui_text_entry_t *entry, int *width, int *he
 
 void ui_text_entry_draw(ui_text_entry_t *entry, int offset_x, int offset_y, mat4f_t *proj) {
     ui_color_t bg_color = 0x262626FF;
-    ui_color_t border_color = 0;
-    ui_color_t border_highlight_color = 0;
-    ui_color_t text_color = 0;
 
     ui_color_t hint_color = 0x707070FF;
 
     int have_focus = ui_element_has_focus(entry);
-
-    GET_APP_SETTING_INT("overlay.ui.colors.windowBorder",          (int*)&border_color);
-    GET_APP_SETTING_INT("overlay.ui.colors.windowBorderHighlight", (int*)&border_highlight_color);
-    GET_APP_SETTING_INT("overlay.ui.colors.text",                  (int*)&text_color);
 
     int ex = offset_x + entry->element.x;
     int ey = offset_y + entry->element.y;
@@ -133,7 +134,7 @@ void ui_text_entry_draw(ui_text_entry_t *entry, int offset_x, int offset_y, mat4
     ui_rect_draw(ex, ey, entry->element.width, entry->element.height, bg_color, proj);
 
     // draw borders
-    ui_color_t bc = have_focus ? border_highlight_color : border_color;
+    ui_color_t bc = have_focus ? entry->border_hl_color : entry->border_color;
     ui_rect_draw(ex, ey, entry->element.width, 1, bc, proj);                             // top
     ui_rect_draw(ex, ey + entry->element.height - 1, entry->element.width, 1, bc, proj); // bottom
     ui_rect_draw(ex, ey, 1, entry->element.height, bc, proj);                            // left
@@ -150,7 +151,7 @@ void ui_text_entry_draw(ui_text_entry_t *entry, int offset_x, int offset_y, mat4
     } else if (strlen(entry->text)) {
         int old_scissor[4];
         if (push_scissor(ex+1, ey+1, entry->element.width-2, entry->element.height-2, old_scissor)) {
-            ui_font_render_text(entry->font, proj, ex+2, ey+2, entry->text, entry->text_len, text_color);
+            ui_font_render_text(entry->font, proj, ex+2, ey+2, entry->text, entry->text_len, entry->text_color);
 
             pop_scissor(old_scissor);
         }
@@ -158,7 +159,7 @@ void ui_text_entry_draw(ui_text_entry_t *entry, int offset_x, int offset_y, mat4
 
     if (have_focus) {        
         if (entry->caret_blink) {
-            ui_rect_draw(ex + 2 + entry->caret_x, ey + 2, 1, entry->element.height-4, text_color, proj);
+            ui_rect_draw(ex + 2 + entry->caret_x, ey + 2, 1, entry->element.height-4, entry->text_color, proj);
         }
 
         double now = glfwGetTime();
