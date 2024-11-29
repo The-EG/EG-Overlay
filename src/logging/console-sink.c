@@ -24,8 +24,13 @@ log_sink_t *log_console_sink_new() {
 void log_console_sink_write(log_sink_t *sink, enum LOGGER_LEVEL level, const char *message) {
     UNUSED_PARAM(level);
     struct log_console_sink_s *con = (struct log_console_sink_s*)sink;
-    WriteFile(con->consoleout, message, (DWORD)strlen(message), NULL, NULL);
-    WriteFile(con->consoleout, "\n", 1, NULL, NULL);
+
+    char *line = egoverlay_calloc(strlen(message)+2, sizeof(char));
+    memcpy(line, message, strlen(message));
+    line[strlen(message)] = '\n';
+
+    WriteFile(con->consoleout, line, (DWORD)strlen(message) + 1, NULL, NULL);
+    egoverlay_free(line);
 }
 
 log_sink_t *log_console_sink_clone (log_sink_t *sink) {
