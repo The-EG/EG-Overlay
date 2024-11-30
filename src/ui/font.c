@@ -417,7 +417,7 @@ static void ui_font_render_glyph(ui_font_t *font, uint32_t codepoint) {
             // gamma correction; first scale to 0..1
             double a = bm.buffer[goffset] / 255.0;
             // gamma = 2.0
-            double ca = pow(a, 1/2.0);
+            double ca = pow(a, 1/2.2);
             // the scale it back to 0..255 and store it
             pixels[goffset] = (uint8_t)ceil(ca * 255);
         }
