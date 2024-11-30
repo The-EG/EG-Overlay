@@ -108,9 +108,6 @@ function M.markerpack:new(path)
         log:debug("Loaded %s", path)
     end
 
-    -- at this point it won't be a circular reference
-    local markers = require 'markers'
-
     local cache_size = settings:get('markerpackCacheSize')
     mp.db:execute(string.format('PRAGMA cache_size = %d', cache_size))
 
