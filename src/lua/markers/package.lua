@@ -6,14 +6,13 @@ markers.package
 
 ]]--
 
-local overlay = require 'eg-overlay'
 local sqlite = require 'sqlite'
 local logger = require 'logger'
 local settings = require 'markers.settings'
 
 local log = logger.logger:new('markers.package')
 
-settings:set_default('markerpackCacheSize', -2000)
+settings:setdefault('markerpackCacheSize', -2000)
 
 local M = {}
 

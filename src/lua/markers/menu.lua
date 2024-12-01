@@ -88,12 +88,12 @@ local function onmainmenuevent(event)
 end
 
 local function onstartup()
-    overlay.queue_event('register-module-actions', {
+    overlay.queueevent('register-module-actions', {
         name = "Markers",
         primary_action = onmainmenuevent
     })
 end
 
-overlay.add_event_handler('startup', onstartup)
+overlay.addeventhandler('startup', onstartup)
 
 return {}

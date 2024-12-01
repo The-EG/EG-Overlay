@@ -40,10 +40,10 @@ local function duration_to_string(milliseconds)
 end
 
 local os_settings = settings.new('overlay-stats.lua')
-os_settings:set_default('window.x', 10)
-os_settings:set_default('window.y', 10)
-os_settings:set_default('window.width', 150)
-os_settings:set_default('window.height', 100)
+os_settings:setdefault('window.x', 10)
+os_settings:setdefault('window.y', 10)
+os_settings:setdefault('window.width', 150)
+os_settings:setdefault('window.height', 100)
 
 overlay_stats.win = ui.window("EG-Overlay Stats", 10, 10)
 overlay_stats.win:settings(os_settings, 'window')
@@ -116,15 +116,15 @@ function overlay_stats.update()
 
     fps.value:update_text(string.format('%.2f', cur_fps))
 
-    local mem = overlay.mem_usage()
+    local mem = overlay.memusage()
     mem_cur.value:update_text(string.format('%.2f MB', mem.working_set / 1024.0 / 1024.0))
     mem_peak.value:update_text(string.format('%.2f MB', mem.peak_working_set / 1024.0 / 1024.0))
 
-    sqlite_mem.value:update_text(string.format('%.2f MB', sqlite.memory_used() / 1024.0 / 1024.0))
+    sqlite_mem.value:update_text(string.format('%.2f MB', sqlite.memoryused() / 1024.0 / 1024.0))
 
     lua_mem.value:update_text(string.format('%.2f MB', collectgarbage('count') / 1024.0))
 
-    local proc_time = overlay.process_time()
+    local proc_time = overlay.processtime()
     local now = overlay.time()
 
     if last_process_time then
@@ -148,6 +148,6 @@ function overlay_stats.update()
     last_system_kernel_time = proc_time.system_kernel_time
 end
 
-overlay.add_event_handler('update', overlay_stats.update)
+overlay.addeventhandler('update', overlay_stats.update)
 
 return overlay_stats

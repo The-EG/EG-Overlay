@@ -43,7 +43,7 @@ local console_settings = settings.new("console.lua")
     .. versionhistory::
         :0.0.1: Added
 ]]--
-console_settings:set_default("window.x", 200)
+console_settings:setdefault("window.x", 200)
 
 --[[ RST
 .. overlay:modsetting:: window.y
@@ -55,7 +55,7 @@ console_settings:set_default("window.x", 200)
     .. versionhistory::
         :0.0.1: Added
 ]]--
-console_settings:set_default("window.y", 30)
+console_settings:setdefault("window.y", 30)
 
 --[[ RST
 .. overlay:modsetting:: window.width
@@ -67,7 +67,7 @@ console_settings:set_default("window.y", 30)
     .. versionhistory::
         :0.0.1: Added
 ]]--
-console_settings:set_default("window.width", 600)
+console_settings:setdefault("window.width", 600)
 
 --[[ RST
 .. overlay:modsetting:: window.height
@@ -79,7 +79,7 @@ console_settings:set_default("window.width", 600)
     .. versionhistory::
         :0.0.1: Added
 ]]--
-console_settings:set_default("window.height", 300)
+console_settings:setdefault("window.height", 300)
 
 --[[ RST
 .. overlay:modsetting:: window.show
@@ -91,7 +91,7 @@ console_settings:set_default("window.height", 300)
     .. versionhistory::
         :0.0.1: Added
 ]]--
-console_settings:set_default("window.show", false)
+console_settings:setdefault("window.show", false)
 
 --[[ RST
 .. overlay:modsetting:: maxLines
@@ -104,7 +104,7 @@ console_settings:set_default("window.show", false)
     .. versionhistory::
         :0.0.1: Added
 ]]--
-console_settings:set_default("maxLines", 1000)
+console_settings:setdefault("maxLines", 1000)
 
 --[[ RST
 .. overlay:modsetting:: colors.ERROR
@@ -116,7 +116,7 @@ console_settings:set_default("maxLines", 1000)
     .. versionhistory::
         :0.0.1: Added
 ]]--
-console_settings:set_default("colors.ERROR"  , 0x911717FF)
+console_settings:setdefault("colors.ERROR"  , 0x911717FF)
 
 --[[ RST
 .. overlay:modsetting:: colors.WARNING
@@ -128,7 +128,7 @@ console_settings:set_default("colors.ERROR"  , 0x911717FF)
     .. versionhistory::
         :0.0.1: Added
 ]]--
-console_settings:set_default("colors.WARNING", 0xb58326FF)
+console_settings:setdefault("colors.WARNING", 0xb58326FF)
 
 --[[ RST
 .. overlay:modsetting:: colors.DEBUG
@@ -140,7 +140,7 @@ console_settings:set_default("colors.WARNING", 0xb58326FF)
     .. versionhistory::
         :0.0.1: Added
 ]]--
-console_settings:set_default("colors.DEBUG"  , 0x676F80FF)
+console_settings:setdefault("colors.DEBUG"  , 0x676F80FF)
 
 --[[ RST
 .. overlay:modsetting:: colors.INFO
@@ -152,7 +152,7 @@ console_settings:set_default("colors.DEBUG"  , 0x676F80FF)
     .. versionhistory::
         :0.0.1: Added
 ]]--
-console_settings:set_default("colors.INFO"   , 0xFFFFFFFF)
+console_settings:setdefault("colors.INFO"   , 0xFFFFFFFF)
 
 console.win = ui.window("Lua Console/Log", 0, 0)
 console.win:min_size(600, 300)
@@ -281,14 +281,14 @@ end
 
 
 local function on_startup()
-    overlay.queue_event('register-module-actions', {
+    overlay.queueevent('register-module-actions', {
         name = "Lua Console",
         primary_action = primary_action
     })
 end
 
-overlay.add_event_handler('log-message', on_log_message)
-overlay.add_event_handler('startup', on_startup)
+overlay.addeventhandler('log-message', on_log_message)
+overlay.addeventhandler('startup', on_startup)
 
 -- redefine print so that it prints on the console. kind of hacky...but eh?
 function print(...)

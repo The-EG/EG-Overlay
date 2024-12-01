@@ -10,7 +10,6 @@ gw2.static
 
 ]]--
 
-local overlay = require 'eg-overlay'
 local sqlite = require 'sqlite'
 local logger = require 'logger'
 local overlay = require 'eg-overlay'
@@ -36,7 +35,7 @@ Attributes
 
 -- cheat a bit and create the db on load
 -- this way it at least exists before the startup event runs
-static.db = sqlite.open(overlay.data_folder('gw2') .. 'static.db')
+static.db = sqlite.open(overlay.datafolder('gw2') .. 'static.db')
 
 --[[ RST
 Database Tables

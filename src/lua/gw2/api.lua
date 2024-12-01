@@ -46,7 +46,7 @@ api.settings = settings.new('gw2.api.lua')
     .. versionhistory::
         :0.0.1: Added
 ]]--
-api.settings:set_default('enableCache', true)
+api.settings:setdefault('enableCache', true)
 
 --api.settings:set_default('cacheValidTime', 60)
 
@@ -60,7 +60,7 @@ api.settings:set_default('enableCache', true)
     .. versionhistory::
         :0.0.1: Added
 ]]--
-api.settings:set_default('apiKey', nil)
+api.settings:setdefault('apiKey', nil)
 
 
 local function api_url(endpoint)
@@ -70,8 +70,8 @@ end
 local function setup_request(request)
     local key = api.settings:get('apiKey')
 
-    if key then request:add_header('Authorization', 'Bearer ' .. key) end
-    request:add_header('X-Schema-Version', 'latest')
+    if key then request:addheader('Authorization', 'Bearer ' .. key) end
+    request:addheader('X-Schema-Version', 'latest')
 end
 
 local function dispatch_json_response(code, data, done, err, endpoint, cache)
@@ -211,7 +211,7 @@ function api.get(endpoint, params, done, err, sd, cache)
 
     if params then
         for p,v in pairs(params) do
-            req:add_query_parameter(p, v)
+            req:addqueryparameter(p, v)
         end
     end
 

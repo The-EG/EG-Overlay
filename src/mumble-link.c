@@ -325,26 +325,26 @@ int mumble_link_lua_index(lua_State *L) {
     const char *key = luaL_checkstring(L, 2);
     //size_t key_len = strlen(key);
 
-    if      (strcmp(key, "tick"                    )==0) return mumble_link_lua_tick(L);    
-    else if (strcmp(key, "version"                 )==0) return mumble_link_lua_version(L);
-    else if (strcmp(key, "character_name"          )==0) return mumble_link_lua_character_name(L);
-    else if (strcmp(key, "character_profession"    )==0) return mumble_link_lua_character_profession(L);
-    else if (strcmp(key, "character_specialization")==0) return mumble_link_lua_character_specialization(L);
-    else if (strcmp(key, "character_race"          )==0) return mumble_link_lua_character_race(L);
-    else if (strcmp(key, "avatar_position"         )==0) return mumble_link_lua_avatar_position(L);
-    else if (strcmp(key, "avatar_front"            )==0) return mumble_link_lua_avatar_front(L);
-    else if (strcmp(key, "avatar_top"              )==0) return mumble_link_lua_avatar_top(L);
-    else if (strcmp(key, "camera_position"         )==0) return mumble_link_lua_camera_position(L);
-    else if (strcmp(key, "camera_front"            )==0) return mumble_link_lua_camera_front(L);
-    else if (strcmp(key, "camera_top"              )==0) return mumble_link_lua_camera_top(L);
-    else if (strcmp(key, "map_type"                )==0) return mumble_link_lua_map_type(L);
-    else if (strcmp(key, "map_id"                  )==0) return mumble_link_lua_map_id(L);
-    else if (strcmp(key, "ui_state"                )==0) return mumble_link_lua_ui_state(L);
-    else if (strcmp(key, "mapopen"                 )==0) return mumble_link_lua_map_open(L);
-    else if (strcmp(key, "incombat"                )==0) return mumble_link_lua_in_combat(L);
+    if      (strcmp(key, "tick"                   )==0) return mumble_link_lua_tick(L);    
+    else if (strcmp(key, "version"                )==0) return mumble_link_lua_version(L);
+    else if (strcmp(key, "charactername"          )==0) return mumble_link_lua_character_name(L);
+    else if (strcmp(key, "characterprofession"    )==0) return mumble_link_lua_character_profession(L);
+    else if (strcmp(key, "characterspecialization")==0) return mumble_link_lua_character_specialization(L);
+    else if (strcmp(key, "characterrace"          )==0) return mumble_link_lua_character_race(L);
+    else if (strcmp(key, "avatarposition"         )==0) return mumble_link_lua_avatar_position(L);
+    else if (strcmp(key, "avatarfront"            )==0) return mumble_link_lua_avatar_front(L);
+    else if (strcmp(key, "avatartop"              )==0) return mumble_link_lua_avatar_top(L);
+    else if (strcmp(key, "cameraposition"         )==0) return mumble_link_lua_camera_position(L);
+    else if (strcmp(key, "camerafront"            )==0) return mumble_link_lua_camera_front(L);
+    else if (strcmp(key, "cameratop"              )==0) return mumble_link_lua_camera_top(L);
+    else if (strcmp(key, "maptype"                )==0) return mumble_link_lua_map_type(L);
+    else if (strcmp(key, "mapid"                  )==0) return mumble_link_lua_map_id(L);
+    else if (strcmp(key, "uistate"                )==0) return mumble_link_lua_ui_state(L);
+    else if (strcmp(key, "mapopen"                )==0) return mumble_link_lua_map_open(L);
+    else if (strcmp(key, "incombat"               )==0) return mumble_link_lua_in_combat(L);
 
     char *mod_name = lua_manager_get_lua_module_name(L);
-    logger_warn(ml->log, "%s tried to read mumble_link.%s, does not exist.", mod_name, key);
+    logger_warn(ml->log, "%s tried to read mumble-link.%s, does not exist.", mod_name, key);
     egoverlay_free(mod_name);
 
     return 0;
@@ -352,7 +352,7 @@ int mumble_link_lua_index(lua_State *L) {
 
 int mumble_link_lua_new_index(lua_State *L) {
     char *mod_name = lua_manager_get_lua_module_name(L);
-    logger_warn(ml->log, "%s tried to assign to mumble_link!", mod_name);
+    logger_warn(ml->log, "%s tried to assign to mumble-link!", mod_name);
     egoverlay_free(mod_name);
 
     return 0;
@@ -390,7 +390,7 @@ int mumble_link_lua_version(lua_State *L) {
 }
 
 /*** RST
-.. lua:data:: character_name
+.. lua:data:: charactername
 
     :type: string
 
@@ -398,6 +398,7 @@ int mumble_link_lua_version(lua_State *L) {
 
     .. versionhistory::
         :0.0.1: Added
+        :0.1.0: Renamed from character_name to charactername
 */
 int mumble_link_lua_character_name(lua_State *L) {
     char name[128] = {0};
@@ -407,7 +408,7 @@ int mumble_link_lua_character_name(lua_State *L) {
 }
 
 /*** RST
-.. lua:data:: character_profession
+.. lua:data:: characterprofession
 
     :type: string
 
@@ -424,6 +425,7 @@ int mumble_link_lua_character_name(lua_State *L) {
 
     .. versionhistory::
         :0.0.1: Added
+        :0.1.0: Renamed from character_profession to characterprofession
 */
 int mumble_link_lua_character_profession(lua_State *L) {
     switch (mumble_link_character_profression()) {
@@ -442,11 +444,12 @@ int mumble_link_lua_character_profession(lua_State *L) {
 }
 
 /*** RST
-.. lua:data:: character_specialization
+.. lua:data:: characterspecialization
     
     :type: integer
 
-    The specialization ID of the currently logged in character. See `the GW2 API <https://wiki.guildwars2.com/wiki/API:2/specializations>`_.
+    The specialization ID of the currently logged in character.
+    See `the GW2 API <https://wiki.guildwars2.com/wiki/API:2/specializations>`_.
 
     .. note::
         Module authors can use the :lua:mod:`gw2.static` module instead of querying the GW2 API.
@@ -458,6 +461,7 @@ int mumble_link_lua_character_profession(lua_State *L) {
 
     .. versionhistory::
         :0.0.1: Added
+        :0.1.0: Renamed from character_specialization to characterspecialization
 */
 int mumble_link_lua_character_specialization(lua_State *L) {
     mumble_link_check_identity_cache();
@@ -473,7 +477,7 @@ int mumble_link_lua_character_specialization(lua_State *L) {
 }
 
 /*** RST
-.. lua:data:: character_race
+.. lua:data:: characterrace
 
     :type: string
 
@@ -490,6 +494,7 @@ int mumble_link_lua_character_specialization(lua_State *L) {
     
     .. versionhistory::
         :0.0.1: Added
+        :0.1.0: Renamed from character_race to characterrace
 */
 int mumble_link_lua_character_race(lua_State *L) {
     mumble_link_check_identity_cache();
@@ -524,7 +529,7 @@ void push_ml_xyz(lua_State *L, float *vals) {
 }
 
 /*** RST
-.. lua:data:: avatar_position
+.. lua:data:: avatarposition
 
     :type: position
 
@@ -537,6 +542,7 @@ void push_ml_xyz(lua_State *L, float *vals) {
 
     .. versionhistory::
         :0.0.1: Added
+        :0.1.0: Renamed from avatar_position to avatarposition
 */
 int mumble_link_lua_avatar_position(lua_State *L) {
     push_ml_xyz(L, (float*)&ml->gw2_ml->avatar_position);
@@ -544,7 +550,7 @@ int mumble_link_lua_avatar_position(lua_State *L) {
 }
 
 /*** RST
-.. lua:data:: avatar_front
+.. lua:data:: avatarfront
 
     :type: position
 
@@ -555,6 +561,7 @@ int mumble_link_lua_avatar_position(lua_State *L) {
     
     .. versionhistory::
         :0.0.1: Added
+        :0.1.0: Renamed from avatar_front to avatarfront
 */
 int mumble_link_lua_avatar_front(lua_State *L) {
     push_ml_xyz(L, (float*)&ml->gw2_ml->avatar_front);
@@ -562,7 +569,7 @@ int mumble_link_lua_avatar_front(lua_State *L) {
 }
 
 /*** RST
-.. lua:data:: avatar_top
+.. lua:data:: avatartop
 
     :type: position
 
@@ -571,6 +578,7 @@ int mumble_link_lua_avatar_front(lua_State *L) {
 
     .. versionhistory::
         :0.0.1: Added
+        :0.1.0: Renamed from avatar_top to avatartop
 */
 int mumble_link_lua_avatar_top(lua_State *L) {
     push_ml_xyz(L, (float*)&ml->gw2_ml->avatar_top);
@@ -578,7 +586,7 @@ int mumble_link_lua_avatar_top(lua_State *L) {
 }
 
 /*** RST
-.. lua:data:: camera_position
+.. lua:data:: cameraposition
 
     :type: position
 
@@ -591,6 +599,7 @@ int mumble_link_lua_avatar_top(lua_State *L) {
 
     .. versionhistory::
         :0.0.1: Added
+        :0.1.0: Renamed from camera_position to cameraposition
 */
 int mumble_link_lua_camera_position(lua_State *L) {
     push_ml_xyz(L, (float*)&ml->gw2_ml->camera_position);
@@ -598,7 +607,7 @@ int mumble_link_lua_camera_position(lua_State *L) {
 }
 
 /*** RST
-.. lua:data:: camera_front
+.. lua:data:: camerafront
 
     :type: position
 
@@ -609,6 +618,7 @@ int mumble_link_lua_camera_position(lua_State *L) {
     
     .. versionhistory::
         :0.0.1: Added
+        :0.1.0: Renamed from camera_front to camerafront
 */
 int mumble_link_lua_camera_front(lua_State *L) {
     push_ml_xyz(L, (float*)&ml->gw2_ml->camera_front);
@@ -616,7 +626,7 @@ int mumble_link_lua_camera_front(lua_State *L) {
 }
 
 /*** RST
-.. lua:data:: camera_top
+.. lua:data:: cameratop
 
     :type: position
 
@@ -625,6 +635,7 @@ int mumble_link_lua_camera_front(lua_State *L) {
 
     .. versionhistory::
         :0.0.1: Added
+        :0.1.0: Renamed from camera_top to cameratop
 */
 int mumble_link_lua_camera_top(lua_State *L) {
     push_ml_xyz(L, (float*)&ml->gw2_ml->camera_top);
@@ -632,7 +643,7 @@ int mumble_link_lua_camera_top(lua_State *L) {
 }
 
 /*** RST
-.. lua:data:: map_type
+.. lua:data:: maptype
 
     :type: string
 
@@ -659,10 +670,13 @@ int mumble_link_lua_camera_top(lua_State *L) {
     * armistice-bastion
 
     .. note::
-        Even though some of the options above are `documented in the GW2 MumbleLink API <https://wiki.guildwars2.com/wiki/API:MumbleLink>`_ they will never be returned because the are now invalid.
+        Even though some of the options above are `documented in the GW2
+        MumbleLink API <https://wiki.guildwars2.com/wiki/API:MumbleLink>`_ they
+        will never be returned because the are now invalid.
 
     .. versionhistory::
         :0.0.1: Added
+        :0.1.0: Renamed from map_type to maptype
 */
 int mumble_link_lua_map_type(lua_State *L) {
     switch (ml->gw2_ml->context.map_type) {
@@ -692,7 +706,7 @@ int mumble_link_lua_map_type(lua_State *L) {
 }
 
 /*** RST
-.. lua:data:: map_id
+.. lua:data:: mapid
 
     :type: integer
 
@@ -700,6 +714,7 @@ int mumble_link_lua_map_type(lua_State *L) {
 
     .. versionhistory::
         :0.0.1: Added
+        :0.1.0: Renamed from map_id to mapid
 */
 
 int mumble_link_lua_map_id(lua_State *L) {
@@ -708,7 +723,7 @@ int mumble_link_lua_map_id(lua_State *L) {
 }
 
 /*** RST
-.. lua:data:: ui_state
+.. lua:data:: uistate
 
     :type: integer
 
@@ -726,10 +741,13 @@ int mumble_link_lua_map_id(lua_State *L) {
     7    In combat
     ==== ==============================================================
 
-    For example, with default settings and out of combat, when the game has focus this value will be 8 (bit 4). When the map is opened it will be 9 (bits 1 and 4).
+    For example, with default settings and out of combat, when the game has
+    focus this value will be 8 (bit 4). When the map is opened it will be 9
+    (bits 1 and 4).
 
     .. versionhistory::
         :0.0.1: Added
+        :0.1.0: Renamed from ui_state to uistate
 */
 int mumble_link_lua_ui_state(lua_State *L) {
     /*
@@ -765,7 +783,7 @@ int mumble_link_lua_ui_state(lua_State *L) {
 
     :type: boolean
 
-    A boolean indicating if the first bit of :lua:data:`ui_state` is set, which
+    A boolean indicating if the first bit of :lua:data:`uistate` is set, which
     indicates if the map is open fullscreen.
 
     .. versionhistory::
@@ -781,7 +799,7 @@ int mumble_link_lua_map_open(lua_State *L) {
     
     :type: boolean
 
-    A boolean indicating if the seventh bit of :lua:data:`ui_state` is set,
+    A boolean indicating if the seventh bit of :lua:data:`uistate` is set,
     which indicates if the player is currently in combat.
 
     .. versionhistory::
