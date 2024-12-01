@@ -33,7 +33,7 @@ GLuint gl_load_shader(const char *path, GLenum shader_type) {
         error_and_exit("EG-Overlay: GL", "Error while compiling %s:\n%s", path, log_msg);
         egoverlay_free(log_msg); // never happens
     } else {
-        logger_debug(log, "Shader compiled: %s", path);
+        logger_debug(log, "Shader source compiled: %s", path);
     }
 
     return shader;
@@ -92,23 +92,12 @@ void gl_shader_program_free(gl_shader_program_t *program) {
 }
 
 void gl_shader_program_attach_shader_file(gl_shader_program_t *program, const char *path, GLenum type) {
-    logger_t *logger = logger_get("gl");
-
     GLuint shader = gl_load_shader(path, type);
     glAttachShader(program->program, shader);
 
     program->shaders = egoverlay_realloc(program->shaders, sizeof(GLuint) * (program->shader_count + 1));
     program->shaders[program->shader_count] = shader;
     program->shader_count++;
-
-    logger_debug(
-        logger,
-        "Shader %d attached to program %d at stage %d from %s.",
-        shader,
-        program->program,
-        type,
-        path
-    );
 }
 
 void gl_shader_program_link(gl_shader_program_t *program) {

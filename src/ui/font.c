@@ -11,23 +11,28 @@
 #include <freetype/ttnameid.h>
 #include FT_FREETYPE_H
 
-static logger_t *logger = NULL;
-
-static gl_shader_program_t *shader_program = NULL;
-
-static GLuint vao = 0;
-static GLuint vbo = 0;
-
-static FT_Library ftlib = NULL;
-
 // up to CACHE_MAX_SIZE fonts/size combinations can be stored in the cache
 // 50 seems like a very reasonable number?
 // The cache is a hash map, with the keys being the path to the font file and 
 // size concatenated together, ie. 'fonts/Roboto-Regular.ttf20'
 #define CACHE_MAX_SIZE 50
-static size_t cache_size = 0;
-static uint32_t *cache_keys = NULL;
-static ui_font_t **cache_fonts = NULL;
+
+typedef struct {
+    logger_t *log;
+    gl_shader_program_t *shader_program;
+    GLuint vao;
+    GLuint vbo;
+    FT_Library ftlib;
+
+    size_t cache_size;
+    uint32_t *cache_keys;
+    ui_font_t **cache_fonts;
+
+    ui_font_vbo_data_t *vbodata;
+    size_t vbo_data_size;
+} ui_font_global_t;
+
+static ui_font_global_t *fonts = NULL;
 
 // Cached metrics for each rendered glyph
 typedef struct glyph_metrics_t {
@@ -92,9 +97,6 @@ struct ui_font_vbo_data_t {
     float tex_layer;
 };
 
-static ui_font_vbo_data_t *vbodata = NULL;
-static size_t vbo_data_size = 0;
-
 ui_font_t *ui_font_new(const char *path, int size, int weight, int slant, int width);
 void ui_font_free(ui_font_t *font);
 
@@ -107,97 +109,78 @@ static const char preload_chars[] =
     "abcdefghijklmnopqrstuvwxyz"
     "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
-void ui_font_init() {
-    logger = logger_get("ui-font");
-    logger_debug(logger, "init");
+gl_shader_source_list_t shader_sources[] = {
+    "shaders/text-quad.vert", GL_VERTEX_SHADER,
+    "shaders/text-quad.frag", GL_FRAGMENT_SHADER,
+    NULL                    , 0
+};
 
-    FT_Error err = FT_Init_FreeType(&ftlib);
+void ui_font_init() {
+    fonts = egoverlay_calloc(1, sizeof(ui_font_global_t));
+    
+    fonts->log = logger_get("ui-font");
+    logger_debug(fonts->log, "init");
+
+
+    FT_Error err = FT_Init_FreeType(&fonts->ftlib);
 
     if (err) {
-        logger_error(logger, "Couldn't initialize FreeType2.");
+        logger_error(fonts->log, "Couldn't initialize FreeType2.");
         error_and_exit("EG-Overlay: UI-Font", "Couldn't initialize FreeType2.");
     }
 
-    shader_program = gl_shader_program_new();
-    gl_shader_program_attach_shader_file(shader_program, "shaders/text-quad.vert", GL_VERTEX_SHADER);
-    gl_shader_program_attach_shader_file(shader_program, "shaders/text-quad.frag", GL_FRAGMENT_SHADER);
-    gl_shader_program_link(shader_program);
+    fonts->shader_program = gl_shader_program_new_with_sources(shader_sources);
 
-    vbo_data_size = 512;
-    vbodata = egoverlay_calloc(vbo_data_size, sizeof(ui_font_vbo_data_t));
+    fonts->vbo_data_size = 512;
+    fonts->vbodata = egoverlay_calloc(fonts->vbo_data_size, sizeof(ui_font_vbo_data_t));
 
-    glGenVertexArrays(1, &vao);
-    glGenBuffers(1, &vbo);
+    glGenVertexArrays(1, &fonts->vao);
+    glGenBuffers(1, &fonts->vbo);
 
-    glBindVertexArray(vao);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBindVertexArray(fonts->vao);
+    glBindBuffer(GL_ARRAY_BUFFER, fonts->vbo);
 
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 1, GL_FLOAT, GL_FALSE, sizeof(ui_font_vbo_data_t), (void*)offsetof(ui_font_vbo_data_t, left));
-    glVertexAttribDivisor(0, 1);
-
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, sizeof(ui_font_vbo_data_t), (void*)offsetof(ui_font_vbo_data_t, top));
-    glVertexAttribDivisor(1, 1);
-
-    glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, sizeof(ui_font_vbo_data_t), (void*)offsetof(ui_font_vbo_data_t, right));
-    glVertexAttribDivisor(2, 1);
-
-    glEnableVertexAttribArray(3);
-    glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(ui_font_vbo_data_t), (void*)offsetof(ui_font_vbo_data_t, bottom));
-    glVertexAttribDivisor(3, 1);
-
-    glEnableVertexAttribArray(4);
-    glVertexAttribPointer(4, 1, GL_FLOAT, GL_FALSE, sizeof(ui_font_vbo_data_t), (void*)offsetof(ui_font_vbo_data_t, tex_left));
-    glVertexAttribDivisor(4, 1);
-
-    glEnableVertexAttribArray(5);
-    glVertexAttribPointer(5, 1, GL_FLOAT, GL_FALSE, sizeof(ui_font_vbo_data_t), (void*)offsetof(ui_font_vbo_data_t, tex_top));
-    glVertexAttribDivisor(5, 1);
-
-    glEnableVertexAttribArray(6);
-    glVertexAttribPointer(6, 1, GL_FLOAT, GL_FALSE, sizeof(ui_font_vbo_data_t), (void*)offsetof(ui_font_vbo_data_t, tex_right));
-    glVertexAttribDivisor(6, 1);
-
-    glEnableVertexAttribArray(7);
-    glVertexAttribPointer(7, 1, GL_FLOAT, GL_FALSE, sizeof(ui_font_vbo_data_t), (void*)offsetof(ui_font_vbo_data_t, tex_bottom));
-    glVertexAttribDivisor(7, 1);
-
-    glEnableVertexAttribArray(8);
-    glVertexAttribPointer(8, 1, GL_FLOAT, GL_FALSE, sizeof(ui_font_vbo_data_t), (void*)offsetof(ui_font_vbo_data_t, tex_layer));
-    glVertexAttribDivisor(8, 1);
+    VERT_ATTRIB_FLOAT(0, 1, ui_font_vbo_data_t, left      );
+    VERT_ATTRIB_FLOAT(1, 1, ui_font_vbo_data_t, top       );
+    VERT_ATTRIB_FLOAT(2, 1, ui_font_vbo_data_t, right     );
+    VERT_ATTRIB_FLOAT(3, 1, ui_font_vbo_data_t, bottom    );
+    VERT_ATTRIB_FLOAT(4, 1, ui_font_vbo_data_t, tex_left  );
+    VERT_ATTRIB_FLOAT(5, 1, ui_font_vbo_data_t, tex_top   );
+    VERT_ATTRIB_FLOAT(6, 1, ui_font_vbo_data_t, tex_right );
+    VERT_ATTRIB_FLOAT(7, 1, ui_font_vbo_data_t, tex_bottom);
+    VERT_ATTRIB_FLOAT(8, 1, ui_font_vbo_data_t, tex_layer );
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 
-    cache_fonts = egoverlay_calloc(CACHE_MAX_SIZE, sizeof(ui_font_t*));
-    cache_keys = egoverlay_calloc(CACHE_MAX_SIZE, sizeof(uint32_t));
+    fonts->cache_fonts = egoverlay_calloc(CACHE_MAX_SIZE, sizeof(ui_font_t*));
+    fonts->cache_keys = egoverlay_calloc(CACHE_MAX_SIZE, sizeof(uint32_t));
 }
 
 void ui_font_cleanup() {
-    logger_debug(logger, "cleanup");
+    logger_debug(fonts->log, "cleanup");
     for (size_t i=0;i<CACHE_MAX_SIZE;i++) {
-        if (cache_keys[i]) ui_font_free(cache_fonts[i]);
+        if (fonts->cache_keys[i]) ui_font_free(fonts->cache_fonts[i]);
     }
-    egoverlay_free(cache_fonts);
-    egoverlay_free(cache_keys);
-    egoverlay_free(vbodata);
+    egoverlay_free(fonts->cache_fonts);
+    egoverlay_free(fonts->cache_keys);
+    egoverlay_free(fonts->vbodata);
 
-    gl_shader_program_free(shader_program);
+    gl_shader_program_free(fonts->shader_program);
 
-    glDeleteBuffers(1, &vbo);
-    glDeleteVertexArrays(1, &vao);
+    glDeleteBuffers(1, &fonts->vbo);
+    glDeleteVertexArrays(1, &fonts->vao);
 
-    FT_Done_FreeType(ftlib);
+    FT_Done_FreeType(fonts->ftlib);
+    egoverlay_free(fonts);
 }
 
 ui_font_t *ui_font_new(const char *path, int size, int weight, int slant, int width) {
     ui_font_t *font = egoverlay_calloc(1, sizeof(ui_font_t));
 
-    FT_Error err = FT_New_Face(ftlib, path, 0, &font->face);
+    FT_Error err = FT_New_Face(fonts->ftlib, path, 0, &font->face);
     if (err) {
-        logger_error(logger, "Couldn't load %s", path);
+        logger_error(fonts->log, "Couldn't load %s", path);
         return NULL;
     }
 
@@ -209,36 +192,36 @@ ui_font_t *ui_font_new(const char *path, int size, int weight, int slant, int wi
         for (FT_UInt a=0;a<mm_var->num_axis;a++) {
             if (weight!=INT_MIN && strcmp(mm_var->axis[a].name,"Weight")==0) {
                 if (weight < mm_var->axis[a].minimum / 0x10000) {
-                    logger_warn(logger, " %s : specified weight (%d) below minimum %d",
+                    logger_warn(fonts->log, " %s : specified weight (%d) below minimum %d",
                                 path, weight, mm_var->axis[a].minimum / 0x10000);
                     weight = mm_var->axis[a].minimum / 0x10000;
                 }
                 if (weight > mm_var->axis[a].maximum / 0x10000) {
-                    logger_warn(logger, " %s : specified weight (%d) above minimum %d",
+                    logger_warn(fonts->log, " %s : specified weight (%d) above minimum %d",
                                 path, weight, mm_var->axis[a].maximum / 0x10000);
                     weight = mm_var->axis[a].maximum / 0x10000;
                 }
                 coords[a] = weight * 0x10000;
             } else if (slant!=INT_MIN && strcmp(mm_var->axis[a].name,"Slant")==0) {
                 if (slant < mm_var->axis[a].minimum / 0x10000) {
-                    logger_warn(logger, " %s : specified slant (%d) below minimum %d",
+                    logger_warn(fonts->log, " %s : specified slant (%d) below minimum %d",
                                 path, slant, mm_var->axis[a].minimum / 0x10000);
                     slant = mm_var->axis[a].minimum / 0x10000;
                 }
                 if (slant > mm_var->axis[a].maximum / 0x10000) {
-                    logger_warn(logger, " %s : specified weight (%d) above minimum %d",
+                    logger_warn(fonts->log, " %s : specified weight (%d) above minimum %d",
                                 path, slant, mm_var->axis[a].maximum / 0x10000);
                     slant = mm_var->axis[a].maximum / 0x10000;
                 }
                 coords[a] = slant * 0x10000;
             } else if (width!=INT_MIN && strcmp(mm_var->axis[a].name,"Width")==0) {
                 if (width < mm_var->axis[a].minimum / 0x10000) {
-                    logger_warn(logger, " %s : specified width (%d) below minimum %d",
+                    logger_warn(fonts->log, " %s : specified width (%d) below minimum %d",
                                 path, width, mm_var->axis[a].minimum / 0x10000);
                     width = mm_var->axis[a].minimum / 0x10000;
                 }
                 if (width > mm_var->axis[a].maximum / 0x10000) {
-                    logger_warn(logger, " %s : specified weight (%d) above minimum %d",
+                    logger_warn(fonts->log, " %s : specified weight (%d) above minimum %d",
                                 path, width, mm_var->axis[a].maximum / 0x10000);
                     width = mm_var->axis[a].maximum / 0x10000;
                 }
@@ -247,15 +230,15 @@ ui_font_t *ui_font_new(const char *path, int size, int weight, int slant, int wi
         }
 
         FT_Set_Var_Design_Coordinates(font->face, mm_var->num_axis, coords);
-        FT_Done_MM_Var(ftlib, mm_var);
+        FT_Done_MM_Var(fonts->ftlib, mm_var);
         egoverlay_free(coords);
     } else {
-        logger_warn(logger, "%s is not a variable font; weight, slant, and width will be ignored.", path);
+        logger_warn(fonts->log, "%s is not a variable font; weight, slant, and width will be ignored.", path);
     }
 
     err = FT_Set_Pixel_Sizes(font->face, 0, size);
     if (err) {
-        logger_error(logger, "Couldn't set size %d for %s.", size, path);
+        logger_error(fonts->log, "Couldn't set size %d for %s.", size, path);
         error_and_exit("EG-OVerlay: UI-Font", "Couldn't set size %d for %s.", size, path);
     }
     
@@ -276,7 +259,7 @@ ui_font_t *ui_font_new(const char *path, int size, int weight, int slant, int wi
     font->texture_num = egoverlay_calloc(font->glyphmap_capacity, sizeof(GLuint));
     font->glyph_index = egoverlay_calloc(font->glyphmap_capacity, sizeof(size_t));
 
-    logger_debug(logger, "new font, %s size %d (%d), %d glyphs per page.",
+    logger_debug(fonts->log, "new font, %s size %d (%d), %d glyphs per page.",
                  path, size, font->size, font->page_max_glyphs);
 
     glCreateTextures(GL_TEXTURE_2D_ARRAY, 1, &font->texture);
@@ -323,7 +306,7 @@ static void ui_font_render_glyph(ui_font_t *font, uint32_t codepoint) {
 
     FT_Error err = FT_Load_Glyph(font->face, glyph, FT_LOAD_DEFAULT);
     if (err) {
-        logger_error(logger, "Couldn't load glyph for %c", codepoint);
+        logger_error(fonts->log, "Couldn't load glyph for %c", codepoint);
         return;
     }
 
@@ -405,8 +388,6 @@ static void ui_font_render_glyph(ui_font_t *font, uint32_t codepoint) {
 
     font->texture_num[glyphind] = font->texture_levels - 1;
 
-    //logger_debug(logger, "Rendering %c, page %d, hashed_id %d.", codepoint, page_num, new_ind);
-
     FT_Bitmap bm = font->face->glyph->bitmap;
  
     // fist we need to gamma correct it
@@ -416,7 +397,7 @@ static void ui_font_render_glyph(ui_font_t *font, uint32_t codepoint) {
             size_t goffset = (gy * bm.width) + gx;
             // gamma correction; first scale to 0..1
             double a = bm.buffer[goffset] / 255.0;
-            // gamma = 2.0
+            // gamma = 2.2
             double ca = pow(a, 1/2.2);
             // the scale it back to 0..255 and store it
             pixels[goffset] = (uint8_t)ceil(ca * 255);
@@ -449,9 +430,9 @@ void ui_font_render_text(
 ) {
     size_t vbo_size = sizeof(ui_font_vbo_data_t) * count;
 
-    if (vbo_size > vbo_data_size) {
-        vbodata = egoverlay_realloc(vbodata, vbo_size);
-        vbo_data_size = vbo_size;
+    if (vbo_size > fonts->vbo_data_size) {
+        fonts->vbodata = egoverlay_realloc(fonts->vbodata, vbo_size);
+        fonts->vbo_data_size = vbo_size;
     }
 
     FT_UInt glyph;
@@ -495,8 +476,6 @@ void ui_font_render_text(
         glyph_bytes++;
         if (bytes_remaining) continue;
 
-        //glyph = FT_Get_Char_Index(font->face, codepoint);
-
         size_t char_ind = 0;
         if (!ui_font_get_codepoint_ind(font, codepoint, &char_ind)) {
             ui_font_render_glyph(font, codepoint);
@@ -523,17 +502,23 @@ void ui_font_render_text(
         
         size_t glyph_ind = font->glyph_index[char_ind];
 
-        vbodata[vbo_ind].left   = penx + (float)font->metrics[char_ind].bearing_x;
-        vbodata[vbo_ind].top    = y + (font->face->size->metrics.ascender / 64.f) - (float)font->metrics[char_ind].bearing_y;
-        vbodata[vbo_ind].right  = vbodata[vbo_ind].left + font->metrics[char_ind].bitmap_width;
-        vbodata[vbo_ind].bottom = vbodata[vbo_ind].top + font->metrics[char_ind].bitmap_rows;
+        float left = penx + (float)font->metrics[char_ind].bearing_x;
+        float top  = y + (font->face->size->metrics.ascender / 64.f) - (float)font->metrics[char_ind].bearing_y;
+        
+        float tex_left = ((float)(glyph_ind % font->page_glyph_x) * font->size);
+        float tex_top  = ((float)((glyph_ind % font->page_max_glyphs)/ font->page_glyph_x) * font->size);
 
-        vbodata[vbo_ind].tex_left   = ((float)(glyph_ind % font->page_glyph_x) * font->size);
-        vbodata[vbo_ind].tex_top    = ((float)((glyph_ind % font->page_max_glyphs)/ font->page_glyph_x) * font->size);
-        vbodata[vbo_ind].tex_right  = (vbodata[vbo_ind].tex_left + font->metrics[char_ind].bitmap_width);
-        vbodata[vbo_ind].tex_bottom = (vbodata[vbo_ind].tex_top + font->metrics[char_ind].bitmap_rows);
+        fonts->vbodata[vbo_ind].left   = left;
+        fonts->vbodata[vbo_ind].top    = top;
+        fonts->vbodata[vbo_ind].right  = left + font->metrics[char_ind].bitmap_width;
+        fonts->vbodata[vbo_ind].bottom = top + font->metrics[char_ind].bitmap_rows;
 
-        vbodata[vbo_ind].tex_layer = (float)font->texture_num[char_ind];
+        fonts->vbodata[vbo_ind].tex_left   = tex_left;
+        fonts->vbodata[vbo_ind].tex_top    = tex_top;
+        fonts->vbodata[vbo_ind].tex_right  = (tex_left + font->metrics[char_ind].bitmap_width);
+        fonts->vbodata[vbo_ind].tex_bottom = (tex_top + font->metrics[char_ind].bitmap_rows);
+
+        fonts->vbodata[vbo_ind].tex_layer = (float)font->texture_num[char_ind];
         vbo_ind++;
 
         penx += (float)font->metrics[char_ind].advance_x;
@@ -541,13 +526,13 @@ void ui_font_render_text(
         glyph_bytes = 0;
     }
 
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, fonts->vbo);
     glBufferData(GL_ARRAY_BUFFER, vbo_size, NULL, GL_STREAM_DRAW);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, vbo_size, vbodata);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, vbo_size, fonts->vbodata);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-    gl_shader_program_use(shader_program);
-    glBindVertexArray(vao);
+    gl_shader_program_use(fonts->shader_program);
+    glBindVertexArray(fonts->vao);
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D_ARRAY, font->texture);        
@@ -563,8 +548,8 @@ void ui_font_render_text(
 }
 
 ui_font_t *ui_font_get(const char *path, int size, int weight, int slant, int width) {
-    if (cache_size == CACHE_MAX_SIZE) {
-        logger_error(logger, "Reached maximum cached fonts.");
+    if (fonts->cache_size == CACHE_MAX_SIZE) {
+        logger_error(fonts->log, "Reached maximum cached fonts.");
         error_and_exit("EG-Overlay: UI-Font", "Reached maximum cached fonts.");
     }
 
@@ -573,30 +558,30 @@ ui_font_t *ui_font_get(const char *path, int size, int weight, int slant, int wi
     uint32_t hash = djb2_hash_string(buf);
     size_t key_ind = hash % CACHE_MAX_SIZE;
 
-    size_t n = cache_size;   
+    size_t n = fonts->cache_size;   
     
     while (n--) {
-        if (cache_keys[key_ind]==hash) return cache_fonts[key_ind];
+        if (fonts->cache_keys[key_ind]==hash) return fonts->cache_fonts[key_ind];
         key_ind++;
         if (key_ind==hash % CACHE_MAX_SIZE) break;
         if (key_ind>= CACHE_MAX_SIZE) key_ind = 0;
     }
 
-    logger_debug(logger, "Didn't find %s, creating.", buf);
+    logger_debug(fonts->log, "Didn't find %s, creating.", buf);
     ui_font_t *f = ui_font_new(path, size, weight, slant, width);
 
     key_ind = hash % CACHE_MAX_SIZE;
-    while (cache_keys[key_ind]!=hash){
-        if (cache_keys[key_ind]) {
+    while (fonts->cache_keys[key_ind]!=hash){
+        if (fonts->cache_keys[key_ind]) {
             key_ind++;
             if (key_ind>=CACHE_MAX_SIZE) key_ind = 0;
         } else {
-            cache_keys[key_ind] = hash;
-            cache_fonts[key_ind] = f;
+            fonts->cache_keys[key_ind] = hash;
+            fonts->cache_fonts[key_ind] = f;
         }
     }
 
-    cache_size++;
+    fonts->cache_size++;
 
     return f;
 }
