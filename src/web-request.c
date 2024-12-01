@@ -404,11 +404,11 @@ int web_request_lua_open_module(lua_State *L) {
 }
 
 luaL_Reg web_request_lua_funcs[] = {
-    "__gc",                &web_request_lua_del,
-    "add_header",          &web_request_lua_add_header,
-    "add_query_parameter", &web_request_lua_add_query_parameter,
-    "queue",               &web_request_lua_queue,
-    NULL,                   NULL
+    "__gc"             , &web_request_lua_del,
+    "addheader"        , &web_request_lua_add_header,
+    "addqueryparameter", &web_request_lua_add_query_parameter,
+    "queue"            , &web_request_lua_queue,
+    NULL               ,  NULL
 };
 
 void web_request_lua_register_metatable(lua_State *L) {
@@ -442,11 +442,11 @@ Functions
 
 .. lua:function:: new(url)
 
-    Creates a new :lua:class:`web-request.web_request`.
+    Creates a new :lua:class:`web-request.webrequest`.
 
     :param url: The URL to make the request to.
     :type url: string
-    :rtype: web-request.web_request
+    :rtype: web-request.webrequest
 
     .. versionhistory::
         :0.0.1: Added
@@ -478,15 +478,15 @@ int web_request_lua_del(lua_State *L) {
 Classes
 -------
 
-.. lua:class:: web_request
+.. lua:class:: webrequest
 
     A web request object. A single web request object can be used to make
     multiple requests to the same URL.
 
-    .. lua:method:: add_header(name, value)
+    .. lua:method:: addheader(name, value)
 
         Add a custom header to this request. All subsequent requests made by
-        this web_request will include the header.
+        this webrequest will include the header.
 
         :param name: The header name, ie. ``'Authorization'``
         :type name: string
@@ -497,10 +497,11 @@ Classes
         .. code-block:: lua
             :caption: Example
 
-            request:add_header('Authorization', 'Bearer (API Key)')
+            request:addheader('Authorization', 'Bearer (API Key)')
 
         .. versionhistory::
             :0.0.1: Added
+            :0.1.0: Renamed from add_header to addheader
 */
 int web_request_lua_add_header(lua_State *L) {
     web_request_t *r = lua_checkwebrequest(L, 1);
@@ -513,7 +514,7 @@ int web_request_lua_add_header(lua_State *L) {
 }
 
 /*** RST
-    .. lua:method:: add_query_parameter(name, value)
+    .. lua:method:: addqueryparameter(name, value)
 
         Add a query parameter that will be appended to the URL when making the
         request.
@@ -526,6 +527,7 @@ int web_request_lua_add_header(lua_State *L) {
 
         .. versionhistory::
             :0.0.1: Added
+            :0.1.0: Renamed from add_query_parameter to addqueryparameter
 */
 int web_request_lua_add_query_parameter(lua_State *L) {
     web_request_t *r = lua_checkwebrequest(L, 1);
@@ -540,7 +542,7 @@ int web_request_lua_add_query_parameter(lua_State *L) {
 /*** RST
     .. lua:method:: queue(callback_function)
 
-        Queue the request to be performed. A :lua:class:`web_request` can be
+        Queue the request to be performed. A :lua:class:`webrequest` can be
         queued multiple times to perform the request multiple times to the same URL.
 
         ``callback_function`` is a :lua:alias:`request_completed` function that
@@ -604,7 +606,7 @@ Callback Functions
 
 .. lua:function:: request_completed(code, data, request)
 
-    A callback function provided to :lua:meth:`web-request.web_request.queue`,
+    A callback function provided to :lua:meth:`web-request.webrequest.queue`,
     called when the request is completed.
 
     :param code: The HTTP response code or 0 if an error occurred before the
@@ -614,8 +616,8 @@ Callback Functions
         resulted in HTTP error codes this will contain the error text returned
         by the server.
     :type data: string
-    :param request: The :lua:class:`web-request.web_request` that made the request.
-    :type request: web-request.web_request
+    :param request: The :lua:class:`web-request.webrequest` that made the request.
+    :type request: web-request.webrequest
 
     .. versionhistory::
         :0.0.1: Added
@@ -637,8 +639,8 @@ Example
 
     local req = wr.new(api_url .. 'account')
 
-    req:add_header('Authorization', 'Bearer (apikey)')
-    req:add_header('X-Schema-Version', 'latest')
+    req:addheader('Authorization', 'Bearer (apikey)')
+    req:addheader('X-Schema-Version', 'latest')
 
     local function on_completed(code, data, r)
         if code >= 200 && code < 400 then

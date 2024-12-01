@@ -82,18 +82,18 @@ mainmenu.menu:add_item(mainmenu.settings.menuitem)
 
 local function onmainmenuevent(event)
     if event=='click-left' then
-        local x,y = ui.mouse_position()
+        local x,y = ui.mouseposition()
         mainmenu.menu:show(x,y)
     end
 end
 
 local function onstartup()
-    overlay.queue_event('register-module-actions', {
+    overlay.queueevent('register-module-actions', {
         name = "Markers",
         primary_action = onmainmenuevent
     })
 end
 
-overlay.add_event_handler('startup', onstartup)
+overlay.addeventhandler('startup', onstartup)
 
 return {}

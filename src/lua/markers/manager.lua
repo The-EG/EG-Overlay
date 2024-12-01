@@ -51,7 +51,7 @@ local function addcategorymarkers(category)
     local typeid = category.typeid
 
     local markercount = 0
-    for m in category:markersinmapiter(ml.map_id) do
+    for m in category:markersinmapiter(ml.mapid) do
         local color = uih.rgbtorgba(m.color or 0xFFFFFF)
         uih.colorsetalphaf(color, m.alpha or 1.0)
 
@@ -128,7 +128,7 @@ local function addcategorytrails(category)
     local typeid = category.typeid
 
     local trailcount = 0
-    for t in category:trailsinmapiter(ml.map_id) do
+    for t in category:trailsinmapiter(ml.mapid) do
         local segments = {}
 
         local coords = {}
@@ -287,7 +287,7 @@ function M.reloadcategories(clear)
     end
 
     for name, mp in pairs(M.packs) do
-        for cat in mp:categoriesinmapiter(ml.map_id) do
+        for cat in mp:categoriesinmapiter(ml.mapid) do
             if cat:ancestorsactive() then
                 M.showcategory(cat)
             end
@@ -315,7 +315,7 @@ local function onstartup()
         log:warn("No markerpacks in settings.")
     end
    
-    if ml.map_id ~= 0 then
+    if ml.mapid ~= 0 then
         onmapchange()
     end
 
@@ -328,7 +328,7 @@ end
 local function createtooltipinfo(marker, showabovebelow)
     local abovebelowsepcolor = overlay.settings():get('overlay.ui.colors.text')
 
-    local playerpos = ml.avatar_position
+    local playerpos = ml.avatarposition
     playerpos.x = utils.meterstoinches(playerpos.x)
     playerpos.y = utils.meterstoinches(playerpos.y)
     playerpos.z = utils.meterstoinches(playerpos.z)
@@ -440,7 +440,7 @@ local function drawtooltip()
 
     local mousecx, mousecy = o3d.mousepointermapcoords()
 
-    local playerpos = ml.avatar_position
+    local playerpos = ml.avatarposition
     playerpos.x = utils.meterstoinches(playerpos.x)
     playerpos.y = utils.meterstoinches(playerpos.y)
     playerpos.z = utils.meterstoinches(playerpos.z)
@@ -462,7 +462,7 @@ local function drawtooltip()
 
     if #tooltipmps > 0 then
         buildtooltipinfos(tooltipmps, true)
-        local mx, my = ui.mouse_position()
+        local mx, my = ui.mouseposition()
         tooltipwin:position(mx - 10, my - 30)
         tooltipwin:hanchor(1)
         tooltipwin:vanchor(1)
@@ -499,7 +499,7 @@ local function drawtooltip()
     if #tooltipmps > 0 then
         buildtooltipinfos(tooltipmps, false)
 
-        local mx, my = ui.mouse_position()
+        local mx, my = ui.mouseposition()
 
         tooltipwin:position(mx + 30, my)
         tooltipwin:hanchor(-1)
@@ -533,11 +533,11 @@ local function ondraw()
     drawmarkers()
 end
 
-overlay.add_event_handler('startup', onstartup)
-overlay.add_event_handler('draw-3d', ondraw)
+overlay.addeventhandler('startup', onstartup)
+overlay.addeventhandler('draw-3d', ondraw)
 
-overlay.add_event_handler('mumble-link-map-changed', onmapchange)
-overlay.add_event_handler('mumble-link-available'  , mlavailablechanged)
-overlay.add_event_handler('mumble-link-unavailable', mlavailablechanged)
+overlay.addeventhandler('mumble-link-map-changed', onmapchange)
+overlay.addeventhandler('mumble-link-available'  , mlavailablechanged)
+overlay.addeventhandler('mumble-link-unavailable', mlavailablechanged)
 
 return M

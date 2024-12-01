@@ -55,10 +55,10 @@ int statement_lua_step(lua_State *L);
 int statement_lua_reset(lua_State *L);
 
 luaL_Reg mod_funcs[] = {
-    "open"            , &db_lua_open,
-    "memory_used"     , &sqlite_lua_memory_used,
-    "memory_highwater", &sqlite_lua_memory_highwater,
-    NULL              , NULL
+    "open"           , &db_lua_open,
+    "memoryused"     , &sqlite_lua_memory_used,
+    "memoryhighwater", &sqlite_lua_memory_highwater,
+    NULL             , NULL
 };
 
 void lua_sqlite_init() {

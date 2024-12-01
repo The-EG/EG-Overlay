@@ -88,22 +88,22 @@ int overlay_uuidtobase64(lua_State *L);
 int overlay_uuidfrombase64(lua_State *L);
 
 luaL_Reg overlay_funcs[] = {
-    "add_event_handler"   , &overlay_add_event_handler,
-    "remove_event_handler", &overlay_remove_event_handler,
-    "queue_event"         , &overlay_queue_event,
-    "log"                 , &overlay_log,
-    "time"                , &overlay_time,
-    "settings"            , &overlay_settings,
-    "mem_usage"           , &overlay_mem_usage,
-    "process_time"        , &overlay_process_time,
-    "data_folder"         , &overlay_data_folder,
-    "clipboard_text"      , &overlay_clipboard_text,
-    "exit"                , &overlay_exit,
-    "findfiles"           , &overlay_findfiles,
-    "uuid"                , &overlay_uuid,
-    "uuidtobase64"        , &overlay_uuidtobase64,
-    "uuidfrombase64"      , &overlay_uuidfrombase64,
-    NULL                  ,  NULL
+    "addeventhandler"   , &overlay_add_event_handler,
+    "removeeventhandler", &overlay_remove_event_handler,
+    "queueevent"        , &overlay_queue_event,
+    "log"               , &overlay_log,
+    "time"              , &overlay_time,
+    "settings"          , &overlay_settings,
+    "memusage"          , &overlay_mem_usage,
+    "processtime"       , &overlay_process_time,
+    "datafolder"        , &overlay_data_folder,
+    "clipboardtext"     , &overlay_clipboard_text,
+    "exit"              , &overlay_exit,
+    "findfiles"         , &overlay_findfiles,
+    "uuid"              , &overlay_uuid,
+    "uuidtobase64"      , &overlay_uuidtobase64,
+    "uuidfrombase64"    , &overlay_uuidfrombase64,
+    NULL                ,  NULL
 };
 
 int open_overlay_module(lua_State *L) {
@@ -322,29 +322,30 @@ Functions
 */
 
 /*** RST
-.. lua:function:: add_event_handler(event, handler)
+.. lua:function:: addeventhandler(event, handler)
 
     Add an event handler for the given event name.
     
     The handler function will be called every time that particular event is
     posted with two arguments: the event name and event data. The may be
-    ``nil``, any Lua data type or a :lua:class:`JSON.json` object.
+    ``nil``, any Lua data type or a :lua:class:`jansson.json` object.
 
     :param event: Event type
     :type event: string
     :param handler: Function to be called on the given event
     :type handler: function
-    :return: A callback ID that can be used with :lua:func:`remove_event_handler`.
+    :return: A callback ID that can be used with :lua:func:`removeeventhandler`.
     :rtype: integer
 
     .. versionhistory::
         :0.0.1: Added
+        :0.1.0: Renamed from add_event_handler to addeventhandler
 */
 int overlay_add_event_handler(lua_State *L) {
     const char *event = luaL_checkstring(L, 1);
 
     if (lua_type(L, 2)!=LUA_TFUNCTION) {
-        return luaL_error(L, "overlay.add_event_handler: argument #2 must be a function.");
+        return luaL_error(L, "overlay.addeventhandler: argument #2 must be a function.");
     }
     
     lua_pushvalue(L, 2);
@@ -388,10 +389,10 @@ int overlay_add_event_handler(lua_State *L) {
 }
 
 /*** RST
-.. lua:function:: remove_event_handler(event, cbi)
+.. lua:function:: removeeventhandler(event, cbi)
 
     Remove an event handler for the given event name. The callback ID is
-    returned by :lua:func:`add_event_handler`.
+    returned by :lua:func:`addeventhandler`.
 
     :param event: Event type
     :type event: string
@@ -401,6 +402,7 @@ int overlay_add_event_handler(lua_State *L) {
 
     .. versionhistory::
         :0.0.1: Added
+        :0.1.0: Renamed from remove_event_handler to removeeventhandler
 */
 int overlay_remove_event_handler(lua_State *L) {
     const char *event = luaL_checkstring(L, 1);
@@ -445,7 +447,7 @@ int overlay_remove_event_handler(lua_State *L) {
 }
 
 /*** RST
-.. lua:function:: queue_event(event, data)
+.. lua:function:: queueevent(event, data)
 
     Add a new event to the queue.
 
@@ -461,6 +463,7 @@ int overlay_remove_event_handler(lua_State *L) {
 
     .. versionhistory::
         :0.0.1: Added
+        :0.1.0: Renamed from queue_event to queueevent
 */
 int overlay_queue_event(lua_State *L) {
     const char *event = luaL_checkstring(L, 1);
@@ -833,7 +836,7 @@ void lua_manager_queue_event(const char *event, json_t *data) {
 }
 
 /*** RST
-.. lua:function:: mem_usage()
+.. lua:function:: memusage()
 
     Returns a table containing the memory usage of the overlay. These statistics
     are for the application as a whole, and not just Lua.
@@ -848,6 +851,7 @@ void lua_manager_queue_event(const char *event, json_t *data) {
 
     .. versionhistory::
         :0.0.1: Added
+        :0.1.0: Renamed from mem_usage to memusage
 */
 int overlay_mem_usage(lua_State *L) {
     PROCESS_MEMORY_COUNTERS mem_counters = {0};
@@ -868,7 +872,7 @@ int overlay_mem_usage(lua_State *L) {
 }
 
 /*** RST
-.. lua:function:: process_time()
+.. lua:function:: processtime()
 
     Returns a table containing the CPU time and uptime of the overlay. This can
     be used to calculate the overlay's CPU usage.
@@ -885,6 +889,7 @@ int overlay_mem_usage(lua_State *L) {
 
     .. versionhistory::
         :0.0.1: Added
+        :0.1.0: Renamed from process_time to processtime
 */
 int overlay_process_time(lua_State *L) {
     FILETIME create_time = {0};
@@ -962,7 +967,7 @@ int overlay_process_time(lua_State *L) {
 }
 
 /*** RST
-.. lua:function:: overlay_data_folder(name)
+.. lua:function:: overlaydatafolder(name)
 
     Returns the full path to the data folder for the given module. 
     
@@ -976,6 +981,7 @@ int overlay_process_time(lua_State *L) {
 
     .. versionhistory::
         :0.0.1: Added
+        :0.1.0: Renamed from overlay_data_folder to overlaydatafolder
 */
 int overlay_data_folder(lua_State *L) {
     const char *name = luaL_checkstring(L, 1);
@@ -1027,7 +1033,7 @@ int overlay_data_folder(lua_State *L) {
 }
 
 /*** RST
-.. lua:function:: clipboard_text([text])
+.. lua:function:: clipboardtext([text])
 
     Set or return the text on the clipboard.
 
@@ -1038,6 +1044,7 @@ int overlay_data_folder(lua_State *L) {
 
     .. versionhistory::
         :0.0.1: Added
+        :0.1.0: Renamed from clipboard_text to clipboardtext
 */
 int overlay_clipboard_text(lua_State *L) {    
     if (lua_gettop(L)==1) {

@@ -23,11 +23,11 @@ local logger      = require 'logger'
 local mod = {}
 
 local mb_settings = settings.new('map-buddy.lua')
-mb_settings:set_default('window.x', 10)
-mb_settings:set_default('window.y', 10)
-mb_settings:set_default('window.width', 150)
-mb_settings:set_default('window.height', 100)
-mb_settings:set_default('window.show', false)
+mb_settings:setdefault('window.x', 10)
+mb_settings:setdefault('window.y', 10)
+mb_settings:setdefault('window.width', 150)
+mb_settings:setdefault('window.height', 100)
+mb_settings:setdefault('window.show', false)
 
 mod.win = ui.window("Map Buddy", 600, 10, 350, 400)
 mod.win:settings(mb_settings, 'window')
@@ -95,7 +95,7 @@ local function update()
 end
 
 local function on_map_changed()
-    waypoints = static.waypointsinmap(mumble_link.map_id)
+    waypoints = static.waypointsinmap(mumble_link.mapid)
 end
 
 local function primary_action(event)
@@ -111,16 +111,16 @@ local function primary_action(event)
 end
 
 local function on_startup()
-    overlay.queue_event('register-module-actions', {
+    overlay.queueevent('register-module-actions', {
         name = "Map Buddy",
         primary_action = primary_action
     })
 
-    if mumble_link.map_id~=0 then on_map_changed() end
+    if mumble_link.mapid~=0 then on_map_changed() end
 end
 
-overlay.add_event_handler('update', update)
-overlay.add_event_handler('startup', on_startup)
-overlay.add_event_handler('mumble-link-map-changed', on_map_changed)
+overlay.addeventhandler('update', update)
+overlay.addeventhandler('startup', on_startup)
+overlay.addeventhandler('mumble-link-map-changed', on_map_changed)
 
 return mod

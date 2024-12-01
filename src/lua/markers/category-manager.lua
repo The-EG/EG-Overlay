@@ -9,14 +9,14 @@ local M = {}
 
 -- The path of the categories displayed. This is a category typeid, of which
 -- all child categories are displayed.
-settings:set_default('categoryManager.path', '')
-settings:set_default('categoryManager.onlyShowCategoriesInMap', false)
+settings:setdefault('categoryManager.path', '')
+settings:setdefault('categoryManager.onlyShowCategoriesInMap', false)
 
-settings:set_default('categoryManager.window.x', 200)
-settings:set_default('categoryManager.window.y', 50)
-settings:set_default('categoryManager.window.width', 300)
-settings:set_default('categoryManager.window.height', 600)
-settings:set_default('categoryManager.window.show', false)
+settings:setdefault('categoryManager.window.x', 200)
+settings:setdefault('categoryManager.window.y', 50)
+settings:setdefault('categoryManager.window.width', 300)
+settings:setdefault('categoryManager.window.height', 600)
+settings:setdefault('categoryManager.window.show', false)
 
 local function shortbtn(text)
     local btn = ui.button()
@@ -120,7 +120,7 @@ end
 local function updatecategories()
     local parent = settings:get('categoryManager.path')
     local onlyinmap = settings:get('categoryManager.onlyShowCategoriesInMap')
-    local mapid = ml.map_id
+    local mapid = ml.mapid
 
     local cats = {}
 
@@ -288,7 +288,7 @@ function M.hide()
     settings:set('categoryManager.window.show', false)
 end
 
-overlay.add_event_handler('mumble-link-map-changed', function()
+overlay.addeventhandler('mumble-link-map-changed', function()
     updatecategories()
 end)
 

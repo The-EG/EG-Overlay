@@ -626,11 +626,10 @@ eg-overlay-ui
 */
 
 static const struct luaL_Reg ui_funcs[] = {
-    //"element",        &ui_lua_element,
-    "add_top_level_element",    &ui_lua_add_top_level_element,
-    "remove_top_level_element", &ui_lua_add_top_level_element,
-    "mouse_position",           &ui_lua_mouse_position,
-    NULL,              NULL
+    "addtoplevelelement"   , &ui_lua_add_top_level_element,
+    "removetoplevelelement", &ui_lua_add_top_level_element,
+    "mouseposition"        , &ui_lua_mouse_position,
+    NULL                   ,  NULL
 };
 
 int ui_lua_open_module(lua_State *L) {
@@ -760,7 +759,7 @@ Core UI
     .. versionhistory::
         :0.0.1: Added
 
-.. lua:function:: add_top_level_element(uielement)
+.. lua:function:: addtoplevelelement(uielement)
 
     Add an element to the list of top level elements. Top level elements are
     the only elements drawn automatically.
@@ -775,6 +774,7 @@ Core UI
     
     .. versionhistory::
         :0.0.1: Added
+        :0.1.0: Renamed from add_top_level_element to addtoplevelelement
 */
 int ui_lua_add_top_level_element(lua_State *L) {
     ui_element_t *element = *(ui_element_t**)lua_touserdata(L, 1);    
@@ -785,15 +785,16 @@ int ui_lua_add_top_level_element(lua_State *L) {
 }
 
 /*** RST
-.. lua:function:: remove_top_level_element(uielement)
+.. lua:function:: removetoplevelelement(uielement)
 
     Remove a top level element previously added with
-    :lua:func:`add_top_level_element`.
+    :lua:func:`addtoplevelelement`.
 
     :param uielement: The UI element to hide.
 
     .. versionhistory::
         :0.0.1: Added
+        :0.1.0: Renamed from remove_top_level_element to removetoplevelelement
 */
 int ui_lua_remove_top_level_element(lua_State *L) {
     ui_element_t *element = *(ui_element_t**)lua_touserdata(L, 1);
@@ -804,7 +805,7 @@ int ui_lua_remove_top_level_element(lua_State *L) {
 }
 
 /*** RST
-.. lua:function:: mouse_position()
+.. lua:function:: mouseposition()
 
     Returns the x,y coordinates of the mouse cursor. These coordinates are
     relative to the overlay's client rectangle, i.e. 0,0 is the top left.
@@ -819,6 +820,7 @@ int ui_lua_remove_top_level_element(lua_State *L) {
     
     .. versionhistory::
         :0.0.1: Added
+        :0.1.0: Renamed from mouse_position to mouseposition
 */
 static int ui_lua_mouse_position(lua_State *L) {
     lua_pushinteger(L, ui->last_mouse_x);

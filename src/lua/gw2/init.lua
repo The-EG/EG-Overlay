@@ -125,9 +125,9 @@ end
         :0.0.1: Added
 ]]--
 function gw2.player_map_coords()
-    if ml.map_id==0 then return end
+    if ml.mapid==0 then return end
 
-    local apos = ml.avatar_position
+    local apos = ml.avatarposition
 
     return apos.x * 39.3701, apos.y * 39.3701, apos.z * 39.3701
 end
@@ -150,13 +150,13 @@ end
         :0.0.1: Added
 ]]--
 function gw2.player_continent_coords()
-    if ml.map_id == 0 then return end
+    if ml.mapid == 0 then return end
 
     local px, py, pz = gw2.player_map_coords()
 
     if not px then return end
 
-    local map = static.map(ml.map_id)
+    local map = static.map(ml.mapid)
     return gw2.coord_m2c(
         px, pz,
         map.continent_rect_left, map.continent_rect_right, map.continent_rect_top, map.continent_rect_bottom,
@@ -165,9 +165,9 @@ function gw2.player_continent_coords()
 end
 
 function gw2.map2continent(mapx, mapy)
-    if ml.map_id == 0 then return end
+    if ml.mapid == 0 then return end
 
-    local map = static.map(ml.map_id)
+    local map = static.map(ml.mapid)
 
     return gw2.coord_m2c(
         mapx, mapy,
@@ -180,13 +180,13 @@ gw2.coordconverter = {}
 gw2.coordconverter.__index = gw2.coordconverter
 
 function gw2.coordconverter:new()
-    if ml.map_id == 0 then return end
+    if ml.mapid == 0 then return end
 
-    local map = static.map(ml.map_id)
+    local map = static.map(ml.mapid)
 
     if not map then return end
 
-    local o = { map = map, mapid = ml.map_id }
+    local o = { map = map, mapid = ml.mapid }
     setmetatable(o, self)
 
     return o

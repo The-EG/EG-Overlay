@@ -61,7 +61,7 @@ local log = logger.logger:new("mumble-link-events")
 mod.is_available = false
 mod.last_tick = ml.tick
 mod.last_tick_time = overlay.time()
-local map_id = ml.map_id
+local map_id = ml.mapid
 
 local tick_to_tick_time = 0.4
 
@@ -69,11 +69,11 @@ function mod.update()
     local now = overlay.time()
     if not mod.is_available and mod.last_tick~=ml.tick then
         mod.is_available = true
-        overlay.queue_event('mumble-link-available')
+        overlay.queueevent('mumble-link-available')
         log:debug('MumbleLink available')
     elseif mod.is_available and mod.last_tick==ml.tick and now - mod.last_tick_time >= tick_to_tick_time then
         mod.is_available = false
-        overlay.queue_event('mumble-link-unavailable')
+        overlay.queueevent('mumble-link-unavailable')
         log:debug('MumbleLink unavailable')
     end
 
@@ -84,13 +84,13 @@ function mod.update()
 
     if not mod.is_available then return end
 
-    if map_id~=ml.map_id then
-        log:debug('MumbleLink new map ( %d -> %d )', map_id, ml.map_id)
-        map_id = ml.map_id
-        overlay.queue_event('mumble-link-map-changed')
+    if map_id~=ml.mapid then
+        log:debug('MumbleLink new map ( %d -> %d )', map_id, ml.mapid)
+        map_id = ml.mapid
+        overlay.queueevent('mumble-link-map-changed')
     end
 end
 
-overlay.add_event_handler('update', mod.update)
+overlay.addeventhandler('update', mod.update)
 
 return mod

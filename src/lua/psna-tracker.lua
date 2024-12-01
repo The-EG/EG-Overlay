@@ -27,11 +27,11 @@ local psna = {}
 psna.log = logger.logger:new('psna-tracker')
 
 local psna_settings = settings.new('psna-tracker.lua')
-psna_settings:set_default('window.x', 10)
-psna_settings:set_default('window.y', 10)
-psna_settings:set_default('window.width', 150)
-psna_settings:set_default('window.height', 100)
-psna_settings:set_default('window.show', false)
+psna_settings:setdefault('window.x', 10)
+psna_settings:setdefault('window.y', 10)
+psna_settings:setdefault('window.width', 150)
+psna_settings:setdefault('window.height', 100)
+psna_settings:setdefault('window.show', false)
 
 psna.win = ui.window("Pact Supply Network Agents", 20, 20)
 psna.win:settings(psna_settings, 'window')
@@ -59,7 +59,7 @@ outerbox:pack_end(grid, false, 'start')
 local agentrow = 3
 
 local function on_button_click(agent)
-    overlay.clipboard_text(agent.chatlinks[psna.weekday])
+    overlay.clipboardtext(agent.chatlinks[psna.weekday])
 end
 
 
@@ -266,28 +266,28 @@ local function primary_action(event)
         if psna_settings:get("window.show") then
             psna.win:hide()
             psna_settings:set("window.show", false)
-            overlay.remove_event_handler('update', psna.update_handler_id)
+            overlay.removeeventhandler('update', psna.update_handler_id)
             psna.update_handler_id = nil
         else
             psna.win:show()
             psna_settings:set("window.show", true)
-            psna.update_handler_id = overlay.add_event_handler('update', update)
+            psna.update_handler_id = overlay.addeventhandler('update', update)
         end
     end
 end
 
 local function on_startup()
-    overlay.queue_event('register-module-actions', {
+    overlay.queueevent('register-module-actions', {
         name = "PSNA Tracker",
         primary_action = primary_action
     })
 end
 
 if psna_settings:get('window.show') then
-    psna.update_handler_id = overlay.add_event_handler('update', update)
+    psna.update_handler_id = overlay.addeventhandler('update', update)
     psna.win:show()
 end
 
-overlay.add_event_handler('startup', on_startup)
+overlay.addeventhandler('startup', on_startup)
 
 return psna

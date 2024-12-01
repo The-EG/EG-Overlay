@@ -611,13 +611,13 @@ Classes
 */
 
 luaL_Reg settings_lua_funcs[] = {
-    "__gc"       , &settings_lua_del,
-    "get"        , &settings_lua_get,
-    "set"        , &settings_lua_set,
-    "set_default", &settings_lua_set_default,
-    "save_on_set", &settings_lua_save_on_set,
-    "save"       , &settings_lua_save,
-    NULL         ,  NULL
+    "__gc"      , &settings_lua_del,
+    "get"       , &settings_lua_get,
+    "set"       , &settings_lua_set,
+    "setdefault", &settings_lua_set_default,
+    "saveonset" , &settings_lua_save_on_set,
+    "save"      , &settings_lua_save,
+    NULL        ,  NULL
 };
 
 void settings_lua_register_metatable(lua_State *L) {
@@ -699,7 +699,7 @@ int settings_lua_set(lua_State *L) {
 }
 
 /*** RST
-    .. lua:method:: set_default(key, value)
+    .. lua:method:: setdefault(key, value)
 
         Set a default value for a given key. This functions exactly like
         :lua:meth:`settings.set` except this does not write the value to the
@@ -837,7 +837,7 @@ settings_t *lua_checksettings(lua_State *L, int ind) {
 }
 
 /*** RST
-    .. lua:method:: save_on_set(value)
+    .. lua:method:: saveonset(value)
 
         Control the behvior when setting a value. By default,
         :lua:class:`settings.settings` will save values to the underlying JSON
