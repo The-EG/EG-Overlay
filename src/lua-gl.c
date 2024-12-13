@@ -2041,7 +2041,7 @@ trail_coordinate_t *trail_list_trail_calc_coords(trail_list_t *list, trail_list_
 
     size_t coord_ind = 0;
 
-    for (size_t i=1; i<=trail->point_count-1; i++) {
+    for (size_t i=0; i<trail->point_count-1; i++) {
         // each segment is made up of 2 points, p1 and p2
         vec3f_t *p1 = &trail->points[i];
         vec3f_t *p2 = &trail->points[i+1];
@@ -2091,7 +2091,7 @@ trail_coordinate_t *trail_list_trail_calc_coords(trail_list_t *list, trail_list_
 
         // if this is the first segment then calculate a and b, otherwise
         // and c and d from the previous segment will become a and b
-        if (i==1) {
+        if (i==0) {
             // b
             vec3f_add_vec3f(p1, &side, &coords[coord_ind].position);
             coords[coord_ind].u = 1.f;
@@ -2183,7 +2183,7 @@ void trail_list_update_vbo(trail_list_t *list) {
     
     if (newsize > list->vbo_size) {
         list->vbo_size = newsize;
-        glBufferData(GL_ARRAY_BUFFER, list->vbo_size * sizeof(trail_coordinate_t), NULL, GL_DYNAMIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, list->vbo_size * sizeof(trail_coordinate_t), NULL, GL_STATIC_DRAW);
     }
 
     size_t offset = 0;
