@@ -49,8 +49,6 @@ static overlay_3d_t *overlay_3d = NULL;
 
 int overlay_3d_lua_open_module(lua_State *L);
 
-void set_fade_region_uniforms(GLint center, GLint radius, GLint fade_radius);
-
 gl_shader_source_list_t sprite_array_srcs[] = {
     "shaders/sprite-array.vert", GL_VERTEX_SHADER,
     "shaders/sprite-array.frag", GL_FRAGMENT_SHADER,
@@ -1712,13 +1710,12 @@ int sprite_list_lua_draw(lua_State *L) {
     }
 
     glUniform3fv(2, 1, (GLfloat*)&overlay_3d->player_pos);
+    glUniform1ui(3, (GLuint)list->map);
+    glUniform3fv(4, 1, (GLfloat*)&overlay_3d->camera);
 
-    set_fade_region_uniforms(3, 4, 5);
-
-    glUniform1f(6, (GLfloat)overlay_3d->minimapleft  );
-    glUniform1f(7, (GLfloat)overlay_3d->minimapbottom);
-    glUniform1f(8, (GLfloat)overlay_3d->minimapheight);
-    glUniform1ui(9, (GLuint)list->map);
+    glUniform1f(5, (GLfloat)overlay_3d->minimapleft  );
+    glUniform1f(6, (GLfloat)overlay_3d->minimapbottom);
+    glUniform1f(7, (GLfloat)overlay_3d->minimapheight);
 
     glBindVertexArray(list->vao);
 
@@ -1752,31 +1749,6 @@ int sprite_list_lua_draw(lua_State *L) {
     glEnable(GL_CULL_FACE);
 
     return 0;
-}
-
-// Setup a region on screen where sprites and trails are faded to nearly
-// transparent. This is intended to make the 3D scene elements a little less
-// intrusive since it won't be drawn over the player.
-void set_fade_region_uniforms(GLint center, GLint radius, GLint fade_radius) {
-    int viewport[4] = {0};
-
-    glGetIntegerv(GL_VIEWPORT, viewport);
-
-    // the center point of the fade region, the bottom center of the window
-    float fade_region_x = (float)viewport[2] / 2.f;
-    float fade_region_y = ((float)viewport[3] / 2.f) - ((float)viewport[3] / 7.f);
-
-    // the radius around the center where all pixels will be nearly transparent
-    // this is roughly where the player will be drawn on screen
-    float radius_val = (float)viewport[3] / 5.f;
-
-    // an additional radius around the above area where the pixels will begin to
-    // fade toward transparent gradually
-    float fade_radius_val = (float)viewport[3] / 9.f;
-
-    glUniform2f(center, fade_region_x, fade_region_y);
-    glUniform1f(radius, radius_val);
-    glUniform1f(fade_radius, fade_radius_val);
 }
 
 /*** RST
@@ -2258,12 +2230,12 @@ int trail_list_lua_draw(lua_State *L) {
         glUniformMatrix4fv(1, 1, GL_FALSE, (GLfloat*)overlay_3d->proj);
     }
 
-    set_fade_region_uniforms(4, 5, 6);
-    glUniform3fv(8, 1, (GLfloat*)&overlay_3d->player_pos);
-    glUniform1f(9, (GLfloat)overlay_3d->minimapleft);
-    glUniform1f(10, (GLfloat)overlay_3d->minimapbottom);
-    glUniform1f(11, (GLfloat)overlay_3d->minimapheight);
-    glUniform1ui(12, (GLuint)list->map);
+    glUniform1f(5, (GLfloat)overlay_3d->minimapleft);
+    glUniform1f(6, (GLfloat)overlay_3d->minimapbottom);
+    glUniform1f(7, (GLfloat)overlay_3d->minimapheight);
+    glUniform1ui(8, (GLuint)list->map);
+    glUniform3fv(9, 1, (GLfloat*)&overlay_3d->player_pos);
+    glUniform3fv(10, 1, (GLfloat*)&overlay_3d->camera);
 
     glBindVertexArray(list->vao);
 
@@ -2278,7 +2250,7 @@ int trail_list_lua_draw(lua_State *L) {
         for (size_t trail=0;trail<list->trail_counts[tex];trail++) {
             glUniform1f(2, list->trails[tex][trail].fade_near);
             glUniform1f(3, list->trails[tex][trail].fade_far);
-            glUniform4fv(7, 1, (GLfloat*)&list->trails[tex][trail].color);
+            glUniform4fv(4, 1, (GLfloat*)&list->trails[tex][trail].color);
 
             glDrawArrays(GL_TRIANGLE_STRIP, (GLint)first, (GLsizei)list->trails[tex][trail].coord_count);
             first += list->trails[tex][trail].coord_count;

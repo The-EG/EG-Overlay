@@ -17,12 +17,16 @@ layout(location = 9) in mat4 rotation;
 layout(location = 0) uniform mat4 view;
 layout(location = 1) uniform mat4 proj;
 layout(location = 2) uniform vec3 player_pos;
-layout(location = 9) uniform uint ismap;
+layout(location = 3) uniform uint ismap;
+layout(location = 4) uniform vec3 camera_pos;
 
 layout(location = 0) out vec2 frag_tex_coord;
 layout(location = 1) out vec4 frag_color;
 layout(location = 2) flat out uint out_flags;
 layout(location = 3) out float fade_alpha; // result of fading due to fade_near / fade_far
+layout(location = 4) out float fade_dist;
+layout(location = 5) out float cam_player_dist;
+layout(location = 6) out float vert_cam_dist;
 
 void main() {
     float y_size = size;
@@ -76,10 +80,13 @@ void main() {
     gl_Position = proj * view * vec4(pos.xyz + vpos, 1.0);
     frag_color = color;
 
+    fade_dist = distance(player_pos, pos);
     if (ismap==0) {
-        float fade_dist = distance(player_pos, pos);
         fade_alpha = distance_fade_alpha(fade_near, fade_far, fade_dist);
     } else {
         fade_alpha = 1.0;
     }
+
+    cam_player_dist = distance(camera_pos, player_pos);
+    vert_cam_dist = distance(camera_pos, pos);
 }
