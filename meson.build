@@ -1,4 +1,4 @@
-project('eg-overlay', 'c', version: '0.1.0-dev', default_options: ['c_std=c17'])
+project('eg-overlay', 'c', 'cpp', version: '0.1.0-dev', default_options: ['c_std=c17'])
 
 version_data = configuration_data()
 version_data.set('version_str', meson.project_version())
@@ -25,11 +25,7 @@ jansson_opts.add_cmake_defines({'JANSSON_BUILD_DOCS': 'OFF'})
 generic_cmake_opts.add_cmake_defines(cmake_buildtypes[get_option('buildtype')])
 curl_opts.add_cmake_defines(cmake_buildtypes[get_option('buildtype')])
 
-glfw_proj = cmake.subproject('glfw', options: generic_cmake_opts)
-glfw_lib = glfw_proj.dependency('glfw')
-
 stb_inc = include_directories('contrib/stb', is_system: true)
-glad_inc = include_directories('contrib/glad/include', is_system: true)
 
 winmm_lib = cc.find_library('winmm')
 rpcrt_lib = cc.find_library('rpcrt4')
@@ -93,5 +89,14 @@ lua_dep = lua_proj.get_variable('lua_dep')
 
 jansson_proj = cmake.subproject('jansson-2.14', options:jansson_opts)
 jansson_dep = jansson_proj.dependency('jansson')
+
+d3d12_dep = cc.find_library('D3D12')
+dxguid_dep = cc.find_library('DXGUID')
+dxgi_dep = cc.find_library('DXGI')
+dcomp_dep = cc.find_library('DComp')
+winmm_dep = cc.find_library('WinMM')
+wincodecs_dep = cc.find_library('WindowsCodecs')
+
+dxc = find_program('dxc')
 
 subdir('src')

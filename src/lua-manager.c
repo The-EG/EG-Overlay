@@ -1,10 +1,9 @@
+#include "dx.h"
 #include <windows.h>
 #include <rpc.h>
 #include <wincrypt.h>
 #include <ShlObj.h>
 #include <psapi.h>
-#include <glad/gl.h>
-#include <glfw/glfw3.h>
 #include "app.h"
 #include "lua-manager.h"
 #include "logging/logger.h"
@@ -78,6 +77,7 @@ int overlay_log(lua_State *L);
 int overlay_time(lua_State *L);
 int overlay_settings(lua_State *L);
 int overlay_mem_usage(lua_State *L);
+int overlay_video_mem_usage(lua_State *L);
 int overlay_process_time(lua_State *L);
 int overlay_data_folder(lua_State *L);
 int overlay_clipboard_text(lua_State *L);
@@ -95,6 +95,7 @@ luaL_Reg overlay_funcs[] = {
     "time"              , &overlay_time,
     "settings"          , &overlay_settings,
     "memusage"          , &overlay_mem_usage,
+    "videomemusage"     , &overlay_video_mem_usage,
     "processtime"       , &overlay_process_time,
     "datafolder"        , &overlay_data_folder,
     "clipboardtext"     , &overlay_clipboard_text,
@@ -516,7 +517,9 @@ int overlay_log(lua_State *L) {
         :0.0.1: Added
 */
 int overlay_time(lua_State *L) {
-    lua_pushnumber(L, glfwGetTime());
+    double total_time_seconds = app_get_uptime() / 10000.0 / 1000.0;
+
+    lua_pushnumber(L, total_time_seconds);
 
     return 1;
 }
@@ -595,6 +598,8 @@ lua_event_handler_t *get_event_handlers(const char *event) {
 
     return lua->event_handlers[event_ind];
 }
+
+
 
 void lua_manager_add_coroutine_thread(lua_State *thread, int threadi) {
     size_t cosize = sizeof(lua_manager_coroutine_thread_list_t);
@@ -872,6 +877,23 @@ int overlay_mem_usage(lua_State *L) {
 }
 
 /*** RST
+.. lua:function:: videomemusage()
+
+    Returns the video memory usage of the overlay, in bytes.
+
+    :return: Video memory usage
+    :rtype: number
+
+    .. versionhistory::
+        :0.1.0: Added
+*/
+int overlay_video_mem_usage(lua_State *L) {
+    lua_pushnumber(L, (lua_Number)dx_get_video_memory_used());
+
+    return 1;
+}
+
+/*** RST
 .. lua:function:: processtime()
 
     Returns a table containing the CPU time and uptime of the overlay. This can
@@ -1073,6 +1095,8 @@ int overlay_clipboard_text(lua_State *L) {
 int overlay_exit(lua_State *L) {
     UNUSED_PARAM(L);
     
+    logger_warn(lua->log, "Exit called from Lua.");
+
     app_exit();
 
     return 0;

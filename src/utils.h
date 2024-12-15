@@ -14,13 +14,8 @@ char *load_file(const char *path, size_t *length);
 
 uint32_t djb2_hash_string(const char *string);
 
-void push_child_viewport(int x, int y, int w, int h, int *old_vp, mat4f_t *vp_proj);
-void pop_child_viewport(int *old_vp);
-
-int push_scissor(int x, int y, int width, int height, int *old_scissor);
-void pop_scissor(int *old_scissor);
-
-char *wchar_to_char(wchar_t *wstr);
+char *wchar_to_char(const wchar_t *wstr);
+wchar_t *char_to_wchar(const char *str);
 
 #ifndef UNUSED_PARAM
 #define UNUSED_PARAM(p) (void)p

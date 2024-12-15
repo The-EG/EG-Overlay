@@ -6,7 +6,6 @@ docs/_build
 subprojects/*
 !subprojects/curl.wrap
 !subprojects/freetype2.wrap
-!subprojects/glfw.wrap
 !subprojects/libxml2.wrap
 !subprojects/zlib.wrap
 !subprojects/lua-5.4.7/

@@ -3,8 +3,8 @@
 #include "ui.h"
 #include "../lamath.h"
 #include "../utils.h"
-#include <glad/gl.h>
 #include <string.h>
+#include "../dx.h"
 
 #include <lauxlib.h>
 
@@ -117,9 +117,7 @@ void ui_text_draw(ui_text_t *text, int offset_x, int offset_y,  mat4f_t *proj) {
     int x = text->element.x + offset_x;
     int y = text->element.y + offset_y + 1;
 
-    glEnable(GL_SCISSOR_TEST);
-    int old_scissor[4] = {0};
-    if (push_scissor(x, y, text->element.width, text->element.height, old_scissor)) {
+    if (dx_push_scissor(x, y, x + text->element.width, y+ text->element.height)) {
 
         int loffset = 0;
         for (int curline=0;curline<text->lines;curline++) {
@@ -129,7 +127,7 @@ void ui_text_draw(ui_text_t *text, int offset_x, int offset_y,  mat4f_t *proj) {
             loffset += nextl + 1;
             y += ui_font_get_line_spacing(text->font);
         }
-        pop_scissor(old_scissor);
+        dx_pop_scissor();
         if (text->events) {
             ui_add_input_element(offset_x, offset_y, text->element.x, text->element.y,
                                  text->element.width, text->element.height, (ui_element_t*)text);

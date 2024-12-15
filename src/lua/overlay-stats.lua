@@ -73,14 +73,18 @@ local fps = stat_line('FPS', '???')
 
 seperator()
 
-local sqlite_mem = stat_line('SQLite Memory', '?? MB')
+local sqlite_mem = stat_line('SQLite Memory', '?? MiB')
 
-local lua_mem = stat_line('Lua Memory', '?? MB')
+local lua_mem = stat_line('Lua Memory', '?? MiB')
 
 seperator()
 
-local mem_cur = stat_line('Total Memory', '?? MB')
-local mem_peak = stat_line('Peak Memory', '?? MB')
+local mem_cur = stat_line('Total Memory', '?? MiB')
+local mem_peak = stat_line('Peak Memory', '?? MiB')
+
+seperator()
+
+local vid_mem = stat_line('Video Memory', '?? MiB')
 
 seperator()
 
@@ -117,12 +121,15 @@ function overlay_stats.update()
     fps.value:update_text(string.format('%.2f', cur_fps))
 
     local mem = overlay.memusage()
-    mem_cur.value:update_text(string.format('%.2f MB', mem.working_set / 1024.0 / 1024.0))
-    mem_peak.value:update_text(string.format('%.2f MB', mem.peak_working_set / 1024.0 / 1024.0))
+    mem_cur.value:update_text(string.format('%.2f MiB', mem.working_set / 1024.0 / 1024.0))
+    mem_peak.value:update_text(string.format('%.2f MiB', mem.peak_working_set / 1024.0 / 1024.0))
 
-    sqlite_mem.value:update_text(string.format('%.2f MB', sqlite.memoryused() / 1024.0 / 1024.0))
+    sqlite_mem.value:update_text(string.format('%.2f MiB', sqlite.memoryused() / 1024.0 / 1024.0))
 
-    lua_mem.value:update_text(string.format('%.2f MB', collectgarbage('count') / 1024.0))
+    lua_mem.value:update_text(string.format('%.2f MiB', collectgarbage('count') / 1024.0))
+
+    local videomem = overlay.videomemusage()
+    vid_mem.value:update_text(string.format('%0.2f MiB', videomem / 1024.0 / 1024.0))
 
     local proc_time = overlay.processtime()
     local now = overlay.time()

@@ -10,6 +10,7 @@
 #include "../logging/logger.h"
 #include "../settings.h"
 #include "../utils.h"
+#include "../dx.h"
 
 struct ui_window_s {
     ui_element_t element;
@@ -87,12 +88,10 @@ static void ui_window_draw_decorations(ui_window_t *win, int offset_x, int offse
                      win->highlight_title ? win->border_hl_color : win->border_color, proj);
 
         // caption
-        int old_scissor[4];
-        push_scissor(win_x + 1, win_y + 1, win->element.width - 2, win->child_y_offset - 2, old_scissor);
-
-        ui_font_render_text(win_font, proj, win_x + 3, win_y + 3, win->caption, strlen(win->caption), win->titlebar_text_color);
-
-        pop_scissor(old_scissor);
+        if (dx_push_scissor(win_x + 1, win_y + 1, win_x + 1 + win->element.width - 1, win_y + 1 + win->child_y_offset - 2)) {
+            ui_font_render_text(win_font, proj, win_x + 3, win_y + 3, win->caption, strlen(win->caption), win->titlebar_text_color);
+            dx_pop_scissor();
+        }
     } else {
         // top border
         ui_rect_draw(win_x, win_y, win->element.width, 1, win->border_color, proj);
@@ -212,10 +211,10 @@ void ui_window_draw(ui_window_t *win, int offset_x, int offset_y, mat4f_t *proj)
     int coffx = win->element.x + actual_offset_x + win->child_x_offset;
     int coffy = win->element.y + actual_offset_y + win->child_y_offset;
 
-    int old_scissor[4];
-    push_scissor(coffx, coffy, win->child_width, win->child_height, old_scissor);
-    if (win->child) ui_element_draw(win->child, coffx, coffy, proj);
-    pop_scissor(old_scissor);
+    if (dx_push_scissor(coffx, coffy, coffx + win->child_width, coffy + win->child_height)) {
+        if (win->child) ui_element_draw(win->child, coffx, coffy, proj);
+        dx_pop_scissor();
+    }
 }
 
 static int ui_window_process_mouse_event(ui_window_t *win, ui_mouse_event_t *event, int offset_x, int offset_y) {
