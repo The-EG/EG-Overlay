@@ -1039,12 +1039,15 @@ texture_map_texture_t *texture_map_get(texture_map_t *map, const char *name) {
 
     while (map->keys[ind] && strcmp(name, map->keys[ind])!=0) {
         ind++;
-
         // this is a special case, name is a collision but it isn't in the map
         // yet
         if (ind==hash % map->hash_map_size) return NULL;
 
-        if (ind>=map->hash_map_size) ind = 0;
+        if (ind>=map->hash_map_size) {
+            // edge case, hash % map->hash_map_size == 0
+            if (hash % map->hash_map_size == 0) return NULL;
+            ind = 0;
+        }
     }
 
     return map->texture_info[ind];
