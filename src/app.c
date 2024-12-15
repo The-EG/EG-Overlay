@@ -1,9 +1,5 @@
 #include <windows.h>
 #include <windowsx.h>
-#include <glad/gl.h>
-#include <glfw/glfw3.h>
-#define GLFW_EXPOSE_NATIVE_WIN32
-#include <glfw/glfw3native.h>
 
 #include "eg-overlay.h"
 #include "githash.h"
@@ -15,6 +11,8 @@
 #include "logging/event-sink.h"
 #include "logging/dbg-sink.h"
 #include <stdlib.h>
+
+#include "dx.h"
 
 #include <stb_image.h>
 
@@ -37,59 +35,75 @@
 
 #include "lua-sqlite.h"
 #include "lua-json.h"
-#include "lua-gl.h"
+#include "lua-dx.h"
 
 #include <time.h>
 #include <stdio.h>
 #include <sys/timeb.h>
 
+#define OVERLAY_WIN_CLASS "EG-Overlay Window"
+
 #define WM_SYSTRAYEVENT (WM_APP + 1)
 #define WM_SYSTRAYQUIT  (WM_APP + 2)
 #define WM_SYSTRAYLOG   (WM_APP + 3)
 #define WM_SYSTRAYDOCS  (WM_APP + 4)
+#define WM_APPEXIT      (WM_APP + 5)
 
 typedef struct {
     logger_t *log;
 
-    GLFWwindow *win;
-
-    HWND message_win;
     HINSTANCE inst;
     HWND win_hwnd;
     HWND target_hwnd;
     HMENU sys_tray_menu;
+
+    int running;
 
     settings_t *settings;
 
     const char *target_win_class;
 
     const char *runscript;
+
+    uint64_t app_start_time;
 } app_t;
 
-static app_t *app = NULL;
+app_t *app = NULL;
 
-static void app_run_script();
+void app_run_script();
 
-static LRESULT CALLBACK winproc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+LRESULT CALLBACK winproc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     switch (uMsg) {
+    case WM_PAINT:
+        break;
+    case WM_APPEXIT:
+    case WM_CLOSE:
+        DestroyWindow(hWnd);
+        break;
+    case WM_DESTROY:
+        PostQuitMessage(0);
+        break;
+    case WM_SIZE:
+        dx_resize(app->win_hwnd);
+        break;
     case WM_SYSTRAYEVENT:
         if (LOWORD(lParam)==WM_CONTEXTMENU) {
             // if the window isn't foreground the menu will not close if the user clicks out of it
             // https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-trackpopupmenu
-            SetForegroundWindow(app->message_win); 
+            SetForegroundWindow(app->win_hwnd); 
             int systraycmd = TrackPopupMenu(
                 app->sys_tray_menu,
                 TPM_RETURNCMD,
                 GET_X_LPARAM(wParam),
                 GET_Y_LPARAM(wParam),
                 0,
-                app->message_win,
+                app->win_hwnd,
                 NULL
             );
             switch(systraycmd) {
             case WM_SYSTRAYQUIT:
                 logger_debug(app->log,"Quit selected.");
-                glfwSetWindowShouldClose(app->win, GLFW_TRUE);
+                DestroyWindow(hWnd);
                 break;
             case WM_SYSTRAYLOG:
                 logger_debug(app->log, "Opening log file...");
@@ -103,7 +117,7 @@ static LRESULT CALLBACK winproc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
                 logger_error(app->log, "Unknown system tray menu command: %d", systraycmd);
             }
 
-            PostMessage(app->message_win, WM_NULL, 0, 0);
+            PostMessage(app->win_hwnd, WM_NULL, 0, 0);
         }
         break;
     default:
@@ -113,24 +127,48 @@ static LRESULT CALLBACK winproc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
     return 0;
 }
 
-static void register_win_class() {
-    WNDCLASSEX wc;
-    memset(&wc, 0, sizeof(wc));
+void app_register_win_class() {
+    WNDCLASSEX wc = {0};
 
     wc.lpfnWndProc = &winproc;
     wc.hInstance = app->inst;
-    wc.lpszClassName = "EG-Overlay Message Window Class";
+    wc.lpszClassName = OVERLAY_WIN_CLASS;
     wc.cbWndExtra = 0;
+    wc.style = CS_HREDRAW | CS_VREDRAW;
+    wc.hbrBackground = (HBRUSH)(COLOR_WINDOW+1);
     wc.cbSize = sizeof(WNDCLASSEX);
 
-    RegisterClassEx(&wc);
+    if (RegisterClassEx(&wc)==0) {
+        logger_error(app->log, "Failed to register window class.");
+        exit(-1);
+    }
+}
+
+void app_create_window() {
+    app->win_hwnd = CreateWindowEx(
+        WS_EX_NOREDIRECTIONBITMAP | WS_EX_TOOLWINDOW | WS_EX_TRANSPARENT | WS_EX_LAYERED | WS_EX_NOACTIVATE,
+        OVERLAY_WIN_CLASS,
+        "EG-Overlay",
+        WS_POPUP | WS_CLIPSIBLINGS | WS_CLIPCHILDREN,
+        CW_USEDEFAULT, CW_USEDEFAULT,
+        1280, 720,
+        NULL,
+        NULL,
+        app->inst,
+        NULL
+    );
+
+    if (!app->win_hwnd) {
+        logger_error(app->log, "Couldn't create window.");
+        exit(-1);
+    }
 }
 
 LRESULT CALLBACK keyboard_hook_proc(int nCode, WPARAM wParam, LPARAM lParam) {
     HWND fg_win = GetForegroundWindow();
     if (
         nCode < 0 ||
-        glfwGetWindowAttrib(app->win, GLFW_VISIBLE)==GLFW_FALSE ||
+        !IsWindowVisible(app->win_hwnd) ||
         fg_win!=app->target_hwnd
     ) return CallNextHookEx(NULL, nCode, wParam, lParam);
 
@@ -185,7 +223,7 @@ LRESULT CALLBACK mouse_hook_proc(int nCode, WPARAM wParam, LPARAM lParam) {
     HWND fg_win = GetForegroundWindow();
     if (
         nCode < 0 ||
-        glfwGetWindowAttrib(app->win, GLFW_VISIBLE)==GLFW_FALSE ||
+        !IsWindowVisible(app->win_hwnd) ||
         fg_win!=app->target_hwnd
     ) return CallNextHookEx(NULL, nCode, wParam, lParam);
 
@@ -240,62 +278,19 @@ LRESULT CALLBACK mouse_hook_proc(int nCode, WPARAM wParam, LPARAM lParam) {
     } else return CallNextHookEx(NULL, nCode, wParam, lParam);
 }
 
-void APIENTRY gl_debug_output(
-    GLenum source,
-    GLenum type,
-    unsigned int id,
-    GLenum severity,
-    GLsizei length,
-    const char *message,
-    const void *userp
-) {
-    UNUSED_PARAM(userp);
-    UNUSED_PARAM(length);
-
-    // filter out messages we don't care about
-    if (
-        id == 131185 || // buffer will use VIDEO memory as source
-        id == 131218    // shader in program XX is being recompiled based on GL state
-    ) return;
-
-    char *srcstr = "";
-    char *typestr = "";
-    char *severitystr = "";
-
-    switch (source) {
-    case GL_DEBUG_SOURCE_API:             srcstr = "API"; break;
-    case GL_DEBUG_SOURCE_WINDOW_SYSTEM:   srcstr = "Window System"; break;
-    case GL_DEBUG_SOURCE_SHADER_COMPILER: srcstr = "Shader Compiler"; break;
-    case GL_DEBUG_SOURCE_THIRD_PARTY:     srcstr = "Third Party"; break;
-    case GL_DEBUG_SOURCE_APPLICATION:     srcstr = "Application"; break;
-    case GL_DEBUG_SOURCE_OTHER:           srcstr = "Other"; break;
-    default:                              srcstr = "Unknown"; break;
-    }
-
-    switch (type) {
-    case GL_DEBUG_TYPE_ERROR:               typestr = "Error"; break;
-    case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR: typestr = "Deprecated Behaviour"; break;
-    case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:  typestr = "Undefined Behaviour"; break; 
-    case GL_DEBUG_TYPE_PORTABILITY:         typestr = "Portability"; break;
-    case GL_DEBUG_TYPE_PERFORMANCE:         typestr = "Performance"; break;
-    case GL_DEBUG_TYPE_MARKER:              typestr = "Marker"; break;
-    case GL_DEBUG_TYPE_PUSH_GROUP:          typestr = "Push Group"; break;
-    case GL_DEBUG_TYPE_POP_GROUP:           typestr = "Pop Group"; break;
-    case GL_DEBUG_TYPE_OTHER:               typestr = "Other"; break;
-    }
-    
-    switch (severity) {
-    case GL_DEBUG_SEVERITY_HIGH:         severitystr = "high"; break;
-    case GL_DEBUG_SEVERITY_MEDIUM:       severitystr = "medium"; break;
-    case GL_DEBUG_SEVERITY_LOW:          severitystr = "low"; break;
-    case GL_DEBUG_SEVERITY_NOTIFICATION: severitystr = "notification"; break;
-    }
-
-    logger_debug(app->log, "OpenGL message: (%d) %s - %s - %s: %s", id, srcstr, typestr, severitystr, message);
-}
-
 void app_init(HINSTANCE hinst, int argc, char **argv) {
     logger_init();
+
+    FILETIME create_time = {0};
+    FILETIME exit_time = {0};
+    FILETIME kernel_time = {0};
+    FILETIME user_time = {0};
+
+    GetProcessTimes(GetCurrentProcess(), &create_time, &exit_time, &kernel_time, &user_time);
+
+    ULARGE_INTEGER uli_create = {0};
+    uli_create.HighPart = create_time.dwHighDateTime;
+    uli_create.LowPart = create_time.dwLowDateTime;
 
     logger_t *log = logger_new("overlay");
     logger_set_level(log, LOGGER_LEVEL_INFO);
@@ -333,6 +328,7 @@ void app_init(HINSTANCE hinst, int argc, char **argv) {
     app = egoverlay_calloc(1, sizeof(app_t));
     app->target_win_class = "ArenaNet_Gr_Window_Class";
     app->log = log;
+    app->app_start_time = uli_create.QuadPart;
     logger_debug(app->log, "init");
 
     int no_input_hooks = 0;
@@ -383,110 +379,22 @@ void app_init(HINSTANCE hinst, int argc, char **argv) {
     app->settings = settings_new("eg-overlay");
     settings_set_default_double(app->settings, "overlay.frameTargetTime", 32.0);
 
-    glfwInit();
-
     if (app->runscript) {
         return;
     }
 
-    app->inst = hinst;
-
-    register_win_class();
-
-    app->message_win = CreateWindowEx(
-        0,
-        "EG-Overlay Message Window Class",
-        "EG-Overlay Message Window", 0, 0, 0, 0, 0, HWND_MESSAGE, NULL, NULL, NULL);   
-
-    
-    #ifndef NDEBUG
-    glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
-    #endif
-
-    glfwWindowHint(GLFW_VISIBLE                , GLFW_FALSE);
-    glfwWindowHint(GLFW_FOCUS_ON_SHOW          , GLFW_FALSE);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR  , 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR  , 6);
-    glfwWindowHint(GLFW_OPENGL_PROFILE         , GLFW_OPENGL_CORE_PROFILE);
-    glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_TRUE);
-    glfwWindowHint(GLFW_DOUBLEBUFFER           , GLFW_TRUE);
-    glfwWindowHint(GLFW_DECORATED              , GLFW_FALSE);
-    glfwWindowHint(GLFW_MOUSE_PASSTHROUGH      , GLFW_TRUE);
-
-    app->win = glfwCreateWindow(1200, 800, "EG-Overlay", NULL, NULL);
-    app->win_hwnd = glfwGetWin32Window(app->win);
-
-    // don't show the window on the task bar
-    DWORD ws_ex_style = (DWORD)GetWindowLongPtr(app->win_hwnd, GWL_EXSTYLE);
-    ws_ex_style = (ws_ex_style & ~WS_EX_APPWINDOW) | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW;
-    SetWindowLongPtr(app->win_hwnd, GWL_EXSTYLE, ws_ex_style);
-
-    glfwMakeContextCurrent(app->win);
-
-    gladLoadGL(glfwGetProcAddress);
-
-    int context_flags;
-    glGetIntegerv(GL_CONTEXT_FLAGS,&context_flags);
-
-    // setup OpenGL debug logging
-    if (context_flags & GL_CONTEXT_FLAG_DEBUG_BIT) {
-        glEnable(GL_DEBUG_OUTPUT);
-        glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-        glDebugMessageCallback(&gl_debug_output, NULL);
-        glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, NULL, GL_TRUE);
-
-        logger_debug(app->log, "OpenGL debug logging enabled.");
+    if (CoInitializeEx(NULL, COINIT_MULTITHREADED)!=S_OK) {
+        logger_error(app->log, "Couldn't initialize COM.");
+        exit(-1);
     }
 
-    logger_info(app->log, "OpenGL Initialized");
-    logger_info(app->log, "------------------------------------------------------------");
-    logger_info(app->log, "Version       %s", (char*)glGetString(GL_VERSION));
-    logger_info(app->log, "Renderer:     %s", (char*)glGetString(GL_RENDERER));
-    logger_info(app->log, "Vendor:       %s", (char*)glGetString(GL_VENDOR));
-    logger_info(app->log, "GLSL Version: %s", (char*)glGetString(GL_SHADING_LANGUAGE_VERSION));
+    SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
 
+    app->inst = hinst;
+    app_register_win_class();
+    app_create_window();
 
-    
-    logger_info(app->log, "Checking extensions:");
-    int have_shading_include = 0;
-    int i = 0;
-    GLint extn = 0;
-    glGetIntegerv(GL_NUM_EXTENSIONS, &extn);
-    for (i=0; i<extn; i++) {
-        const GLubyte *ext = glGetStringi(GL_EXTENSIONS, i);
-        if (strcmp((const char*)ext,"GL_ARB_shading_language_include")==0) {
-            logger_info(app->log, "  GL_ARB_shading_language_include supported");
-            have_shading_include = 1;
-        }
-   }
-
-    if (!have_shading_include) {
-        logger_error(app->log,"  GL_ARB_shading_language_include not supported.");
-        abort();
-    }    
-
-    logger_info(app->log, "------------------------------------------------------------");
-
-    glfwSwapInterval(0); // no V-sync
-
-
-    // alpha blending, but we'll do premultiplied RGB in our fragment shaders
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-        
-    glEnable(GL_DEPTH_TEST);
-
-    // GW2 is a DirectX application, so we'll be using left-handed rendering
-    // instead of right-handed. Switch some defaults around to compensate.
-    glDepthFunc(GL_GEQUAL);
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_BACK);
-    glFrontFace(GL_CW);
-
-    glStencilFunc(GL_EQUAL, 1, 0xFF);
-    
-    // let the render thread grab the context when it starts up
-    glfwMakeContextCurrent(NULL);
+    dx_init(app->win_hwnd);
 
     if (!no_input_hooks) {
         SetWindowsHookEx(WH_MOUSE_LL, &mouse_hook_proc, NULL, 0);
@@ -500,21 +408,15 @@ void app_init(HINSTANCE hinst, int argc, char **argv) {
     AppendMenu(app->sys_tray_menu, MF_ENABLED | MF_STRING, WM_SYSTRAYLOG , "Open log file"          );
     AppendMenu(app->sys_tray_menu, MF_SEPARATOR          , 0             , NULL                     );
     AppendMenu(app->sys_tray_menu, MF_ENABLED | MF_STRING, WM_SYSTRAYQUIT, "Quit"                   );
-
-    // OpenGL textures expect data to be from the bottom up
-    stbi_set_flip_vertically_on_load(1);
 }
 
 void app_cleanup() {
     logger_debug(app->log, "cleanup");
 
     if (!app->runscript) {
-        DestroyWindow(app->message_win);
-        glfwDestroyWindow(app->win);
-        
         DestroyMenu(app->sys_tray_menu);
     }
-    glfwTerminate();
+    dx_cleanup();
     
     settings_unref(app->settings);
 
@@ -532,7 +434,6 @@ static DWORD WINAPI app_render_thread(LPVOID lpParam) {
     (void)lpParam; // unused
 
     logger_debug(app->log, "begin render thread.");
-    glfwMakeContextCurrent(app->win);
 
     TIMECAPS tc;
     timeGetDevCaps(&tc, sizeof(TIMECAPS));
@@ -543,7 +444,6 @@ static DWORD WINAPI app_render_thread(LPVOID lpParam) {
     // this allows Sleep to be much more accurate
     timeBeginPeriod(tc.wPeriodMin);
 
-    mat4f_t proj = {0};
     mat4f_t sceneproj = {0};
     mat4f_t sceneview = {0};
 
@@ -566,37 +466,22 @@ static DWORD WINAPI app_render_thread(LPVOID lpParam) {
 
     float fov = 0.f;
 
-    glClearColor(0.0f, 0.0f, 0.0f, 0.f);
-    glClearDepth(-1.f); // left-handed
-    glClearStencil(1);
-    //glStencilMask(0x0);
+    while (app->running) {
+        frame_begin = app_get_uptime() / 10000.0 / 1000.0;
 
-    while (!glfwWindowShouldClose(app->win)) {
-        frame_begin = glfwGetTime();
-
-        int width;
-        int height;
-        app_get_framebuffer_size(&width, &height);
-        mat4f_ortho(&proj, 0.f, (float)width, 0.f, (float)height,-1.f, 1.f);        
-
-        glViewport(0, 0, width, height);
-        glScissor(0, 0, width, height);        
+        fov = mumble_link_fov();
 
         lua_manager_run_events();
-        int have_coroutines = lua_manager_resume_coroutines();
+        lua_manager_resume_coroutines();
         lua_manager_queue_event("update", NULL);
         lua_manager_run_event_queue();
 
-        if (glfwGetWindowAttrib(app->win, GLFW_VISIBLE)==GLFW_FALSE) {
-            if (!have_coroutines) Sleep(100);
-            continue;
-        }
-    
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+        dx_start_frame();
 
-        fov = mumble_link_fov();
         if (fov!=0.0) {
-
+            uint32_t width;
+            uint32_t height;
+            dx_get_render_target_size(&width, &height);
             mumble_link_avatar_position(&avatar.x, &avatar.y, &avatar.z);
             mumble_link_camera_position(&camera.x, &camera.y, &camera.z);
             mumble_link_camera_front(&camera_front.x, &camera_front.y, &camera_front.z);
@@ -617,13 +502,10 @@ static DWORD WINAPI app_render_thread(LPVOID lpParam) {
             overlay_3d_end_frame();
         }
 
-        glDisable(GL_DEPTH_TEST);
-        ui_draw(&proj);
-        glEnable(GL_DEPTH_TEST);
+        ui_draw(dx_get_ortho_proj());
+        dx_end_frame();
 
-        glfwSwapBuffers(app->win);
-
-        frame_end = glfwGetTime();
+        frame_end = app_get_uptime() / 10000.0 / 1000.0;
 
         long frame_time = (long)((frame_end - frame_begin) * 1000);
         long sleep_time = (long)frame_target - frame_time;
@@ -632,7 +514,7 @@ static DWORD WINAPI app_render_thread(LPVOID lpParam) {
         // coroutines again if there are any pending and keep running them until
         // they are either done or we run out of time before the next frame
         while (sleep_time > 0 && lua_manager_resume_coroutines()) {
-            frame_end = glfwGetTime();
+            frame_end = app_get_uptime() / 10000.0 / 1000.0;
             frame_time = (long)((frame_end - frame_begin) * 1000);
             sleep_time = (long)frame_target - frame_time;
         }
@@ -651,7 +533,6 @@ static DWORD WINAPI app_render_thread(LPVOID lpParam) {
 
     timeEndPeriod(tc.wPeriodMin);
 
-    glfwMakeContextCurrent(NULL);
     logger_debug(app->log, "end render thread.");
 
     return 0;
@@ -670,7 +551,7 @@ static DWORD WINAPI app_fgwincheck_thread(LPVOID lpParam) {
 
     HWND fg_win = NULL;
 
-    while (!glfwWindowShouldClose(app->win)) {
+    while (app->running) {
         fg_win = GetForegroundWindow();
 
         if (fg_win && fg_win!=lastwin) {
@@ -679,7 +560,7 @@ static DWORD WINAPI app_fgwincheck_thread(LPVOID lpParam) {
 
             if (strcmp(fg_cls, app->target_win_class)==0) {
                 logger_debug(app->log, "Target window reactivated, showing overlay. (%s)", fg_cls);
-                glfwShowWindow(app->win);
+                ShowWindow(app->win_hwnd, SW_SHOWNA);
                 app->target_hwnd = fg_win;
 
             }
@@ -688,7 +569,6 @@ static DWORD WINAPI app_fgwincheck_thread(LPVOID lpParam) {
                 SetWindowPos(app->win_hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
                 SetWindowPos(app->win_hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
             } else {
-                //logger_debug(app->log, "Overlay -> not topmost");
                 SetWindowPos(app->win_hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
             }
         } else {
@@ -699,7 +579,7 @@ static DWORD WINAPI app_fgwincheck_thread(LPVOID lpParam) {
                  strcmp(target_cls, app->target_win_class)!=0)
             ) {
                 logger_debug(app->log, "Target window disappeared, hiding overlay.");
-                glfwHideWindow(app->win);
+                ShowWindow(app->win_hwnd, SW_HIDE);
                 app->target_hwnd = NULL;                
             } else if (fg_win==app->target_hwnd) {
                 GetClientRect(app->target_hwnd, target_rect);
@@ -744,7 +624,7 @@ int app_run() {
     NOTIFYICONDATA nid;
     memset(&nid, 0, sizeof(NOTIFYICONDATA));
     nid.cbSize = sizeof(nid);
-    nid.hWnd = app->message_win;
+    nid.hWnd = app->win_hwnd;
     nid.uID = 0x01;
     nid.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP | NIF_SHOWTIP;
     nid.uCallbackMessage = WM_SYSTRAYEVENT;
@@ -755,8 +635,6 @@ int app_run() {
     Shell_NotifyIcon(NIM_ADD, &nid);
     Shell_NotifyIcon(NIM_SETVERSION, &nid);
 
-    glfwMakeContextCurrent(app->win);
-    
     // init lua first, others may register module openers
     lua_manager_init();
     settings_lua_init();
@@ -770,7 +648,8 @@ int app_run() {
     lua_sqlite_init();
 
     lua_manager_run_file("lua/autoload.lua");
-    glfwMakeContextCurrent(NULL);
+
+    app->running = 1;
 
     logger_debug(app->log, "Starting render thread...");
     DWORD render_thread_id = 0;
@@ -785,13 +664,19 @@ int app_run() {
         return -1;
     }
 
-    // poll events in a tight loop
-    // since we are using hooks any delays here can negatively impact input for the entire system!
-    while (!glfwWindowShouldClose(app->win)) {
-        glfwPollEvents();
-
+    MSG msg = {0};
+    while (msg.message!=WM_QUIT) {
+        if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
+            TranslateMessage(&msg);
+            DispatchMessage(&msg);
+        }
+        #ifdef _DEBUG
+        dx_process_debug_messages();
+        #endif
         Sleep(1);
     }
+
+    app->running = 0;
 
     logger_debug(app->log, "Waiting for threads to end...");
     
@@ -800,7 +685,6 @@ int app_run() {
     CloseHandle(render_thread);
     CloseHandle(fgwin_thread);
 
-    glfwMakeContextCurrent(app->win);
     ui_clear_top_level_elements();
     lua_manager_cleanup();
     mumble_link_cleanup();
@@ -808,16 +692,11 @@ int app_run() {
     ui_cleanup();
     web_request_cleanup();
     xml_cleanup();
-    glfwMakeContextCurrent(NULL);
 
     Shell_NotifyIcon(NIM_DELETE, &nid);
     DestroyIcon(nid.hIcon);
 
     return 0;
-}
-
-void app_get_framebuffer_size(int *width, int *height) {
-    glfwGetFramebufferSize(app->win, width, height);
 }
 
 settings_t *app_get_settings() {
@@ -877,10 +756,10 @@ char *app_getclipboard_text() {
 }
 
 void app_exit() {
-    glfwSetWindowShouldClose(app->win, GLFW_TRUE);
+    PostMessage(app->win_hwnd, WM_APPEXIT, 0, 0);
 }
 
-static void app_run_script() {
+void app_run_script() {
 
     // everything but UI
     lua_manager_init();
@@ -908,4 +787,17 @@ void app_get_mouse_coords(int *x, int *y) {
 
     *x = mouse.x;
     *y = mouse.y;
+}
+
+uint64_t app_get_uptime() {
+    FILETIME ft_now;
+    SYSTEMTIME st_now;
+    GetSystemTime(&st_now);
+    SystemTimeToFileTime(&st_now, &ft_now);
+
+    ULARGE_INTEGER uli_now = {0};
+    uli_now.HighPart = ft_now.dwHighDateTime;
+    uli_now.LowPart = ft_now.dwLowDateTime;
+
+    return uli_now.QuadPart - app->app_start_time;
 }

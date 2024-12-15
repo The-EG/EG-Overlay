@@ -8,7 +8,7 @@
 #include "../utils.h"
 #include "../logging/logger.h"
 #include "../lua-manager.h"
-#include <GLFW/glfw3.h>
+#include "../dx.h"
 
 #define MAX_TEXT_LEN 512
 
@@ -142,18 +142,16 @@ void ui_text_entry_draw(ui_text_entry_t *entry, int offset_x, int offset_y, mat4
 
     // hint_text
     if (strlen(entry->text)==0 && entry->hint) {
-        int old_scissor[4];
-        if (push_scissor(ex+1, ey+1, entry->element.width-2, entry->element.height-2, old_scissor)) {
+        if (dx_push_scissor(ex+1, ey+1, ex+1+entry->element.width-2, ey+1+entry->element.height-2)) {
             ui_font_render_text(entry->font, proj, ex+2, ey+2, entry->hint, strlen(entry->hint), hint_color);
 
-            pop_scissor(old_scissor);
+            dx_pop_scissor();
         }
     } else if (strlen(entry->text)) {
-        int old_scissor[4];
-        if (push_scissor(ex+1, ey+1, entry->element.width-2, entry->element.height-2, old_scissor)) {
+        if (dx_push_scissor(ex+1, ey+1, ex+1+entry->element.width-2, ey+1+entry->element.height-2)) {
             ui_font_render_text(entry->font, proj, ex+2, ey+2, entry->text, entry->text_len, entry->text_color);
 
-            pop_scissor(old_scissor);
+            dx_pop_scissor();
         }
     }
 
@@ -162,7 +160,7 @@ void ui_text_entry_draw(ui_text_entry_t *entry, int offset_x, int offset_y, mat4
             ui_rect_draw(ex + 2 + entry->caret_x, ey + 2, 1, entry->element.height-4, entry->text_color, proj);
         }
 
-        double now = glfwGetTime();
+        double now = (double)app_get_uptime() / 10000.0 / 1000.0;
         if (now - entry->caret_counter > 0.5) {
             entry->caret_blink = entry->caret_blink ? 0 : 1;
             entry->caret_counter = now;

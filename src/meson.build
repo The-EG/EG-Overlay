@@ -8,14 +8,14 @@ egoverlay_sources = files(
     'app.c',
     'lamath.c',
     'main.c',
-    'gl.c',
+    'dx.c',
+    'dcompwrap.cpp',
     
     'ui/ui.c',
     'ui/rect.c',
     'ui/font.c',
     'ui/text.c',
     'ui/window.c',
-    'ui/image.c',
     'ui/button.c',
     'ui/menu.c',
     'ui/box.c',
@@ -40,9 +40,8 @@ egoverlay_sources = files(
 
     'lua-sqlite.c',
     'lua-json.c',
-    'lua-gl.c',
+    'lua-dx.c',
 
-    '../contrib/glad/src/gl.c',
     '../contrib/sqlite-amalgamation-3460000/sqlite3.c',
 ) + logging_sources
 
@@ -56,7 +55,6 @@ executable(
     'eg-overlay',
     egoverlay_sources + icon_res + shaders + lua_files + githash,
     dependencies: [
-      glfw_lib,
       winmm_lib,
       rpcrt_lib,
       freetype2_dep,
@@ -66,6 +64,12 @@ executable(
       zlib_dep,
       lua_dep,
       jansson_dep,
+      d3d12_dep,
+      dxguid_dep,
+      dxgi_dep,
+      dcomp_dep,
+      winmm_dep,
+      wincodecs_dep,
     ],
     link_with: [],
     install: true,
@@ -92,7 +96,6 @@ executable(
     ],
     include_directories: [
       stb_inc,
-      glad_inc,
       include_directories('../contrib/sqlite-amalgamation-3460000/', is_system: true),
     ],
     win_subsystem: 'windows',

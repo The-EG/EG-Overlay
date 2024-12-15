@@ -1,15 +1,15 @@
+#define COBJMACROS
 #include <windows.h>
 #include <math.h>
-#include "lua-gl.h"
+#include "lua-dx.h"
 #include "lua-manager.h"
 
 #include <stb_image.h>
 
-#include <glad/gl.h>
 #include <string.h>
 #include <lauxlib.h>
 #include "logging/logger.h"
-#include "gl.h"
+#include "dx.h"
 #include "ui/ui.h"
 #include "utils.h"
 #include "logging/logger.h"
@@ -18,8 +18,10 @@
 #include "assert.h"
 
 typedef struct {
-    gl_shader_program_t *sprite_array_program;
-    gl_shader_program_t *trail_program;
+    ID3D12PipelineState *sprite_list_pso;
+    ID3D12PipelineState *trail_pso;
+
+    logger_t *log;
 
     mat4f_t *view;
     mat4f_t *proj;
@@ -35,7 +37,7 @@ typedef struct {
     int mapfullscreen;
 
     int minimapleft;
-    int minimapbottom;
+    int minimaptop;
     int minimapwidth;
     int minimapheight;
 
@@ -49,33 +51,164 @@ static overlay_3d_t *overlay_3d = NULL;
 
 int overlay_3d_lua_open_module(lua_State *L);
 
-gl_shader_source_list_t sprite_array_srcs[] = {
-    "shaders/sprite-array.vert", GL_VERTEX_SHADER,
-    "shaders/sprite-array.frag", GL_FRAGMENT_SHADER,
-    NULL                       , 0
-};
+void overlay_3d_create_sprite_list_pso() {
+    size_t vertlen = 0;
+    char *vertbytes = load_file("shaders/sprite-list.vs.cso", &vertlen);
 
-gl_shader_source_list_t trail_srcs[] = {
-    "shaders/trail.vert", GL_VERTEX_SHADER,
-    "shaders/trail.frag", GL_FRAGMENT_SHADER,
-    NULL                , 0
-};
+    size_t pixellen = 0;
+    char *pixelbytes = load_file("shaders/sprite-list.ps.cso", &pixellen);
+
+    if (!vertbytes || !pixelbytes) {
+        logger_error(overlay_3d->log, "Couldn't load sprite-list shader.");
+        exit(-1);
+    }
+
+    D3D12_INPUT_ELEMENT_DESC inputs[] = {
+        {"POSITION" , 0, DXGI_FORMAT_R32G32B32_FLOAT   , 0,   0, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1},
+        {"MAX_U"    , 0, DXGI_FORMAT_R32_FLOAT         , 0,  12, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1},
+        {"MAX_V"    , 0, DXGI_FORMAT_R32_FLOAT         , 0,  16, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1},
+        {"XY_RATIO" , 0, DXGI_FORMAT_R32_FLOAT         , 0,  20, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1},
+        {"SIZE"     , 0, DXGI_FORMAT_R32_FLOAT         , 0,  24, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1},
+        {"FADE_NEAR", 0, DXGI_FORMAT_R32_FLOAT         , 0,  28, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1},
+        {"FADE_FAR" , 0, DXGI_FORMAT_R32_FLOAT         , 0,  32, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1},
+        {"COLOR"    , 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0,  36, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1},
+        {"FLAGS"    , 0, DXGI_FORMAT_R32_UINT          , 0,  52, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1},
+        {"ROTATION" , 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0,  56, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1},
+        {"ROTATION" , 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 0,  72, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1},
+        {"ROTATION" , 2, DXGI_FORMAT_R32G32B32A32_FLOAT, 0,  88, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1},
+        {"ROTATION" , 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 104, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1}
+    };
+
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC pso = {0};
+
+    pso.InputLayout.NumElements        = _countof(inputs);
+    pso.InputLayout.pInputElementDescs = inputs;
+
+    pso.VS.pShaderBytecode = vertbytes;
+    pso.VS.BytecodeLength  = vertlen;
+    pso.PS.pShaderBytecode = pixelbytes;
+    pso.PS.BytecodeLength  = pixellen;
+
+    pso.RasterizerState.FillMode             = D3D12_FILL_MODE_SOLID;
+    pso.RasterizerState.CullMode             = D3D12_CULL_MODE_NONE;
+    pso.RasterizerState.DepthBias            = D3D12_DEFAULT_DEPTH_BIAS;
+    pso.RasterizerState.DepthBiasClamp       = D3D12_DEFAULT_DEPTH_BIAS_CLAMP;
+    pso.RasterizerState.SlopeScaledDepthBias = D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
+    pso.RasterizerState.DepthClipEnable      = 1;
+    pso.RasterizerState.ConservativeRaster   = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
+
+    pso.BlendState.RenderTarget[0].BlendEnable           = 1;
+    pso.BlendState.RenderTarget[0].SrcBlend              = D3D12_BLEND_ONE;
+    pso.BlendState.RenderTarget[0].DestBlend             = D3D12_BLEND_INV_SRC_ALPHA;
+    pso.BlendState.RenderTarget[0].BlendOp               = D3D12_BLEND_OP_ADD;
+    pso.BlendState.RenderTarget[0].SrcBlendAlpha         = D3D12_BLEND_ONE;
+    pso.BlendState.RenderTarget[0].DestBlendAlpha        = D3D12_BLEND_INV_SRC_ALPHA;
+    pso.BlendState.RenderTarget[0].BlendOpAlpha          = D3D12_BLEND_OP_ADD;
+    pso.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+
+    pso.DepthStencilState.DepthEnable    = 1;
+    pso.DepthStencilState.DepthFunc      = D3D12_COMPARISON_FUNC_LESS;
+    pso.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
+    pso.DepthStencilState.StencilEnable  = 0;
+    pso.DSVFormat                        = DXGI_FORMAT_D32_FLOAT;
+
+    pso.SampleMask = UINT_MAX;
+    pso.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+    pso.NumRenderTargets = 1;
+    pso.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+    pso.SampleDesc.Count = 1;
+
+    overlay_3d->sprite_list_pso = dx_create_pipeline_state(&pso);
+    if (!overlay_3d->sprite_list_pso) {
+        logger_error(overlay_3d->log, "Couldn't create sprite-list pipeline state.");
+        exit(-1);
+    }
+    dx_object_set_name(overlay_3d->sprite_list_pso, "EG-Overlay D3D12 Sprite List Pipeline State");
+
+    egoverlay_free(vertbytes);
+    egoverlay_free(pixelbytes);
+}
+
+void overlay_3d_create_trail_pso() {
+    size_t vertlen = 0;
+    char *vertbytes = load_file("shaders/trail.vs.cso", &vertlen);
+
+    size_t pixellen = 0;
+    char *pixelbytes = load_file("shaders/trail.ps.cso", &pixellen);
+
+    if (!vertbytes || !pixelbytes) {
+        logger_error(overlay_3d->log, "Couldn't load trail shader.");
+        exit(-1);
+    }
+
+    D3D12_INPUT_ELEMENT_DESC inputs[] = {
+        {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,  0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+        {"TEXUV"   , 0, DXGI_FORMAT_R32G32_FLOAT   , 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
+    };
+
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC pso = {0};
+
+    pso.InputLayout.NumElements        = _countof(inputs);
+    pso.InputLayout.pInputElementDescs = inputs;
+
+    pso.VS.pShaderBytecode = vertbytes;
+    pso.VS.BytecodeLength  = vertlen;
+    pso.PS.pShaderBytecode = pixelbytes;
+    pso.PS.BytecodeLength  = pixellen;
+
+    pso.RasterizerState.FillMode             = D3D12_FILL_MODE_SOLID;
+    pso.RasterizerState.CullMode             = D3D12_CULL_MODE_NONE;
+    pso.RasterizerState.DepthBias            = D3D12_DEFAULT_DEPTH_BIAS;
+    pso.RasterizerState.DepthBiasClamp       = D3D12_DEFAULT_DEPTH_BIAS_CLAMP;
+    pso.RasterizerState.SlopeScaledDepthBias = D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
+    pso.RasterizerState.DepthClipEnable      = 1;
+    pso.RasterizerState.ConservativeRaster   = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
+
+    pso.BlendState.RenderTarget[0].BlendEnable           = 1;
+    pso.BlendState.RenderTarget[0].SrcBlend              = D3D12_BLEND_ONE;
+    pso.BlendState.RenderTarget[0].DestBlend             = D3D12_BLEND_INV_SRC_ALPHA;
+    pso.BlendState.RenderTarget[0].BlendOp               = D3D12_BLEND_OP_ADD;
+    pso.BlendState.RenderTarget[0].SrcBlendAlpha         = D3D12_BLEND_ONE;
+    pso.BlendState.RenderTarget[0].DestBlendAlpha        = D3D12_BLEND_INV_SRC_ALPHA;
+    pso.BlendState.RenderTarget[0].BlendOpAlpha          = D3D12_BLEND_OP_ADD;
+    pso.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+
+    pso.DepthStencilState.DepthEnable    = 1;
+    pso.DepthStencilState.DepthFunc      = D3D12_COMPARISON_FUNC_LESS;
+    pso.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
+    pso.DepthStencilState.StencilEnable  = 0;
+    pso.DSVFormat                        = DXGI_FORMAT_D32_FLOAT;
+
+    pso.SampleMask = UINT_MAX;
+    pso.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+    pso.NumRenderTargets = 1;
+    pso.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+    pso.SampleDesc.Count = 1;
+
+    overlay_3d->trail_pso = dx_create_pipeline_state(&pso);
+    if (!overlay_3d->trail_pso) {
+        logger_error(overlay_3d->log, "Couldn't create trail pipeline state.");
+        exit(-1);
+    }
+    dx_object_set_name(overlay_3d->trail_pso, "EG-Overlay D3D12 Trail Pipeline State");
+
+    egoverlay_free(vertbytes);
+    egoverlay_free(pixelbytes);
+}
 
 void overlay_3d_init() {
     overlay_3d = egoverlay_calloc(1, sizeof(overlay_3d_t));
-
-    gl_add_shader_include("shaders/3dcommon.glsl", "/3dcommon.glsl");
-
-    overlay_3d->sprite_array_program = gl_shader_program_new_with_sources(sprite_array_srcs);
-    overlay_3d->trail_program        = gl_shader_program_new_with_sources(trail_srcs       );
+    overlay_3d->log = logger_get("lua-dx");
 
     lua_manager_add_module_opener("eg-overlay-3d", &overlay_3d_lua_open_module);
+    
+    overlay_3d_create_sprite_list_pso();
+    overlay_3d_create_trail_pso();
 }
 
 void overlay_3d_cleanup() {
-    gl_shader_program_free(overlay_3d->sprite_array_program);
-    gl_shader_program_free(overlay_3d->trail_program);
-    gl_del_shader_include("/3dcommon.glsl");
+    ID3D12PipelineState_Release(overlay_3d->trail_pso);
+    ID3D12PipelineState_Release(overlay_3d->sprite_list_pso);
 
     egoverlay_free(overlay_3d);
 }
@@ -83,13 +216,13 @@ void overlay_3d_cleanup() {
 void overlay_3d_calc_mouse_ray() {
     int mx = 0;
     int my = 0;
-    int fbw = 0;
-    int fbh = 0;
+    uint32_t fbw = 0;
+    uint32_t fbh = 0;
 
     app_get_mouse_coords(&mx, &my);
-    app_get_framebuffer_size(&fbw, &fbh);
+    dx_get_render_target_size(&fbw, &fbh);
 
-    if (mx < 0 || mx > fbw || my < 0 || my > fbh) {
+    if (mx < 0 || mx > (int)fbw || my < 0 || my > (int)fbh) {
         overlay_3d->mouse_in_overlay = 0;
         overlay_3d->mouse_ray.x = 0.f;
         overlay_3d->mouse_ray.y = 0.f;
@@ -162,9 +295,9 @@ void overlay_3d_begin_frame(mat4f_t *view, mat4f_t *proj) {
 
     overlay_3d->mapfullscreen = uistate & MUMBLE_LINK_UI_STATE_MAP_OPEN;
 
-    int fbw = 0;
-    int fbh = 0;
-    app_get_framebuffer_size(&fbw, &fbh);
+    uint32_t fbw = 0;
+    uint32_t fbh = 0;
+    dx_get_render_target_size(&fbw, &fbh);
 
     uint16_t mapw = 0;
     uint16_t maph = 0;
@@ -175,33 +308,33 @@ void overlay_3d_begin_frame(mat4f_t *view, mat4f_t *proj) {
         mumble_link_map_size(&mapw, &maph);
         float minimapscale = 1.f;
        
-        switch(mumble_link_ui_size()) {
-        case MUMBLE_LINK_UI_SIZE_SMALL:
-            overlay_3d->minimapbottom = 33;
-            minimapscale = 0.9f;
-            break;
-        case MUMBLE_LINK_UI_SIZE_NORMAL:
-            overlay_3d->minimapbottom = 35;
-            break;
-        case MUMBLE_LINK_UI_SIZE_LARGE:
-            overlay_3d->minimapbottom = 42;
-            minimapscale = 1.11f;
-            break;
-        case MUMBLE_LINK_UI_SIZE_LARGER:
-            overlay_3d->minimapbottom = 45;
-            minimapscale = 1.225f;
-            break;
-        default:
-            overlay_3d->minimapbottom = 35;
-            break;
-        }
-
         overlay_3d->minimapleft = (int)((float)fbw - ((float)mapw * minimapscale));
         overlay_3d->minimapwidth = (int)((float)mapw * minimapscale);
         overlay_3d->minimapheight = (int)((float)maph * minimapscale);
 
+        switch(mumble_link_ui_size()) {
+        case MUMBLE_LINK_UI_SIZE_SMALL:
+            overlay_3d->minimaptop = fbh - 33 - overlay_3d->minimapheight;
+            minimapscale = 0.9f;
+            break;
+        case MUMBLE_LINK_UI_SIZE_NORMAL:
+            overlay_3d->minimaptop = fbh - 35 - overlay_3d->minimapheight;
+            break;
+        case MUMBLE_LINK_UI_SIZE_LARGE:
+            overlay_3d->minimaptop = fbh - 42 - overlay_3d->minimapheight;
+            minimapscale = 1.11f;
+            break;
+        case MUMBLE_LINK_UI_SIZE_LARGER:
+            overlay_3d->minimaptop = fbh - 45 - overlay_3d->minimapheight;
+            minimapscale = 1.225f;
+            break;
+        default:
+            overlay_3d->minimaptop = 35;
+            break;
+        }
+
         if (uistate & MUMBLE_LINK_UI_STATE_COMPASS_TOP_RIGHT) {
-            overlay_3d->minimapbottom = fbh - overlay_3d->minimapheight;
+            overlay_3d->minimaptop = 0;
         }
 
     }
@@ -219,7 +352,7 @@ void overlay_3d_begin_frame(mat4f_t *view, mat4f_t *proj) {
     overlay_3d->mapcoordstop    = mapcentery - (mapysize / 2.f);
     overlay_3d->mapcoordsbottom = mapcentery + (mapysize / 2.f);
 
-    mat4f_ortho(&overlay_3d->map_proj, mapleft, mapright, maptop, mapbottom, -1.f, 1.f);
+    mat4f_ortho(&overlay_3d->map_proj, mapleft, mapright, maptop, mapbottom, 0.f, 1.f);
 
     // build the view matrix (this is a translation to the map center and a rotate
     // if the minimap is rotated
@@ -451,11 +584,11 @@ int overlay_3d_lua_open_module(lua_State *L) {
 }
 
 typedef struct {
-    GLsizei size;
+    int32_t size;
     float max_u;
     float max_v;
     float xy_ratio;
-    GLuint texture;
+    dx_texture_t *texture;
 } texture_map_texture_t;
 
 typedef struct {
@@ -495,10 +628,11 @@ typedef struct {
 } sprite_list_sprite_t;
 
 typedef struct {
-    GLuint vao;
-    GLuint vbo;
+    ID3D12Resource *vert_buffer;
+    D3D12_VERTEX_BUFFER_VIEW vert_buffer_view;
 
-    size_t vbo_size;
+    size_t vert_buffer_size;
+    int update_vert_buffer;
 
     size_t texture_count;
     char **texture_keys;
@@ -513,8 +647,6 @@ typedef struct {
     int texture_map_luaref;
 
     int map;
-
-    int vbo_update;
 } sprite_list_t;
 
 typedef struct {
@@ -547,11 +679,10 @@ typedef struct trail_list_trail_t {
 } trail_list_trail_t;
 
 typedef struct {
-    GLuint vao;
-    GLuint vbo;
-
-    size_t vbo_size;
-    int vbo_update;
+    ID3D12Resource *vert_buffer;
+    D3D12_VERTEX_BUFFER_VIEW vert_buffer_view;
+    int update_vert_buffer;
+    size_t vert_buffer_size;
 
     size_t texture_count;
     char **texture_keys;
@@ -664,28 +795,28 @@ int overlay_3d_lua_mouse_points_at(lua_State *L) {
 int overlay_3d_lua_mouse_pointer_map_coords(lua_State *L) {
     int mx = 0;
     int my = 0;
-    int fbw = 0;
-    int fbh = 0;
+    uint32_t fbw = 0;
+    uint32_t fbh = 0;
 
     app_get_mouse_coords(&mx, &my);
-    app_get_framebuffer_size(&fbw, &fbh);
+    dx_get_render_target_size(&fbw, &fbh);
 
-    if (mx > fbw || my > fbh) return 0;
+    if (mx > (int)fbw || my > (int)fbh) return 0;
 
     float mousexf = 0.f;
     float mouseyf = 0.f;
 
     if (!overlay_3d->mapfullscreen) {
         if (! (mx >= overlay_3d->minimapleft &&
-               my >= (fbh - overlay_3d->minimapbottom - overlay_3d->minimapheight) &&
-               my <= (fbh - overlay_3d->minimapbottom))
+               my >= (overlay_3d->minimaptop) &&
+               my <= (overlay_3d->minimaptop + overlay_3d->minimapheight))
         ) {
             // mouse is not within minimap
             return 0;
         }
 
         mousexf = ((float)mx - overlay_3d->minimapleft) / overlay_3d->minimapwidth;
-        mouseyf = ((float)my - ((float)fbh - overlay_3d->minimapbottom - overlay_3d->minimapheight)) / overlay_3d->minimapheight;
+        mouseyf = ((float)my - ((float)overlay_3d->minimaptop)) / overlay_3d->minimapheight;
     } else {
         mousexf = (float)mx / (float)fbw;
         mouseyf = (float)my / (float)fbh;
@@ -773,7 +904,7 @@ int texture_map_lua_del(lua_State *L) {
     for (size_t k=0;k<map->hash_map_size;k++) {
         if (map->keys[k]==NULL) continue;
 
-        glDeleteTextures(1, &map->texture_info[k]->texture);
+        dx_texture_free(map->texture_info[k]->texture);
         egoverlay_free(map->texture_info[k]);
         egoverlay_free(map->keys[k]);
     }
@@ -836,35 +967,13 @@ int sprite_list_lua_new(lua_State *L) {
     lua_pushvalue(L, 1);
     list->texture_map_luaref = luaL_ref(L, LUA_REGISTRYINDEX);
 
-    glGenVertexArrays(1, &list->vao);
-    glGenBuffers(1, &list->vbo);
-
-    glBindVertexArray(list->vao);
-    glBindBuffer(GL_ARRAY_BUFFER, list->vbo);
-
-    // VBO contents, shader inputs
-    VERT_ATTRIB_VEC3 (0, 1, sprite_list_sprite_t, position );
-    VERT_ATTRIB_FLOAT(1, 1, sprite_list_sprite_t, max_u    );
-    VERT_ATTRIB_FLOAT(2, 1, sprite_list_sprite_t, max_v    );
-    VERT_ATTRIB_FLOAT(3, 1, sprite_list_sprite_t, xy_ratio );
-    VERT_ATTRIB_FLOAT(4, 1, sprite_list_sprite_t, size     );
-    VERT_ATTRIB_FLOAT(5, 1, sprite_list_sprite_t, fade_near);
-    VERT_ATTRIB_FLOAT(6, 1, sprite_list_sprite_t, fade_far );
-    VERT_ATTRIB_VEC4 (7, 1, sprite_list_sprite_t, color    );
-    VERT_ATTRIB_UINT (8, 1, sprite_list_sprite_t, flags    );
-    VERT_ATTRIB_MAT4 (9, 1, sprite_list_sprite_t, rotation );
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
-    
     return 1;
 }
 
 int sprite_list_lua_del(lua_State *L) {
     sprite_list_t *list = lua_checkspritelist(L, 1);
 
-    glDeleteBuffers(1, &list->vbo);
-    glDeleteVertexArrays(1, &list->vao);
+    if (list->vert_buffer) ID3D12Resource_Release(list->vert_buffer);
 
     for (size_t t=0;t<list->texture_count;t++) {
         if (list->sprite_counts[t]) {
@@ -934,19 +1043,6 @@ int trail_list_lua_new(lua_State *L) {
     list->texture_map = texture_map;
     list->map = map;
 
-    glGenVertexArrays(1, &list->vao);
-    glGenBuffers(1, &list->vbo);
-
-    glBindVertexArray(list->vao);
-    
-    glBindBuffer(GL_ARRAY_BUFFER, list->vbo);
-
-    VERT_ATTRIB_VEC3(0, 0, trail_coordinate_t, position);
-    VERT_ATTRIB_VEC2(1, 0, trail_coordinate_t, u       );
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
-
     if (luaL_newmetatable(L, TRAIL_LIST_MT)) {
         lua_pushvalue(L, -1);
         lua_setfield(L, -2, "__index");
@@ -960,8 +1056,7 @@ int trail_list_lua_new(lua_State *L) {
 int trail_list_lua_del(lua_State *L) {
     trail_list_t *list = lua_checktraillist(L, 1);
 
-    glDeleteBuffers(1, &list->vbo);
-    glDeleteVertexArrays(1, &list->vao);
+    if (list->vert_buffer) ID3D12Resource_Release(list->vert_buffer);
 
     for (size_t t=0;t<list->texture_count;t++) {
         egoverlay_free(list->texture_keys[t]);
@@ -1016,7 +1111,7 @@ int texture_map_lua_clear(lua_State *L) {
     for (size_t k=0;k<map->hash_map_size;k++) {
         if (map->keys[k]==NULL) continue;
 
-        glDeleteTextures(1, &map->texture_info[k]->texture);
+        dx_texture_free(map->texture_info[k]->texture);
         egoverlay_free(map->texture_info[k]);
         map->texture_info[k] = NULL;
         egoverlay_free(map->keys[k]);
@@ -1081,7 +1176,7 @@ void texture_map_resize_hash_map(texture_map_t *map) {
 }
 
 /*** RST
-    .. lua:method:: add(name, data[, options])
+    .. lua:method:: add(name, data)
 
         Add a texture.
 
@@ -1089,38 +1184,7 @@ void texture_map_resize_hash_map(texture_map_t *map) {
             reference it later when adding data to sprite lists and other
             objects.
         :param string data: The texture data.
-        :param table options: (Optional) A table of texture options. See below.
 
-
-        **Options**
-
-        +-----------+----------------------------------------------------------------------------------------+
-        | Field     | Description                                                                            |
-        +===========+========================================================================================+
-        | mipmaps   | A boolean indicating if mipmaps should be generated. Default ``true``.                 |
-        +-----------+----------------------------------------------------------------------------------------+
-        | minfilter | The filtering method used when the texture is displayed at a lower resolution. One of  |
-        |           |                                                                                        |           
-        |           | * ``nearest``                                                                          |
-        |           | * ``linear``                                                                           |
-        |           | * ``nearest-mipmap-nearest``                                                           |
-        |           | * ``linear-mipmap-nearest``                                                            |
-        |           | * ``nearest-mipmap-linear``                                                            |
-        |           | * ``linear-mipmap-linear``                                                             |
-        |           |                                                                                        |
-        |           | Default: ``nearest`` if ``mipmaps`` is ``false`` or ``linear-mipmap-linear`` if        |
-        |           | ``mipmaps`` is ``true``.                                                               |
-        +-----------+----------------------------------------------------------------------------------------+
-        | magfilter | The filtering method used when the texture is displayed at a higher resolution. One of |
-        |           |                                                                                        |
-        |           | * ``nearest``                                                                          |
-        |           | * ``linear``                                                                           |
-        |           |                                                                                        |
-        |           | Default: ``linear``                                                                    |
-        +-----------+----------------------------------------------------------------------------------------+
-        | maxaniso  | The amount of anisotropic to use. Default: the maximum supported on the system,        |
-        |           | probably ``16.0``                                                                      |
-        +-----------+----------------------------------------------------------------------------------------+
 
         .. admonition:: Implementation Detail
 
@@ -1140,44 +1204,6 @@ int texture_map_lua_add(lua_State *L) {
     const uint8_t *data = (const uint8_t*)luaL_checklstring(L, 3, &datalen);
 
     if (texture_map_get(map, name)) return luaL_error(L, "duplicate texture name: %s", name);
-
-    float max_aniso = 0.f;
-    glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY, &max_aniso);
-
-    GLint minfilter = GL_LINEAR_MIPMAP_LINEAR;
-    GLint magfilter = GL_LINEAR;
-    int mipmaps = 1;
-
-    if (lua_gettop(L)>=4) {
-        luaL_checktype(L, 4, LUA_TTABLE);
-        if (lua_getfield(L, 4, "mipmaps")!=LUA_TNIL) mipmaps = lua_toboolean(L, -1);
-        lua_pop(L, 1);
-
-        if (!mipmaps) minfilter = GL_NEAREST;
-
-        if (lua_getfield(L, 4, "minfilter")==LUA_TSTRING) {
-            const char *minfilterstr = lua_tostring(L, -1);
-            if      (strcmp(minfilterstr, "nearest"               )==0) minfilter = GL_NEAREST;
-            else if (strcmp(minfilterstr, "linear"                )==0) minfilter = GL_LINEAR;
-            else if (strcmp(minfilterstr, "nearest-mipmap-nearest")==0) minfilter = GL_NEAREST_MIPMAP_NEAREST;
-            else if (strcmp(minfilterstr, "linear-mipmap-nearest" )==0) minfilter = GL_LINEAR_MIPMAP_NEAREST;
-            else if (strcmp(minfilterstr, "nearest-mipmap-linear" )==0) minfilter = GL_NEAREST_MIPMAP_LINEAR;
-            else if (strcmp(minfilterstr, "linear-mipmap-linear"  )==0) minfilter = GL_LINEAR_MIPMAP_LINEAR;
-            else return luaL_error(L, "unknown minfilter: %s", minfilterstr);
-        }
-        lua_pop(L, 1);
-
-        if (lua_getfield(L, 4, "magfilter")==LUA_TSTRING) {
-            const char *magfilterstr = lua_tostring(L, -1);
-            if      (strcmp(magfilterstr, "nearest")==0) magfilter = GL_NEAREST;
-            else if (strcmp(magfilterstr, "linear" )==0) magfilter = GL_LINEAR;
-            else return luaL_error(L,"unknown magfilter: %s", magfilterstr);
-        }
-        lua_pop(L, 1);
-
-        if (lua_getfield(L, 4, "maxaniso")==LUA_TNUMBER) max_aniso = (float)lua_tonumber(L, -1);
-        lua_pop(L, 1);
-    }
 
     int channels = 0;
     int width = 0;
@@ -1212,24 +1238,18 @@ int texture_map_lua_add(lua_State *L) {
     tex->max_u = (float)width / (float)req_size;
     tex->max_v = (float)height / (float)req_size;
 
-    GLsizei mipmaplevels = 1;
+    uint16_t mipmaplevels = 1;
 
-    if (mipmaps) mipmaplevels += (GLsizei)floorf(log2f((float)req_size));
+    tex->texture = dx_texture_new_2d(DXGI_FORMAT_R8G8B8A8_UNORM, req_size, req_size, mipmaplevels);
 
-    glGenTextures(1, &tex->texture);
-
-    glBindTexture(GL_TEXTURE_2D, tex->texture);
-    
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, minfilter);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, magfilter);
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY, max_aniso);
-
-    glTexStorage2D(GL_TEXTURE_2D, mipmaplevels, GL_RGBA8, req_size, req_size);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
-
-    if (mipmaps) glGenerateMipmap(GL_TEXTURE_2D);
-
-    glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
+    dx_texture_write_pixels(
+        tex->texture,
+        0, 0, 0,
+        width, height,
+        DXGI_FORMAT_R8G8B8A8_UNORM,
+        pixels
+    );
+    dx_texture_set_name(tex->texture, "EG-Overlay D3D12 TextureMap Texture: %s", name);
 
     map->texture_count++;
 
@@ -1317,6 +1337,12 @@ int sprite_list_lua_clear(lua_State *L) {
     egoverlay_free(list->sprites);
     egoverlay_free(list->texture_keys);
     egoverlay_free(list->sprite_counts);
+
+    list->vert_buffer_size = 0;
+    if (list->vert_buffer) {
+        ID3D12Resource_Release(list->vert_buffer);
+        list->vert_buffer = NULL;
+    }
 
     list->texture_count = 0;
     list->tags          = NULL;
@@ -1494,7 +1520,7 @@ int sprite_list_lua_add_sprite(lua_State *L) {
 
     sprite_list_sprite_update(s, L, 3);
 
-    list->vbo_update = 1;
+    list->update_vert_buffer = 1;
 
     return 0;
 }
@@ -1560,7 +1586,7 @@ int sprite_list_lua_update_sprites(lua_State *L) {
     }
 
     if (nupdated) {
-        list->vbo_update = 1;
+        list->update_vert_buffer = 1;
     }
 
     lua_pushinteger(L, nupdated);
@@ -1627,7 +1653,7 @@ int sprite_list_lua_remove_sprites(lua_State *L) {
     }
 
     if (nremoved) {
-        list->vbo_update = 1;
+        list->update_vert_buffer = 1;
    }
 
     lua_pushinteger(L, nremoved);
@@ -1635,29 +1661,58 @@ int sprite_list_lua_remove_sprites(lua_State *L) {
     return 1;
 }
 
-void sprite_list_update_vbo(sprite_list_t *list) {
-    size_t new_vbo_size = 0;
+void sprite_list_update_vert_buffer(sprite_list_t *list) {
+    size_t new_size = 0;
     for (size_t t=0;t<list->texture_count;t++) {
-        new_vbo_size += (sizeof(sprite_list_sprite_t) * list->sprite_counts[t]);
+        new_size += (sizeof(sprite_list_sprite_t) * list->sprite_counts[t]);
     }
 
-    glBindBuffer(GL_ARRAY_BUFFER, list->vbo);
+    dx_flush_commands();
 
-    if (list->vbo_size < new_vbo_size) {
-        glBufferData(GL_ARRAY_BUFFER, new_vbo_size, NULL, GL_DYNAMIC_DRAW);
-        list->vbo_size = new_vbo_size;
+    if (new_size==0) {
+        if (list->vert_buffer) ID3D12Resource_Release(list->vert_buffer);
+        list->vert_buffer_size = new_size;
+        list->vert_buffer = NULL;
+        return;
+    } else if (list->vert_buffer_size != new_size) {
+        if (list->vert_buffer) ID3D12Resource_Release(list->vert_buffer);
+
+        list->vert_buffer = dx_create_vertex_buffer(new_size);
+        dx_object_set_name(list->vert_buffer, "EG-Overlay D3D12 Sprite-List Vertex Buffer");
+        list->vert_buffer_size = new_size;
+
+        list->vert_buffer_view.BufferLocation = ID3D12Resource_GetGPUVirtualAddress(list->vert_buffer);
+        list->vert_buffer_view.SizeInBytes = (uint32_t)new_size;
+        list->vert_buffer_view.StrideInBytes = sizeof(sprite_list_sprite_t);
+    }
+
+    ID3D12Resource *upload = dx_create_upload_buffer(list->vert_buffer_size);
+    dx_object_set_name(upload, "EG-Overlay D3D12 Sprite-List Temp. Upload Buffer");
+
+    uint8_t *data = NULL;
+
+    D3D12_RANGE rr = {0, 0};
+
+    if (ID3D12Resource_Map(upload, 0, &rr, &data)!=S_OK) {
+        logger_error(overlay_3d->log, "Couldn't map upload buffer.");
+        exit(-1);
     }
 
     size_t offset = 0;
     for (size_t t=0;t<list->texture_count;t++) {
         size_t tvbo_size = sizeof(sprite_list_sprite_t) * list->sprite_counts[t];
         if (tvbo_size==0) continue;
-        glBufferSubData(GL_ARRAY_BUFFER, offset, tvbo_size, list->sprites[t]);
+        memcpy(data + offset, list->sprites[t], tvbo_size);
         offset += tvbo_size;
     }
 
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    list->vbo_update = 0;
+    ID3D12Resource_Unmap(upload, 0, NULL);
+
+    dx_copy_resource(upload, list->vert_buffer);
+
+    ID3D12Resource_Release(upload);
+
+    list->update_vert_buffer = 0;
 }
 
 /*** RST
@@ -1681,75 +1736,57 @@ int sprite_list_lua_draw(lua_State *L) {
 
     if (!overlay_3d->in_frame) return luaL_error(L, "draw can only be called during update-3d");
 
-    if (list->total_sprite_count==0) return 0;
+    if (list->update_vert_buffer) sprite_list_update_vert_buffer(list);
 
-    if (list->vbo_update) sprite_list_update_vbo(list);
+    if (!list->vert_buffer) return 0;
 
-    glDisable(GL_CULL_FACE);
-    
-    gl_shader_program_use(overlay_3d->sprite_array_program);
-
-    int oldvp[4] = {0};
+    dx_set_pipeline_state(overlay_3d->sprite_list_pso);
+    dx_set_primitive_topology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
     if (list->map) {
-        glUniformMatrix4fv(0, 1, GL_FALSE, (GLfloat*)&overlay_3d->map_view);
-        glUniformMatrix4fv(1, 1, GL_FALSE, (GLfloat*)&overlay_3d->map_proj);
+        dx_set_root_constant_mat4f(0, &overlay_3d->map_view,  0);
+        dx_set_root_constant_mat4f(0, &overlay_3d->map_proj, 16);
 
         if (!overlay_3d->mapfullscreen) {
-            int fbw, fbh;
-            app_get_framebuffer_size(&fbw, &fbh);
-
-            glGetIntegerv(GL_VIEWPORT, oldvp);
-            glViewport(
-                overlay_3d->minimapleft,
-                overlay_3d->minimapbottom,
-                overlay_3d->minimapwidth,
-                overlay_3d->minimapheight
+            dx_push_viewport(
+                (float)overlay_3d->minimapleft,
+                (float)overlay_3d->minimaptop,
+                (float)overlay_3d->minimapwidth,
+                (float)overlay_3d->minimapheight
             );
+
         }
     } else {
-        glUniformMatrix4fv(0, 1, GL_FALSE, (GLfloat*)overlay_3d->view);
-        glUniformMatrix4fv(1, 1, GL_FALSE, (GLfloat*)overlay_3d->proj);
+        dx_set_root_constant_mat4f(0, overlay_3d->view,  0);
+        dx_set_root_constant_mat4f(0, overlay_3d->proj, 16);
     }
 
-    glUniform3fv(2, 1, (GLfloat*)&overlay_3d->player_pos);
-    glUniform1ui(3, (GLuint)list->map);
-    glUniform3fv(4, 1, (GLfloat*)&overlay_3d->camera);
+    dx_set_root_constant_float3(0, (float*)&overlay_3d->player_pos  , 32);
+    dx_set_root_constant_uint  (0, list->map                , 35);
+    dx_set_root_constant_float3(0, (float*)&overlay_3d->camera      , 36);
+    dx_set_root_constant_float (0, (float)overlay_3d->minimapleft  , 39);
+    dx_set_root_constant_float (0, (float)overlay_3d->minimaptop   , 40);
+    dx_set_root_constant_float (0, (float)overlay_3d->minimapheight, 41);
 
-    glUniform1f(5, (GLfloat)overlay_3d->minimapleft  );
-    glUniform1f(6, (GLfloat)overlay_3d->minimapbottom);
-    glUniform1f(7, (GLfloat)overlay_3d->minimapheight);
-
-    glBindVertexArray(list->vao);
-
-    glActiveTexture(GL_TEXTURE0);
+    dx_set_vertex_buffers(0, 1, &list->vert_buffer_view);
     
-    GLint inst = 0;
+    uint32_t inst = 0;
     for (size_t t=0;t<list->texture_count;t++) {
         texture_map_texture_t *tex = texture_map_get(list->texture_map, list->texture_keys[t]);
 
         if (!tex) {
-            logger_t *log = logger_get("lua-gl");
-            logger_error(log, "invalid texture key: %s", list->texture_keys[t]);
+            logger_error(overlay_3d->log, "invalid texture key: %s", list->texture_keys[t]);
         } else {
-            glBindTexture(GL_TEXTURE_2D, tex->texture);
+            dx_set_texture(0, tex->texture);
         }
 
-        glDrawArraysInstancedBaseInstance(GL_TRIANGLE_STRIP, 0, 4, (GLsizei)list->sprite_counts[t], inst);
-        inst += (GLint)list->sprite_counts[t];
+        dx_draw_instanced(4, (uint32_t)list->sprite_counts[t], 0, inst);
+        inst += (uint32_t)list->sprite_counts[t];
     }
 
     if (list->map && !overlay_3d->mapfullscreen) {
-        glViewport(oldvp[0], oldvp[1], oldvp[2], oldvp[3]);
+        dx_pop_viewport();
     }
-
-    glBindTexture(GL_TEXTURE_2D, 0);
-
-    glBindVertexArray(0);
-
-    glUseProgram(0);
-
-    glEnable(GL_CULL_FACE);
 
     return 0;
 }
@@ -1796,6 +1833,12 @@ int trail_list_lua_clear(lua_State *L) {
     }
     list->texture_count = 0;
 
+    if (list->vert_buffer) {
+        ID3D12Resource_Release(list->vert_buffer);
+        list->vert_buffer = NULL;
+    }
+    list->vert_buffer_size = 0;
+
     return 0;
 }
 
@@ -1817,13 +1860,13 @@ void trail_list_trail_update(trail_list_t *list, trail_list_trail_t *trail, lua_
 
     if (lua_getfield(L, ind, "size")!=LUA_TNIL) {
         trail->size = (float)lua_tonumber(L, -1);
-        list->vbo_update = 1;
+        list->update_vert_buffer = 1;
     }
     lua_pop(L, 1);
 
     if (lua_getfield(L, ind, "wall")!=LUA_TNIL) {
         trail->wall = lua_toboolean(L, -1);
-        list->vbo_update = 1;
+        list->update_vert_buffer = 1;
     }
     lua_pop(L, 1);
 
@@ -1848,7 +1891,7 @@ void trail_list_trail_update(trail_list_t *list, trail_list_trail_t *trail, lua_
             trail->points[i-1].z = (float)lua_tonumber(L, -1);
             lua_pop(L, 4);
         }
-        list->vbo_update = 1;
+        list->update_vert_buffer = 1;
     }
     lua_pop(L, 1);
 }
@@ -1935,7 +1978,7 @@ int trail_list_lua_add(lua_State *L) {
 
     trail_list_trail_update(list, trail, L, 3);
 
-    list->vbo_update = 1;
+    list->update_vert_buffer = 1;
 
     return 0;
 }
@@ -1988,7 +2031,7 @@ int trail_list_lua_remove(lua_State *L) {
         nremoved += tremoved;
     }
 
-    if (nremoved) list->vbo_update = 1;
+    if (nremoved) list->update_vert_buffer = 1;
 
     lua_pushinteger(L, nremoved);
     return 1;
@@ -2122,7 +2165,7 @@ trail_coordinate_t *trail_list_trail_calc_coords(trail_list_t *list, trail_list_
 
         float section_frac = section_len / trail->size;
 
-        float p2v = section_frac + coords[coord_ind-1].v;
+        float p2v = -section_frac + coords[coord_ind-1].v;
         
         // d
         vec3f_add_vec3f(p2, &side, &coords[coord_ind].position);
@@ -2140,9 +2183,7 @@ trail_coordinate_t *trail_list_trail_calc_coords(trail_list_t *list, trail_list_
     return coords;
 }
 
-void trail_list_update_vbo(trail_list_t *list) {
-    glBindBuffer(GL_ARRAY_BUFFER, list->vbo);
-
+void trail_list_update_vert_buffer(trail_list_t *list) {
     trail_coordinate_t ***coords = egoverlay_calloc(list->texture_count, sizeof(trail_coordinate_t**));
 
     size_t newsize = 0;
@@ -2155,32 +2196,67 @@ void trail_list_update_vbo(trail_list_t *list) {
             newsize += list->trails[tex][trail].coord_count * sizeof(trail_coordinate_t);
         }
     }
+
+    dx_flush_commands();
     
-    if (newsize > list->vbo_size) {
-        list->vbo_size = newsize;
-        glBufferData(GL_ARRAY_BUFFER, list->vbo_size * sizeof(trail_coordinate_t), NULL, GL_STATIC_DRAW);
+    if (newsize==0) {
+        if (list->vert_buffer) ID3D12Resource_Release(list->vert_buffer);
+        list->vert_buffer_size = newsize;
+        list->vert_buffer = NULL;
+
+        for (size_t tex=0;tex<list->texture_count;tex++) {
+            for (size_t trail=0;trail<list->trail_counts[tex];trail++) {
+                egoverlay_free(coords[tex][trail]);
+            }
+            egoverlay_free(coords[tex]);
+        }
+        egoverlay_free(coords);
+
+        return;
+    } else if (newsize!=list->vert_buffer_size) {
+        if (list->vert_buffer) ID3D12Resource_Release(list->vert_buffer);
+
+        list->vert_buffer = dx_create_vertex_buffer(newsize);
+        dx_object_set_name(list->vert_buffer, "EG-Overlay D3D12 Trail Vertex Buffer");
+        list->vert_buffer_size = newsize;
+    
+        list->vert_buffer_view.BufferLocation = ID3D12Resource_GetGPUVirtualAddress(list->vert_buffer);
+        list->vert_buffer_view.SizeInBytes    = (uint32_t)newsize;
+        list->vert_buffer_view.StrideInBytes  = sizeof(trail_coordinate_t);
+    }
+
+    ID3D12Resource *upload = dx_create_upload_buffer(list->vert_buffer_size);
+    dx_object_set_name(upload, "EG-Overlay D3D12 Trail Temp. Upload Buffer");
+
+    uint8_t *data = NULL;
+
+    D3D12_RANGE rr = {0,0};
+
+    if (ID3D12Resource_Map(upload, 0, &rr, &data)!=S_OK) {
+        logger_error(overlay_3d->log, "Couldn't map upload buffer.");
+        exit(-1);
     }
 
     size_t offset = 0;
     for (size_t tex=0;tex<list->texture_count;tex++) {
         for (size_t trail=0;trail<list->trail_counts[tex];trail++) {
-            glBufferSubData(
-                GL_ARRAY_BUFFER,
-                offset,
-                list->trails[tex][trail].coord_count * sizeof(trail_coordinate_t),
-                coords[tex][trail]
-            );
-            offset += list->trails[tex][trail].coord_count * sizeof(trail_coordinate_t);
+            size_t tvbosize = sizeof(trail_coordinate_t) * list->trails[tex][trail].coord_count;
+
+            memcpy(data + offset, coords[tex][trail], tvbosize);
+            offset += tvbosize;
             egoverlay_free(coords[tex][trail]);
         }
         egoverlay_free(coords[tex]);
     }
-
     egoverlay_free(coords);
 
-    glBindBuffer(GL_ARRAY_BUFFER, 0);    
+    ID3D12Resource_Unmap(upload, 0, NULL);
 
-    list->vbo_update = 0;
+    dx_copy_resource(upload, list->vert_buffer);
+
+    ID3D12Resource_Release(upload);
+
+    list->update_vert_buffer = 0;
 }
 
 /*** RST
@@ -2200,77 +2276,62 @@ int trail_list_lua_draw(lua_State *L) {
 
     if (!overlay_3d->in_frame) return luaL_error(L, "not in a frame");
 
-    if (list->vbo_update) trail_list_update_vbo(list);
-    
-    glDisable(GL_CULL_FACE);
+    if (list->update_vert_buffer) trail_list_update_vert_buffer(list);
 
-    gl_shader_program_use(overlay_3d->trail_program);
+    if (!list->vert_buffer) return 0;
 
-    glActiveTexture(GL_TEXTURE0);
-
-    // set general uniforms
-
-    int oldvp[4] = {0};
+    dx_set_pipeline_state(overlay_3d->trail_pso);
+    dx_set_primitive_topology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
     if (list->map) {
-        glUniformMatrix4fv(0, 1, GL_FALSE, (GLfloat*)&overlay_3d->map_view);
-        glUniformMatrix4fv(1, 1, GL_FALSE, (GLfloat*)&overlay_3d->map_proj);
+        dx_set_root_constant_mat4f(0, &overlay_3d->map_view,  0);
+        dx_set_root_constant_mat4f(0, &overlay_3d->map_proj, 16);
 
         if (!overlay_3d->mapfullscreen) {
-            int fbw, fbh;
-            app_get_framebuffer_size(&fbw, &fbh);
-
-            glGetIntegerv(GL_VIEWPORT, oldvp);
-            glViewport(
-                overlay_3d->minimapleft,
-                overlay_3d->minimapbottom,
-                overlay_3d->minimapwidth,
-                overlay_3d->minimapheight
+            dx_push_viewport(
+                (float)overlay_3d->minimapleft,
+                (float)overlay_3d->minimaptop,
+                (float)overlay_3d->minimapwidth,
+                (float)overlay_3d->minimapheight
             );
         }
     } else {
-        glUniformMatrix4fv(0, 1, GL_FALSE, (GLfloat*)overlay_3d->view);
-        glUniformMatrix4fv(1, 1, GL_FALSE, (GLfloat*)overlay_3d->proj);
+        dx_set_root_constant_mat4f(0, overlay_3d->view,  0);
+        dx_set_root_constant_mat4f(0, overlay_3d->proj, 16);
     }
 
-    glUniform1f(5, (GLfloat)overlay_3d->minimapleft);
-    glUniform1f(6, (GLfloat)overlay_3d->minimapbottom);
-    glUniform1f(7, (GLfloat)overlay_3d->minimapheight);
-    glUniform1ui(8, (GLuint)list->map);
-    glUniform3fv(9, 1, (GLfloat*)&overlay_3d->player_pos);
-    glUniform3fv(10, 1, (GLfloat*)&overlay_3d->camera);
 
-    glBindVertexArray(list->vao);
+    dx_set_root_constant_float3(0, (float*)&overlay_3d->player_pos         , 36);
+    dx_set_root_constant_uint  (0, (uint32_t)list->map             , 39);
+    dx_set_root_constant_float3(0, (float*)&overlay_3d->camera             , 40);
+
+    dx_set_root_constant_float (0, (float)overlay_3d->minimapleft  , 45);
+    dx_set_root_constant_float (0, (float)overlay_3d->minimaptop   , 46);
+    dx_set_root_constant_float (0, (float)overlay_3d->minimapheight, 47);
+
+    dx_set_vertex_buffers(0, 1, &list->vert_buffer_view);
 
     size_t first = 0;
     for (size_t tex=0;tex<list->texture_count;tex++) {
         if (list->trail_counts[tex]==0) continue;
 
-        texture_map_texture_t *gltex = texture_map_get(list->texture_map, list->texture_keys[tex]);
+        texture_map_texture_t *dxtex = texture_map_get(list->texture_map, list->texture_keys[tex]);
 
-        glBindTexture(GL_TEXTURE_2D, gltex->texture);
+        dx_set_texture(0, dxtex->texture);
 
         for (size_t trail=0;trail<list->trail_counts[tex];trail++) {
-            glUniform1f(2, list->trails[tex][trail].fade_near);
-            glUniform1f(3, list->trails[tex][trail].fade_far);
-            glUniform4fv(4, 1, (GLfloat*)&list->trails[tex][trail].color);
-
-            glDrawArrays(GL_TRIANGLE_STRIP, (GLint)first, (GLsizei)list->trails[tex][trail].coord_count);
+            dx_set_root_constant_float (0, list->trails[tex][trail].fade_near, 43);
+            dx_set_root_constant_float (0, list->trails[tex][trail].fade_far , 44);
+            dx_set_root_constant_float4(0, (float*)&list->trails[tex][trail].color, 32);
+            dx_draw_instanced((uint32_t)list->trails[tex][trail].coord_count, 1, (uint32_t)first, 0);
+       
             first += list->trails[tex][trail].coord_count;
         }
     }
 
     if (list->map && !overlay_3d->mapfullscreen) {
-        glViewport(oldvp[0], oldvp[1], oldvp[2], oldvp[3]);
+        dx_pop_viewport();
     }
-
-    glBindTexture(GL_TEXTURE_2D, 0);
-
-    glBindVertexArray(0);
-
-    glUseProgram(0);
-
-    glEnable(GL_CULL_FACE);
 
     return 0;
 }
@@ -2314,7 +2375,7 @@ int trail_list_lua_update(lua_State *L) {
         nupdated += tupdated;
     }
 
-    if (nupdated) list->vbo_update = 1;
+    if (nupdated) list->update_vert_buffer = 1;
 
     lua_pushinteger(L, nupdated);
     return 1;

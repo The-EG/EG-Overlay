@@ -5,7 +5,6 @@
 #include "lamath.h"
 #include "rect.h"
 #include "font.h"
-#include "image.h"
 #include "window.h"
 #include "menu.h"
 #include "button.h"
@@ -101,7 +100,6 @@ void ui_init() {
 
     ui_rect_init();
     ui_font_init();
-    ui_image_init();
 
     ui->input_mutex = CreateMutex(0, FALSE, NULL);
 
@@ -132,7 +130,6 @@ void ui_cleanup() {
     logger_debug(ui->log, "cleanup");
     ui_rect_cleanup();
     ui_font_cleanup();
-    ui_image_cleanup();
 
     egoverlay_free(ui);
 }
@@ -638,7 +635,6 @@ int ui_lua_open_module(lua_State *L) {
 
     ui_text_lua_register_ui_funcs(L);
     ui_window_lua_register_ui_funcs(L);
-    ui_image_lua_register_ui_funcs(L);
     ui_button_lua_register_ui_funcs(L);
     ui_box_lua_register_ui_funcs(L);
     ui_scroll_view_register_lua_funcs(L);

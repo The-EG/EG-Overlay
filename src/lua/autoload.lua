@@ -26,7 +26,7 @@ require 'console'
 require 'main-menu'
 
 require 'mumble-link-events'
-require 'mumble-link-info'
+--require 'mumble-link-info'
 
 require 'map-buddy'
 require 'markers'

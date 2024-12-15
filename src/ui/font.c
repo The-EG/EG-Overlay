@@ -1,8 +1,9 @@
+#define COBJMACROS
+#include "../dx.h"
 #include <math.h>
 #include "font.h"
 #include "../utils.h"
 #include "../logging/logger.h"
-#include "../gl.h"
 #include "../utils.h"
 
 #include <ft2build.h>
@@ -19,17 +20,13 @@
 
 typedef struct {
     logger_t *log;
-    gl_shader_program_t *shader_program;
-    GLuint vao;
-    GLuint vbo;
     FT_Library ftlib;
 
     size_t cache_size;
     uint32_t *cache_keys;
     ui_font_t **cache_fonts;
 
-    ui_font_vbo_data_t *vbodata;
-    size_t vbo_data_size;
+    ID3D12PipelineState *pso;
 } ui_font_global_t;
 
 static ui_font_global_t *fonts = NULL;
@@ -79,22 +76,10 @@ struct ui_font_t {
     // hash map contents
     size_t *glyph_index; // where is the glyph within the texture array?
     glyph_metrics_t *metrics;
-    GLuint *texture_num; // which layer in the array
+    uint16_t *texture_num; // which layer in the array
 
-    GLuint texture_levels;
-    GLuint texture;
-};
-
-struct ui_font_vbo_data_t {
-    float left;
-    float top;
-    float right;
-    float bottom;
-    float tex_left;
-    float tex_top;
-    float tex_right;
-    float tex_bottom;
-    float tex_layer;
+    uint16_t texture_levels;
+    dx_texture_t *texture;
 };
 
 ui_font_t *ui_font_new(const char *path, int size, int weight, int slant, int width);
@@ -109,18 +94,11 @@ static const char preload_chars[] =
     "abcdefghijklmnopqrstuvwxyz"
     "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
-gl_shader_source_list_t shader_sources[] = {
-    "shaders/text-quad.vert", GL_VERTEX_SHADER,
-    "shaders/text-quad.frag", GL_FRAGMENT_SHADER,
-    NULL                    , 0
-};
-
 void ui_font_init() {
     fonts = egoverlay_calloc(1, sizeof(ui_font_global_t));
     
     fonts->log = logger_get("ui-font");
     logger_debug(fonts->log, "init");
-
 
     FT_Error err = FT_Init_FreeType(&fonts->ftlib);
 
@@ -129,32 +107,62 @@ void ui_font_init() {
         error_and_exit("EG-Overlay: UI-Font", "Couldn't initialize FreeType2.");
     }
 
-    fonts->shader_program = gl_shader_program_new_with_sources(shader_sources);
+    size_t vertlen = 0;
+    char *vertcso = load_file("shaders/font-quad.vs.cso", &vertlen);
 
-    fonts->vbo_data_size = 512;
-    fonts->vbodata = egoverlay_calloc(fonts->vbo_data_size, sizeof(ui_font_vbo_data_t));
+    size_t pixellen = 0;
+    char *pixelcso = load_file("shaders/font-quad.ps.cso", &pixellen);
 
-    glGenVertexArrays(1, &fonts->vao);
-    glGenBuffers(1, &fonts->vbo);
+    if (!vertcso || !pixelcso) {
+        logger_error(fonts->log, "Couldn't load shaders.");
+        exit(-1);
+    }
 
-    glBindVertexArray(fonts->vao);
-    glBindBuffer(GL_ARRAY_BUFFER, fonts->vbo);
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC psodesc = {0};
 
-    VERT_ATTRIB_FLOAT(0, 1, ui_font_vbo_data_t, left      );
-    VERT_ATTRIB_FLOAT(1, 1, ui_font_vbo_data_t, top       );
-    VERT_ATTRIB_FLOAT(2, 1, ui_font_vbo_data_t, right     );
-    VERT_ATTRIB_FLOAT(3, 1, ui_font_vbo_data_t, bottom    );
-    VERT_ATTRIB_FLOAT(4, 1, ui_font_vbo_data_t, tex_left  );
-    VERT_ATTRIB_FLOAT(5, 1, ui_font_vbo_data_t, tex_top   );
-    VERT_ATTRIB_FLOAT(6, 1, ui_font_vbo_data_t, tex_right );
-    VERT_ATTRIB_FLOAT(7, 1, ui_font_vbo_data_t, tex_bottom);
-    VERT_ATTRIB_FLOAT(8, 1, ui_font_vbo_data_t, tex_layer );
+    psodesc.VS.pShaderBytecode = vertcso;
+    psodesc.VS.BytecodeLength  = vertlen;
+    psodesc.PS.pShaderBytecode = pixelcso;
+    psodesc.PS.BytecodeLength  = pixellen;
 
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
+    psodesc.RasterizerState.FillMode             = D3D12_FILL_MODE_SOLID;
+    psodesc.RasterizerState.CullMode             = D3D12_CULL_MODE_NONE;
+    psodesc.RasterizerState.DepthBias            = D3D12_DEFAULT_DEPTH_BIAS;
+    psodesc.RasterizerState.DepthBiasClamp       = D3D12_DEFAULT_DEPTH_BIAS_CLAMP;
+    psodesc.RasterizerState.SlopeScaledDepthBias = D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
+    psodesc.RasterizerState.DepthClipEnable      = 1;
+    psodesc.RasterizerState.ConservativeRaster   = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
+
+    psodesc.BlendState.RenderTarget[0].BlendEnable           = 1;
+    psodesc.BlendState.RenderTarget[0].SrcBlend              = D3D12_BLEND_ONE;
+    psodesc.BlendState.RenderTarget[0].DestBlend             = D3D12_BLEND_INV_SRC_ALPHA;
+    psodesc.BlendState.RenderTarget[0].BlendOp               = D3D12_BLEND_OP_ADD;
+    psodesc.BlendState.RenderTarget[0].SrcBlendAlpha         = D3D12_BLEND_ONE;
+    psodesc.BlendState.RenderTarget[0].DestBlendAlpha        = D3D12_BLEND_INV_SRC_ALPHA;
+    psodesc.BlendState.RenderTarget[0].BlendOpAlpha          = D3D12_BLEND_OP_ADD;
+    psodesc.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+
+    psodesc.DepthStencilState.DepthEnable   = 0;
+    psodesc.DepthStencilState.StencilEnable = 0;
+
+    psodesc.SampleMask = UINT_MAX;
+    psodesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+    psodesc.NumRenderTargets = 1;
+    psodesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+    psodesc.SampleDesc.Count = 1;
+
+    fonts->pso = dx_create_pipeline_state(&psodesc);
+    if (!fonts->pso) {
+        logger_error(fonts->log, "Couldn't create pipeline state.");
+        exit(-1);
+    }
+    dx_object_set_name(fonts->pso, "EG-Overlay D3D12 UI-Font Pipeline State");
+
+    egoverlay_free(vertcso);
+    egoverlay_free(pixelcso);
 
     fonts->cache_fonts = egoverlay_calloc(CACHE_MAX_SIZE, sizeof(ui_font_t*));
-    fonts->cache_keys = egoverlay_calloc(CACHE_MAX_SIZE, sizeof(uint32_t));
+    fonts->cache_keys = egoverlay_calloc(CACHE_MAX_SIZE, sizeof(uint32_t)); 
 }
 
 void ui_font_cleanup() {
@@ -164,12 +172,8 @@ void ui_font_cleanup() {
     }
     egoverlay_free(fonts->cache_fonts);
     egoverlay_free(fonts->cache_keys);
-    egoverlay_free(fonts->vbodata);
 
-    gl_shader_program_free(fonts->shader_program);
-
-    glDeleteBuffers(1, &fonts->vbo);
-    glDeleteVertexArrays(1, &fonts->vao);
+    ID3D12PipelineState_Release(fonts->pso);
 
     FT_Done_FreeType(fonts->ftlib);
     egoverlay_free(fonts);
@@ -256,16 +260,19 @@ ui_font_t *ui_font_new(const char *path, int size, int weight, int slant, int wi
     font->glyphmap_capacity = 256;
     font->glyphs = egoverlay_calloc(font->glyphmap_capacity, sizeof(uint32_t));
     font->metrics = egoverlay_calloc(font->glyphmap_capacity, sizeof(glyph_metrics_t));
-    font->texture_num = egoverlay_calloc(font->glyphmap_capacity, sizeof(GLuint));
+    font->texture_num = egoverlay_calloc(font->glyphmap_capacity, sizeof(uint16_t));
     font->glyph_index = egoverlay_calloc(font->glyphmap_capacity, sizeof(size_t));
 
     logger_debug(fonts->log, "new font, %s size %d (%d), %d glyphs per page.",
                  path, size, font->size, font->page_max_glyphs);
 
-    glCreateTextures(GL_TEXTURE_2D_ARRAY, 1, &font->texture);
     font->texture_levels = 1;
 
-    glTextureStorage3D(font->texture, 1, GL_R8, GLYPH_TEX_SIZE, GLYPH_TEX_SIZE, 1);
+    font->texture = dx_texture_new_2d_array(DXGI_FORMAT_R8_UNORM, GLYPH_TEX_SIZE, GLYPH_TEX_SIZE, 1, 1);
+    dx_texture_set_name(
+        font->texture,
+        "EG-Overlay D3D12 Font Texture: %s|%d|%d|%d|%d", path, size, weight, slant, width
+    );
 
     size_t c = 0;
     while (preload_chars[c]) {
@@ -276,7 +283,7 @@ ui_font_t *ui_font_new(const char *path, int size, int weight, int slant, int wi
 }
 
 void ui_font_free(ui_font_t *font) {
-    glDeleteTextures(1, &font->texture);
+    dx_texture_free(font->texture);
 
     egoverlay_free(font->glyphs);
     egoverlay_free(font->metrics);
@@ -318,7 +325,7 @@ static void ui_font_render_glyph(ui_font_t *font, uint32_t codepoint) {
         uint32_t *newglyphs = calloc(newcap, sizeof(uint32_t));
 
         glyph_metrics_t *newmetrics = calloc(newcap, sizeof(glyph_metrics_t));
-        GLuint *newtexnums = calloc(newcap, sizeof(GLuint));
+        uint16_t *newtexnums = calloc(newcap, sizeof(uint16_t));
 
         // move the existing glyphs into the new map
         for (size_t g=0;g<font->glyphmap_capacity;g++) {
@@ -368,27 +375,23 @@ static void ui_font_render_glyph(ui_font_t *font, uint32_t codepoint) {
     if (font->glyph_count > font->page_max_glyphs * font->texture_levels) {
         // this glyph will spill over onto a new layer in the texture
 
-        // create a new texture
-        GLuint newtex = 0;
-        glCreateTextures(GL_TEXTURE_2D_ARRAY, 1, &newtex);
-        glTextureStorage3D(newtex, 1, GL_R8, GLYPH_TEX_SIZE, GLYPH_TEX_SIZE, font->texture_levels + 1);
-
-        // copy the existing layers over
-        glCopyImageSubData(
-            font->texture, GL_TEXTURE_2D_ARRAY, 0, 0, 0, 0,      // source
-            newtex       , GL_TEXTURE_2D_ARRAY, 0, 0, 0, 0,      // destination
-            GLYPH_TEX_SIZE, GLYPH_TEX_SIZE, font->texture_levels // w, h, d
+        dx_texture_t *newtex = dx_texture_new_2d_array(
+            DXGI_FORMAT_R8_UNORM,
+            GLYPH_TEX_SIZE, GLYPH_TEX_SIZE, font->texture_levels+1, 1
         );
-        
-        // delete the old one
-        glDeleteTextures(1, &font->texture);
-        font->texture = newtex;
+        dx_texture_copy_subresources(font->texture, newtex, font->texture_levels);
+
         font->texture_levels++;
+        dx_texture_copy_name(font->texture, newtex);
+        dx_texture_free(font->texture);
+        font->texture = newtex;
     }
 
     font->texture_num[glyphind] = font->texture_levels - 1;
 
     FT_Bitmap bm = font->face->glyph->bitmap;
+
+    if (bm.width==0 || bm.rows==0) return;
  
     // fist we need to gamma correct it
     uint8_t *pixels = egoverlay_calloc(bm.rows * bm.width, sizeof(uint8_t));
@@ -405,15 +408,16 @@ static void ui_font_render_glyph(ui_font_t *font, uint32_t codepoint) {
     }
 
     // then copy the corrected bitmap into the texture
-    size_t tex_x = ((font->glyph_index[glyphind] % font->page_glyph_x) * font->size);
-    size_t tex_y = (((font->glyph_index[glyphind] % font->page_max_glyphs) / font->page_glyph_x) * font->size);
+    uint32_t tex_x = (uint32_t)((font->glyph_index[glyphind] % font->page_glyph_x) * font->size);
+    uint32_t tex_y = (uint32_t)(((font->glyph_index[glyphind] % font->page_max_glyphs) / font->page_glyph_x) * font->size);
 
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    glTextureSubImage3D(
+    
+    dx_texture_write_pixels(
         font->texture,
-        0, (GLint)tex_x, (GLint)tex_y, font->texture_num[glyphind],
-        bm.width, bm.rows, 1,
-        GL_RED, GL_UNSIGNED_BYTE, pixels
+        tex_x, tex_y, font->texture_num[glyphind],
+        bm.width, bm.rows,
+        DXGI_FORMAT_R8_UNORM,
+        pixels
     );
     
     egoverlay_free(pixels);
@@ -428,13 +432,20 @@ void ui_font_render_text(
     size_t count,
     ui_color_t color
 ) {
-    size_t vbo_size = sizeof(ui_font_vbo_data_t) * count;
+    dx_set_pipeline_state(fonts->pso);
+    dx_set_texture(0, font->texture);
 
-    if (vbo_size > fonts->vbo_data_size) {
-        fonts->vbodata = egoverlay_realloc(fonts->vbodata, vbo_size);
-        fonts->vbo_data_size = vbo_size;
-    }
+    float colorv[] = {
+        UI_COLOR_R(color),
+        UI_COLOR_G(color),
+        UI_COLOR_B(color),
+        UI_COLOR_A(color)
+    };
 
+    dx_set_root_constant_float4(0, colorv, 12);
+    dx_set_root_constant_mat4f (0, proj  , 16);
+
+    dx_set_primitive_topology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
     FT_UInt glyph;
     FT_UInt prev_glyph = 0;
 
@@ -445,7 +456,6 @@ void ui_font_render_text(
     int bytes_remaining = 0;
 
     float penx = (float)x;
-    size_t vbo_ind = 0;
     for (size_t c=0;c<count;c++) {
         // handle multi-byte UTF-8 characters
         if ((text[c] & 0x80)==0) {
@@ -496,55 +506,39 @@ void ui_font_render_text(
         if (font->metrics[char_ind].bitmap_width == 0) {
             // this is an empty glyph, just move the pen position forward without rendering
             penx += (float)font->metrics[char_ind].advance_x;
-            vbo_size -= sizeof(ui_font_vbo_data_t);
             continue;
         }
         
         size_t glyph_ind = font->glyph_index[char_ind];
 
         float left = penx + (float)font->metrics[char_ind].bearing_x;
+        float right = left + font->metrics[char_ind].bitmap_width;
         float top  = y + (font->face->size->metrics.ascender / 64.f) - (float)font->metrics[char_ind].bearing_y;
+        float bottom = top + font->metrics[char_ind].bitmap_rows;
         
         float tex_left = ((float)(glyph_ind % font->page_glyph_x) * font->size);
         float tex_top  = ((float)((glyph_ind % font->page_max_glyphs)/ font->page_glyph_x) * font->size);
+        float tex_right  = (tex_left + font->metrics[char_ind].bitmap_width);
+        float tex_bottom = (tex_top + font->metrics[char_ind].bitmap_rows);
+        float tex_layer = (float)font->texture_num[char_ind];
 
-        fonts->vbodata[vbo_ind].left   = left;
-        fonts->vbodata[vbo_ind].top    = top;
-        fonts->vbodata[vbo_ind].right  = left + font->metrics[char_ind].bitmap_width;
-        fonts->vbodata[vbo_ind].bottom = top + font->metrics[char_ind].bitmap_rows;
+        dx_set_root_constant_float(0, left, 0);
+        dx_set_root_constant_float(0, top , 1);
+        dx_set_root_constant_float(0, right, 2);
+        dx_set_root_constant_float(0, bottom, 3);
+        dx_set_root_constant_float(0, tex_left, 4);
+        dx_set_root_constant_float(0, tex_top , 5);
+        dx_set_root_constant_float(0, tex_right, 6);
+        dx_set_root_constant_float(0, tex_bottom, 7);
+        dx_set_root_constant_float(0, tex_layer, 8);
 
-        fonts->vbodata[vbo_ind].tex_left   = tex_left;
-        fonts->vbodata[vbo_ind].tex_top    = tex_top;
-        fonts->vbodata[vbo_ind].tex_right  = (tex_left + font->metrics[char_ind].bitmap_width);
-        fonts->vbodata[vbo_ind].tex_bottom = (tex_top + font->metrics[char_ind].bitmap_rows);
-
-        fonts->vbodata[vbo_ind].tex_layer = (float)font->texture_num[char_ind];
-        vbo_ind++;
+        dx_draw_instanced(4, 1, 0, 0);
 
         penx += (float)font->metrics[char_ind].advance_x;
         prev_glyph = glyph;
         glyph_bytes = 0;
     }
 
-    glBindBuffer(GL_ARRAY_BUFFER, fonts->vbo);
-    glBufferData(GL_ARRAY_BUFFER, vbo_size, NULL, GL_STREAM_DRAW);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, vbo_size, fonts->vbodata);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    gl_shader_program_use(fonts->shader_program);
-    glBindVertexArray(fonts->vao);
-
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D_ARRAY, font->texture);        
-
-    glUniform4f(1, UI_COLOR_R(color), UI_COLOR_G(color), UI_COLOR_B(color), UI_COLOR_A(color)); // color
-    glUniformMatrix4fv(0, 1, GL_FALSE, (const GLfloat*)proj);                                   // projection
-
-    glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, (GLsizei)count);
-
-    glBindVertexArray(0);
-    glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
-    glUseProgram(0);
 }
 
 ui_font_t *ui_font_get(const char *path, int size, int weight, int slant, int width) {

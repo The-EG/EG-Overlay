@@ -170,7 +170,7 @@ local function addcategorytrails(category)
 
                 for i,c in ipairs(coords) do
                     local cx, cy = coordconverter:map2continent(c[1], c[3])
-                    table.insert(contcoords, { cx, cy })
+                    table.insert(contcoords, { cx, cy, 0.5 })
                 end
                 local mapattrs = {
                     color = color,

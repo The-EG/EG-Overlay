@@ -7,6 +7,8 @@ void app_cleanup();
 
 int app_run();
 
+uint64_t app_get_uptime();
+
 void app_get_framebuffer_size(int *width, int *height);
 
 #define GET_APP_SETTING_INT(key, val) settings_get_int   (app_get_settings(), key, val)

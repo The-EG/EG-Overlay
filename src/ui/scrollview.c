@@ -5,6 +5,7 @@
 #include "../logging/logger.h"
 #include "rect.h"
 #include "../app.h"
+#include "../dx.h"
 
 struct ui_scroll_view_t {
     ui_element_t element;
@@ -74,8 +75,7 @@ void ui_scroll_view_draw(ui_scroll_view_t *scroll, int offset_x, int offset_y, m
     int sx = scroll->element.x + offset_x;
     int sy = scroll->element.y + offset_y;
 
-    int old_scissor[4];
-    if (push_scissor(sx, sy, scroll->element.width, scroll->element.height, old_scissor)) {
+    if (dx_push_scissor(sx, sy, sx + scroll->element.width, sy + scroll->element.height)) {
         ui_add_input_element(offset_x, offset_y, scroll->element.x, scroll->element.y,
                              scroll->element.width, scroll->element.height, (ui_element_t*)scroll);
         if (scroll->child) {
@@ -145,7 +145,7 @@ void ui_scroll_view_draw(ui_scroll_view_t *scroll, int offset_x, int offset_y, m
             }
         }
 
-        pop_scissor(old_scissor);
+        dx_pop_scissor();
     }
 }
 
