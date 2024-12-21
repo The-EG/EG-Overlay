@@ -14,8 +14,6 @@
 
 #include "dx.h"
 
-#include <stb_image.h>
-
 #include "ui/ui.h"
 #include "ui/menu.h"
 #include "ui/text.h"

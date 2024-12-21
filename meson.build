@@ -25,15 +25,12 @@ jansson_opts.add_cmake_defines({'JANSSON_BUILD_DOCS': 'OFF'})
 generic_cmake_opts.add_cmake_defines(cmake_buildtypes[get_option('buildtype')])
 curl_opts.add_cmake_defines(cmake_buildtypes[get_option('buildtype')])
 
-stb_inc = include_directories('contrib/stb', is_system: true)
-
 winmm_lib = cc.find_library('winmm')
 rpcrt_lib = cc.find_library('rpcrt4')
 
 zlib_dep = dependency('zlib')
 
 freetype2_dep = dependency('freetype2')
-
 
 curl_opts.add_cmake_defines({
     'BUILD_CURL_EXE': 'OFF',

@@ -2,12 +2,6 @@
 #include <windows.h>
 #include "utils.h"
 
-#define STBI_MALLOC egoverlay_malloc
-#define STBI_REALLOC egoverlay_realloc
-#define STBI_FREE egoverlay_free
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
-
 #include "app.h"
 
 int WinMain(HINSTANCE hInstance, HINSTANCE hPrevIstance, LPSTR lpCmdLine, int nShowCmd) {

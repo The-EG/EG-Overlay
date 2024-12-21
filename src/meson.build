@@ -95,7 +95,6 @@ executable(
         '-DSQLITE_ENABLE_NULL_TRIM'
     ],
     include_directories: [
-      stb_inc,
       include_directories('../contrib/sqlite-amalgamation-3460000/', is_system: true),
     ],
     win_subsystem: 'windows',

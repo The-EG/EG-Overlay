@@ -4,7 +4,7 @@
 #include "lua-dx.h"
 #include "lua-manager.h"
 
-#include <stb_image.h>
+#include <wincodec.h>
 
 #include <string.h>
 #include <lauxlib.h>
@@ -426,14 +426,6 @@ textures with dimensions that are a power of 2.
 This should not affect sprites because the original dimensions of the image are
 stored and used when rendering them, but trails may not be rendered as expected
 if a non-square and/or non-power of 2 image is used.
-
-Supported Formats
-~~~~~~~~~~~~~~~~~
-
-EG-Overlay uses `stb_image <https://github.com/nothings/stb/blob/master/stb_image.h>`_
-to load texture image data, so any format it supports can be used.
-
-All textures are loaded as 4 channel RGBA images.
 
 3D Object Types
 ---------------
@@ -1176,7 +1168,7 @@ void texture_map_resize_hash_map(texture_map_t *map) {
 }
 
 /*** RST
-    .. lua:method:: add(name, data)
+    .. lua:method:: add(name, data, mipmaps)
 
         Add a texture.
 
@@ -1184,14 +1176,16 @@ void texture_map_resize_hash_map(texture_map_t *map) {
             reference it later when adding data to sprite lists and other
             objects.
         :param string data: The texture data.
+        :param boolean mipmaps: Generate mipmaps, default ``true``.
 
 
         .. admonition:: Implementation Detail
 
-            EG-Overlay uses `stb_image <https://github.com/nothings/stb/blob/master/stb_image.h>`_
-            to load ``data``, so any format it supports can be used.
+            EG-Overlay uses the `Windows Imaging Component <https://learn.microsoft.com/en-us/windows/win32/wic/-wic-lh>`_
+            to load ``data``, so any `format <https://learn.microsoft.com/en-us/windows/win32/wic/native-wic-codecs>`_
+            it supports can be used.
 
-            All textures are loaded as 4 channel RGBA images.
+            All textures are loaded as 4 channel BGRA images.
 
         .. versionhistory::
             :0.1.0: Added
@@ -1202,15 +1196,70 @@ int texture_map_lua_add(lua_State *L) {
     const char *name = luaL_checklstring(L, 2, &namelen);
     size_t datalen = 0;
     const uint8_t *data = (const uint8_t*)luaL_checklstring(L, 3, &datalen);
+    int mipmaps = 1;
 
     if (texture_map_get(map, name)) return luaL_error(L, "duplicate texture name: %s", name);
 
-    int channels = 0;
-    int width = 0;
-    int height = 0;
-    uint8_t *pixels = stbi_load_from_memory(data, (int)datalen, &width, &height, &channels, 4);
+    if (lua_gettop(L)>=4) mipmaps = lua_toboolean(L, 4);
 
-    if (!pixels) return luaL_error(L, "failed to load texture data");
+    IWICImagingFactory *wicfactory = NULL;
+
+    if (CoCreateInstance(&CLSID_WICImagingFactory, NULL, CLSCTX_INPROC_SERVER, &IID_IWICImagingFactory, &wicfactory)!=S_OK) {
+        return luaL_error(L, "Couldn't create WIC factory.");
+    }
+
+    IWICStream            *memstream  = NULL;
+    IWICBitmapDecoder     *decoder    = NULL;
+    IWICBitmapFrameDecode *frame      = NULL;
+    IWICFormatConverter   *converter  = NULL;
+    IWICBitmap            *bitmap     = NULL;
+    IWICBitmapLock        *bitmaplock = NULL;
+    uint32_t width  = 0;
+    uint32_t height = 0;
+    uint32_t pixels_size = 0;
+    uint8_t *pixels = NULL;
+
+    if (IWICImagingFactory_CreateStream(wicfactory, &memstream)!=S_OK) {
+        return luaL_error(L, "Couldn't create a WIC stream.");
+    }
+
+    if (IWICStream_InitializeFromMemory(memstream, (uint8_t*)data, (DWORD)datalen)!=S_OK) {
+        return luaL_error(L, "Couldn't initialize texture stream.");
+    }
+
+    if (IWICImagingFactory_CreateDecoderFromStream(wicfactory, (IStream*)memstream, NULL, WICDecodeMetadataCacheOnDemand, &decoder)!=S_OK) {
+        return luaL_error(L, "Couldn't get image decoder for %s", name);
+    }
+
+    if (IWICBitmapDecoder_GetFrame(decoder, 0, &frame)!=S_OK) {
+        return luaL_error(L, "Couldn't get image frame.");
+    }
+
+    if (IWICImagingFactory_CreateFormatConverter(wicfactory, &converter)!=S_OK) {
+        return luaL_error(L, "Couldn't create image format converter.");
+    }
+
+    if (IWICFormatConverter_Initialize(converter, (IWICBitmapSource*)frame, &GUID_WICPixelFormat32bppBGRA, WICBitmapDitherTypeNone, NULL, 0.f, WICBitmapPaletteTypeCustom)!=S_OK) {
+        return luaL_error(L, "Couldn't initialize image converter.");
+    }
+
+    if (IWICImagingFactory_CreateBitmapFromSource(wicfactory, (IWICBitmapSource*)converter, WICBitmapCacheOnDemand, &bitmap)!=S_OK) {
+        return luaL_error(L, "Couldn't create WIC bitmap.");
+    }
+
+    if (IWICBitmap_GetSize(bitmap, &width, &height)!=S_OK) {
+        return luaL_error(L, "Couldn't get bitmap size.");
+    }
+
+    WICRect lockrect = {0, 0, width, height};
+
+    if (IWICBitmap_Lock(bitmap, &lockrect, WICBitmapLockRead, &bitmaplock)!=S_OK) {
+        return luaL_error(L, "Couldn't lock bitmap.");
+    }
+
+    if (IWICBitmapLock_GetDataPointer(bitmaplock, &pixels_size, &pixels)!=S_OK) {
+        return luaL_error(L, "Couldnt get bitmap data pointer.");
+    }
 
     if (map->texture_count==map->hash_map_size) texture_map_resize_hash_map(map);
 
@@ -1231,7 +1280,7 @@ int texture_map_lua_add(lua_State *L) {
     // calculate how large a square texture needs to be:
     // what's the smallest power of 2 that is greater than or equal to the
     // width and height?
-    int32_t req_size = 16;
+    uint32_t req_size = 16;
     while (req_size < width || req_size < height) req_size <<= 1;
 
     tex->xy_ratio = (float)width / (float)height;
@@ -1240,20 +1289,76 @@ int texture_map_lua_add(lua_State *L) {
 
     uint16_t mipmaplevels = 1;
 
-    tex->texture = dx_texture_new_2d(DXGI_FORMAT_R8G8B8A8_UNORM, req_size, req_size, mipmaplevels);
+    if (mipmaps) mipmaplevels = (uint16_t)floorf(log2f((float)req_size));
+
+    tex->texture = dx_texture_new_2d(DXGI_FORMAT_B8G8R8A8_UNORM, req_size, req_size, mipmaplevels);
+    dx_texture_set_name(tex->texture, "EG-Overlay D3D12 TextureMap Texture: %s", name);
 
     dx_texture_write_pixels(
         tex->texture,
         0, 0, 0,
         width, height,
-        DXGI_FORMAT_R8G8B8A8_UNORM,
+        DXGI_FORMAT_B8G8R8A8_UNORM,
         pixels
     );
-    dx_texture_set_name(tex->texture, "EG-Overlay D3D12 TextureMap Texture: %s", name);
+    IWICBitmapLock_Release(bitmaplock);
+
+    for (uint16_t mlevel=1;mlevel<mipmaplevels;mlevel++) {
+        uint32_t mipsize = req_size / ((uint16_t)powf(2, mlevel));
+        uint32_t mipw = (uint32_t)floorf((float)mipsize * tex->max_u);
+        uint32_t miph = (uint32_t)floorf((float)mipsize * tex->max_v);
+
+        IWICBitmapScaler *scaler = NULL;
+
+        if (IWICImagingFactory_CreateBitmapScaler(wicfactory, &scaler)!=S_OK) {
+            return luaL_error(L, "Couldn't create bitmap scaler.");
+        }
+
+        if (IWICBitmapScaler_Initialize(scaler, (IWICBitmapSource*)bitmap, mipw, miph, WICBitmapInterpolationModeFant)!=S_OK) {
+            return luaL_error(L, "Couldn't initialize bitmap scaler.");
+        }
+
+        IWICBitmap     *scaledbitmap = NULL;
+        IWICBitmapLock *scaledlock   = NULL;
+
+        if (IWICImagingFactory_CreateBitmapFromSource(wicfactory, (IWICBitmapSource*)scaler, WICBitmapCacheOnDemand, &scaledbitmap)!=S_OK) {
+            return luaL_error(L, "Couldn't create scaled bitmap.");
+        }
+
+        WICRect scalerect = {0, 0, mipw, miph};
+
+        if (IWICBitmap_Lock(scaledbitmap, &scalerect, WICBitmapLockRead, &scaledlock)!=S_OK) {
+            return luaL_error(L, "Couldn't lock scaled bitmap.");
+        }
+
+        uint32_t mippixels_size = 0;
+        uint8_t *mippixels = NULL;
+
+        if (IWICBitmapLock_GetDataPointer(scaledlock, &mippixels_size, &mippixels)!=S_OK) {
+            return luaL_error(L, "Couldn't get mip pixels pointer.");
+        }
+
+        dx_texture_write_pixels(
+            tex->texture,
+            0, 0, mlevel,
+            mipw, miph,
+            DXGI_FORMAT_B8G8R8A8_UNORM,
+            mippixels
+        );
+
+        IWICBitmapLock_Release(scaledlock);
+        IWICBitmap_Release(scaledbitmap);
+        IWICBitmapScaler_Release(scaler);
+    }
 
     map->texture_count++;
 
-    stbi_image_free(pixels);
+    IWICBitmap_Release(bitmap);
+    IWICFormatConverter_Release(converter);
+    IWICBitmapFrameDecode_Release(frame);
+    IWICBitmapDecoder_Release(decoder);
+    IWICStream_Release(memstream);
+    IWICImagingFactory_Release(wicfactory);
 
     return 0;
 }
