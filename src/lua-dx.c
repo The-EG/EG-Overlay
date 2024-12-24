@@ -1280,7 +1280,7 @@ int texture_map_lua_add(lua_State *L) {
     // calculate how large a square texture needs to be:
     // what's the smallest power of 2 that is greater than or equal to the
     // width and height?
-    uint32_t req_size = 16;
+    uint32_t req_size = 1;
     while (req_size < width || req_size < height) req_size <<= 1;
 
     tex->xy_ratio = (float)width / (float)height;
