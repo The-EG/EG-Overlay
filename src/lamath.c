@@ -474,7 +474,7 @@ float deg2rad(float degrees) {
     return degrees * (float)M_PI / 180.0f;
 }
 
-float rad2degrees(float radians) {
+float rad2deg(float radians) {
     return radians * 180.0f / (float)M_PI;
 }
 

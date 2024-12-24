@@ -74,7 +74,7 @@ float deg2rad(float degrees);
  * 
  * @param radians
  */
-float rad2degrees(float radians);
+float rad2deg(float radians);
 
 /**
  * Initialize a 4x4 matrix to identity.
