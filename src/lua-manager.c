@@ -989,7 +989,7 @@ int overlay_process_time(lua_State *L) {
 }
 
 /*** RST
-.. lua:function:: overlaydatafolder(name)
+.. lua:function:: datafolder(name)
 
     Returns the full path to the data folder for the given module. 
     
@@ -1003,7 +1003,7 @@ int overlay_process_time(lua_State *L) {
 
     .. versionhistory::
         :0.0.1: Added
-        :0.1.0: Renamed from overlay_data_folder to overlaydatafolder
+        :0.1.0: Renamed from data_folder to datafolder
 */
 int overlay_data_folder(lua_State *L) {
     const char *name = luaL_checkstring(L, 1);
