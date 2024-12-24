@@ -436,6 +436,10 @@ end
 local function drawtooltip()
     tooltipwin:hide()
 
+    local ld, md, rd = ui.mousebuttonstate()
+
+    if ld or md or rd or not mlavailable then return end
+
     if not settings:get('showTooltips') or ml.incombat then return end
 
     local mousecx, mousecy = o3d.mousepointermapcoords()

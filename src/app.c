@@ -64,6 +64,9 @@ typedef struct {
     const char *runscript;
 
     uint64_t app_start_time;
+
+    int mouse_ldrag_target;
+    int mouse_rdrag_target;
 } app_t;
 
 app_t *app = NULL;
@@ -218,12 +221,17 @@ LRESULT CALLBACK keyboard_hook_proc(int nCode, WPARAM wParam, LPARAM lParam) {
 }
 
 LRESULT CALLBACK mouse_hook_proc(int nCode, WPARAM wParam, LPARAM lParam) {
+    if (wParam==WM_LBUTTONUP) app->mouse_ldrag_target = 0;
+    if (wParam==WM_RBUTTONUP) app->mouse_rdrag_target = 0;
+
     HWND fg_win = GetForegroundWindow();
     if (
         nCode < 0 ||
         !IsWindowVisible(app->win_hwnd) ||
         fg_win!=app->target_hwnd
     ) return CallNextHookEx(NULL, nCode, wParam, lParam);
+
+    if (app->mouse_ldrag_target || app->mouse_rdrag_target) return CallNextHookEx(NULL, nCode, wParam, lParam);
 
     MSLLHOOKSTRUCT *msll = (MSLLHOOKSTRUCT*)lParam;
     
@@ -273,7 +281,17 @@ LRESULT CALLBACK mouse_hook_proc(int nCode, WPARAM wParam, LPARAM lParam) {
             return CallNextHookEx(NULL, nCode, wParam, lParam);
         }
         return 1;
-    } else return CallNextHookEx(NULL, nCode, wParam, lParam);
+    } else {
+        // if this was a mouse button down event and we didn't consume it
+        // then we don't want to process mouse events until the corresponding up
+        // event comes through, otherwise we could be getting events during a
+        // drag/mouse look.
+        // this has to be tracked for all buttons separately (currently just
+        // left and right)
+        if (wParam==WM_LBUTTONDOWN) app->mouse_ldrag_target = 1;
+        if (wParam==WM_RBUTTONDOWN) app->mouse_rdrag_target = 1;
+        return CallNextHookEx(NULL, nCode, wParam, lParam);
+    }
 }
 
 void app_init(HINSTANCE hinst, int argc, char **argv) {

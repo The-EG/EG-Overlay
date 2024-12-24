@@ -586,6 +586,7 @@ static int ui_lua_add_top_level_element(lua_State *L);
 static int ui_lua_remove_top_level_element(lua_State *L);
 
 static int ui_lua_mouse_position(lua_State *L);
+static int ui_lua_mouse_button_state(lua_State *L);
 
 /*** RST
 eg-overlay-ui
@@ -626,6 +627,7 @@ static const struct luaL_Reg ui_funcs[] = {
     "addtoplevelelement"   , &ui_lua_add_top_level_element,
     "removetoplevelelement", &ui_lua_add_top_level_element,
     "mouseposition"        , &ui_lua_mouse_position,
+    "mousebuttonstate"     , &ui_lua_mouse_button_state,
     NULL                   ,  NULL
 };
 
@@ -823,6 +825,29 @@ static int ui_lua_mouse_position(lua_State *L) {
     lua_pushinteger(L, ui->last_mouse_y);
 
     return 2;
+}
+
+/*** RST
+.. lua:function:: mousebuttonstate()
+
+    Returns the state of the left, middle, and right mouse buttons.
+
+    This function returns 3 boolean values, indicating if the left, middle, and
+    right mouse button are pressed (true) or not (false).
+
+    :rtype: boolean
+
+    .. versionhistory::
+        :0.1.0: Added
+*/
+static int ui_lua_mouse_button_state(lua_State *L) {
+    int swaplr = GetSystemMetrics(SM_SWAPBUTTON);
+
+    lua_pushboolean(L, GetAsyncKeyState(swaplr ? VK_RBUTTON : VK_LBUTTON) & (1 << 15));
+    lua_pushboolean(L, GetAsyncKeyState(                      VK_MBUTTON) & (1 << 15));
+    lua_pushboolean(L, GetAsyncKeyState(swaplr ? VK_LBUTTON : VK_RBUTTON) & (1 << 15));
+
+    return 3;
 }
 
 int lua_checkuialign(lua_State *L, int ind) {
