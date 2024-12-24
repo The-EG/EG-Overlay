@@ -22,9 +22,9 @@ float4 main(PSInput input) :SV_Target {
         alpha = min(alpha, input.fade_alpha);
         if (input.cam_player_dist >= input.vert_cam_dist) {
             alpha = min(alpha, 0.05);
-        } else if (input.vert_cam_dist - input.cam_player_dist <= 300) {
+        } else if (input.vert_cam_dist - input.cam_player_dist <= 36) {
             float adist = input.vert_cam_dist - input.cam_player_dist;
-            float a = ((adist / 300) * (1.0 - 0.05)) + 0.05;
+            float a = ((adist / 36) * (1.0 - 0.05)) + 0.05;
             alpha = min(alpha, a);
         }
     }

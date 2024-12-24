@@ -19,11 +19,22 @@ float4 main(PSInput input) : SV_Target {
 
         if (input.cam_player_dist >= vertcamdist) {
             alpha = min(0.05, alpha);
-        } else if (vertcamdist - input.cam_player_dist <= 300) {
+        } else if (vertcamdist - input.cam_player_dist <= 36) {
             float adist = vertcamdist - input.cam_player_dist;
-            float a = ((adist / 300) * (1.0 - 0.05)) + 0.05;
+            float a = ((adist / 36) * (1.0 - 0.05)) + 0.05;
             alpha = min(alpha, a);
         }
+        
+        /*
+        float adist = input.cam_player_dist - vertcamdist;
+
+        if (adist > 12.0) {
+            alpha = min(0.05, alpha);
+        } else if (adist <= 12.0 && adist > 0.0) {
+            float a = 1.0 - ((adist / 12.0) * (1.0-0.05));
+            alpha = min(alpha, a);
+        }
+        */
     }
 
     float4 texcolor = texture.Sample(texsampler, input.texuv);
