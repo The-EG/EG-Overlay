@@ -56,6 +56,7 @@ typedef struct {
     HMENU sys_tray_menu;
 
     int running;
+    int visible;
 
     settings_t *settings;
 
@@ -483,6 +484,18 @@ static DWORD WINAPI app_render_thread(LPVOID lpParam) {
     float fov = 0.f;
 
     while (app->running) {
+        if (!app->visible) {
+            lua_manager_run_events();
+            int havecoroutines = lua_manager_resume_coroutines();
+            lua_manager_queue_event("update", NULL);
+            lua_manager_run_event_queue();
+
+            while (havecoroutines) havecoroutines = lua_manager_resume_coroutines();
+
+            Sleep(25);
+            continue;
+        }
+
         frame_begin = app_get_uptime() / 10000.0 / 1000.0;
 
         fov = mumble_link_fov();
@@ -577,6 +590,7 @@ static DWORD WINAPI app_fgwincheck_thread(LPVOID lpParam) {
             if (strcmp(fg_cls, app->target_win_class)==0) {
                 logger_debug(app->log, "Target window reactivated, showing overlay. (%s)", fg_cls);
                 ShowWindow(app->win_hwnd, SW_SHOWNA);
+                app->visible = 1;
                 app->target_hwnd = fg_win;
 
             }
@@ -596,6 +610,7 @@ static DWORD WINAPI app_fgwincheck_thread(LPVOID lpParam) {
             ) {
                 logger_debug(app->log, "Target window disappeared, hiding overlay.");
                 ShowWindow(app->win_hwnd, SW_HIDE);
+                app->visible = 0;
                 app->target_hwnd = NULL;                
             } else if (fg_win==app->target_hwnd) {
                 GetClientRect(app->target_hwnd, target_rect);
