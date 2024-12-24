@@ -153,8 +153,8 @@ function M.markerpack:new(path)
         SELECT MAX(seq) + 1 as next FROM categories
         WHERE parent = :parent
     ]])
-    mp.statements.category.setactive = db:prepare([[ UPDATE categories SET active = :active WHERE typeid = :typeid ]])
-    mp.statements.category.getactive = db:prepare([[ SELECT active FROM categories WHERE typeid = :typeid ]])
+    --mp.statements.category.setactive = db:prepare([[ UPDATE categories SET active = :active WHERE typeid = :typeid ]])
+    --mp.statements.category.getactive = db:prepare([[ SELECT active FROM categories WHERE typeid = :typeid ]])
     mp.statements.category.hasmarkersinmap = db:prepare([[
         WITH trailsmarkers (count) AS (
             SELECT COUNT(trails.id) AS count
@@ -406,6 +406,7 @@ end
         .. versionhistory::
             :0.1.0: Added
 ]]--
+--[[
 function M.markerpack:activecategoriesiter()
     -- this is a recursive query that starts at the top level categories,
     -- returns those that are active and then goes one by one returning just
@@ -426,6 +427,7 @@ function M.markerpack:activecategoriesiter()
 
     return iter
 end
+]]
 
 --[[ RST
     .. lua:method:: datafile(path)
@@ -617,6 +619,7 @@ M.category = {}
         .. versionhistory::
             :0.1.0: Added
 ]]--
+--[[
 function M.category:ancestorsactive()
     local c = self
 
@@ -627,6 +630,7 @@ function M.category:ancestorsactive()
 
     return true
 end
+]]
 
 --[[ RST
     .. lua:method:: active([value])
@@ -639,6 +643,7 @@ end
         .. versionhistory::
             :0.1.0: Added
 ]]--
+--[[
 function M.category:active(value)
     if value~=nil then
         local s = self.markerpack.statements.category.setactive
@@ -657,6 +662,7 @@ function M.category:active(value)
         return r.active == 1
     end
 end
+]]
 
 --[[ RST
     .. lua:method:: hasmarkersinmap(mapid[, includechildren])

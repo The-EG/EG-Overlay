@@ -104,9 +104,9 @@ function base_loader.begintag.MarkerCategory(self, file, line, attrs)
         cat[p] = v
     end
 
-    if props.defaulttoggle~=0 then
-        cat:active(true)
-    end
+    -- if props.defaulttoggle~=0 then
+    --     cat:active(true)
+    -- end
 
     if props.iconfile then
         if not self:loaddatafile(props.iconfile) then

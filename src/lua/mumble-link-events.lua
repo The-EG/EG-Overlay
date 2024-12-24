@@ -55,34 +55,40 @@ local overlay = require 'eg-overlay'
 local logger = require 'logger'
 local ml = require 'mumble-link'
 
-local mod = {}
-
 local log = logger.logger:new("mumble-link-events")
-mod.is_available = false
-mod.last_tick = ml.tick
-mod.last_tick_time = overlay.time()
+local is_available = false
+local last_tick = ml.tick
+local last_tick_time = overlay.time()
 local map_id = ml.mapid
+
+local charactername = ml.charactername
 
 local tick_to_tick_time = 0.4
 
-function mod.update()
+local function update()
     local now = overlay.time()
-    if not mod.is_available and mod.last_tick~=ml.tick then
-        mod.is_available = true
+    if not is_available and last_tick~=ml.tick then
+        is_available = true
         overlay.queueevent('mumble-link-available')
         log:debug('MumbleLink available')
-    elseif mod.is_available and mod.last_tick==ml.tick and now - mod.last_tick_time >= tick_to_tick_time then
-        mod.is_available = false
+    elseif is_available and last_tick==ml.tick and now - last_tick_time >= tick_to_tick_time then
+        is_available = false
         overlay.queueevent('mumble-link-unavailable')
         log:debug('MumbleLink unavailable')
     end
 
-    if mod.last_tick ~= ml.tick then
-        mod.last_tick = ml.tick
-        mod.last_tick_time = now
+    if last_tick ~= ml.tick then
+        last_tick = ml.tick
+        last_tick_time = now
     end
 
-    if not mod.is_available then return end
+    if not is_available then return end
+
+    if charactername~=ml.charactername then
+        log:debug('MumbleLink character changed ( %s -> %s )', charactername, ml.charactername)
+        overlay.queueevent('mumble-link-character-changed', {from=charactername, to=ml.charactername})
+        charactername = ml.charactername
+    end
 
     if map_id~=ml.mapid then
         log:debug('MumbleLink new map ( %d -> %d )', map_id, ml.mapid)
@@ -91,6 +97,6 @@ function mod.update()
     end
 end
 
-overlay.addeventhandler('update', mod.update)
+overlay.addeventhandler('update', update)
 
-return mod
+return {}

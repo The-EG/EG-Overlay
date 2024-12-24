@@ -7,6 +7,7 @@ pathing_lua_srcs = [
     'settings.lua',
     'manager.lua',
     'category-manager.lua',
+    'data.lua',
 ]
 
 foreach lua : pathing_lua_srcs

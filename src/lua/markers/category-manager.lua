@@ -4,6 +4,10 @@ local manager = require 'markers.manager'
 local ui = require 'eg-overlay-ui'
 local uih = require 'ui-helpers'
 local ml = require 'mumble-link'
+local data = require 'markers.data'
+local logger = require 'logger'
+
+local log = logger.logger:new('markers.cat-mgr')
 
 local M = {}
 
@@ -80,6 +84,8 @@ local inmapbox = ui.box('horizontal')
 local inmapcheck = uih.checkbox()
 local inmaptext = uih.text('Only show categories in map')
 
+local reloadbtn = uih.text_button('Reload Markers')
+
 inmapcheck:state(settings:get('categoryManager.onlyShowCategoriesInMap'))
 
 inmapbox:spacing(10)
@@ -87,6 +93,7 @@ inmapbox:pack_end(inmapcheck)
 inmapbox:pack_end(inmaptext)
 
 outerbox:pack_end(inmapbox)
+outerbox:pack_end(reloadbtn, false, 'fill')
 
 local closebtn = uih.text_button('Close')
 outerbox:pack_end(closebtn, false, 'fill')
@@ -109,13 +116,19 @@ local function childrenbutton()
     return btn
 end
 
-local function doreloadcats()
+local function doreloadcats(full)
     categorybox:pop_end()
     categorybox:pack_end(workingmsg)
-    manager.reloadcategories()
+    manager.reloadcategories(full)
     categorybox:pop_end()
     categorybox:pack_end(categoryscroll, true, 'fill')
 end
+
+reloadbtn:addeventhandler(function(event)
+    if event=='click-left' then
+        doreloadcats(true)
+    end
+end)
 
 local function updatecategories()
     local parent = settings:get('categoryManager.path')
@@ -157,13 +170,15 @@ local function updatecategories()
 
                         local cb = uih.checkbox()
                         box:pack_end(cb, false, 'middle')
-                        cb:state(c:active())
+                        cb:state(data.iscategoryactive(c))
 
                         cb:addeventhandler(function(event)
                             if event~='toggle-on' and event~='toggle-off' then return end
 
-                            c:active(event=='toggle-on')
-                            doreloadcats()                            
+                            data.setcategoryactive(c, event=='toggle-on')
+                            log:debug("%s toggled, reloading...", c.typeid)
+                            doreloadcats()
+                            log:debug("done.")
                         end)
 
                         local btn = shortbtn(c.displayname)
@@ -175,7 +190,9 @@ local function updatecategories()
                             if event~='click-left' then return end
                             
                             settings:set('categoryManager.path', c.typeid)
+                            log:debug("Changed to %s, reloading...", c.typeid)
                             updatecategories()
+                            log:debug("done.")
                         end)
                     end
                 end
@@ -221,14 +238,16 @@ local function updatecategories()
 
         if cat.isseparator~=1 then
             local check = uih.checkbox()
-            check:state(cat:active())
+            check:state(data.iscategoryactive(cat))
             catgrid:attach(check, i, 1, 1, 1, 'start', 'middle')
 
             check:addeventhandler(function(event)
                 if event~='toggle-on' and event~='toggle-off' then return end
 
-                cat:active(event=='toggle-on')
-                doreloadcats()                
+                data.setcategoryactive(cat, event=='toggle-on')
+                log:debug("%s toggled, reloading...", cat.typeid)
+                doreloadcats()
+                log:debug("done.")
             end)
         end
         local textalign = 'fill'
@@ -244,7 +263,9 @@ local function updatecategories()
             btn:addeventhandler(function(event)
                 if event=='click-left' then
                     settings:set('categoryManager.path', cat.typeid)
+                    log:debug("Changed to %s, reloading...", cat.typeid)
                     updatecategories()
+                    log:debug("done.")
                 end
             end)
 

@@ -320,6 +320,7 @@ int mumble_link_lua_map_id(lua_State *L);
 int mumble_link_lua_ui_state(lua_State *L);
 int mumble_link_lua_map_open(lua_State *L);
 int mumble_link_lua_in_combat(lua_State *L);
+int mumble_link_lua_shard_id(lua_State *L);
 
 int mumble_link_lua_index(lua_State *L) {
     const char *key = luaL_checkstring(L, 2);
@@ -342,6 +343,7 @@ int mumble_link_lua_index(lua_State *L) {
     else if (strcmp(key, "uistate"                )==0) return mumble_link_lua_ui_state(L);
     else if (strcmp(key, "mapopen"                )==0) return mumble_link_lua_map_open(L);
     else if (strcmp(key, "incombat"               )==0) return mumble_link_lua_in_combat(L);
+    else if (strcmp(key, "shardid"                )==0) return mumble_link_lua_shard_id(L);
 
     char *mod_name = lua_manager_get_lua_module_name(L);
     logger_warn(ml->log, "%s tried to read mumble-link.%s, does not exist.", mod_name, key);
@@ -719,6 +721,22 @@ int mumble_link_lua_map_type(lua_State *L) {
 
 int mumble_link_lua_map_id(lua_State *L) {
     lua_pushinteger(L, ml->gw2_ml->context.map_id);
+    return 1;
+}
+
+/*** RST
+.. lua:deta:: shardid
+
+    :type: integer
+     
+    The current map shard id. This value and the ``mapid`` can be used to
+    determine a unique map instance.
+
+    .. versionhistory::
+        :0.1.0: Added
+*/
+int mumble_link_lua_shard_id(lua_State *L) {
+    lua_pushinteger(L, ml->gw2_ml->context.shard_id);
     return 1;
 }
 

@@ -1,5 +1,6 @@
 #include <windows.h>
 #include <windowsx.h>
+#include <jansson.h>
 
 #include "eg-overlay.h"
 #include "githash.h"
@@ -166,6 +167,15 @@ void app_create_window() {
     }
 }
 
+char *numbers[] = {
+    "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"
+};
+
+char *letters[] = {
+    "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o",
+    "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"
+};
+
 LRESULT CALLBACK keyboard_hook_proc(int nCode, WPARAM wParam, LPARAM lParam) {
     HWND fg_win = GetForegroundWindow();
     if (
@@ -217,6 +227,115 @@ LRESULT CALLBACK keyboard_hook_proc(int nCode, WPARAM wParam, LPARAM lParam) {
     ToAscii(keydata->vkCode, keydata->scanCode, keystate, (LPWORD)event.ascii, 0); 
 
     if (ui_process_keyboard_event(&event)) return 1;
+
+    char *keystr = "unknown";
+
+    switch (event.vk_key) {
+    case VK_BACK      : keystr = "backspace"    ; break;
+    case VK_TAB       : keystr = "tab"          ; break;
+    case VK_CLEAR     : keystr = "clear"        ; break;
+    case VK_RETURN    : keystr = "enter"        ; break;
+    case VK_SHIFT     : keystr = "shift"        ; break;
+    case VK_CONTROL   : keystr = "ctrl"         ; break;
+    case VK_MENU      : keystr = "alt"          ; break;
+    case VK_PAUSE     : keystr = "pause"        ; break;
+    case VK_CAPITAL   : keystr = "capslock"     ; break;
+    case VK_ESCAPE    : keystr = "escape"       ; break;
+    case VK_SPACE     : keystr = "space"        ; break;
+    case VK_PRIOR     : keystr = "pageup"       ; break;
+    case VK_NEXT      : keystr = "pagedown"     ; break;
+    case VK_END       : keystr = "end"          ; break;
+    case VK_HOME      : keystr = "home"         ; break;
+    case VK_LEFT      : keystr = "left"         ; break;
+    case VK_UP        : keystr = "up"           ; break;
+    case VK_RIGHT     : keystr = "right"        ; break;
+    case VK_DOWN      : keystr = "down"         ; break;
+    case VK_SELECT    : keystr = "select"       ; break;
+    case VK_PRINT     : keystr = "print"        ; break;
+    case VK_EXECUTE   : keystr = "execute"      ; break;
+    case VK_SNAPSHOT  : keystr = "printscreen"  ; break;
+    case VK_INSERT    : keystr = "insert"       ; break;
+    case VK_DELETE    : keystr = "delete"       ; break;
+    case VK_HELP      : keystr = "help"         ; break;
+    case VK_LWIN      : keystr = "left-windows" ; break;
+    case VK_RWIN      : keystr = "right-windows"; break;
+    case VK_APPS      : keystr = "applications" ; break;
+    case VK_ADD       : keystr = "plus"         ; break;
+    case VK_SEPARATOR : keystr = "separator"    ; break;
+    case VK_NUMPAD0   : keystr = "numpad0"      ; break;
+    case VK_NUMPAD1   : keystr = "numpad1"      ; break;
+    case VK_NUMPAD2   : keystr = "numpad2"      ; break;
+    case VK_NUMPAD3   : keystr = "numpad3"      ; break;
+    case VK_NUMPAD4   : keystr = "numpad4"      ; break;
+    case VK_NUMPAD5   : keystr = "numpad5"      ; break;
+    case VK_NUMPAD6   : keystr = "numpad6"      ; break;
+    case VK_NUMPAD7   : keystr = "numpad7"      ; break;
+    case VK_NUMPAD8   : keystr = "numpad8"      ; break;
+    case VK_NUMPAD9   : keystr = "numpad9"      ; break;
+    case VK_MULTIPLY  : keystr = "multiply"     ; break;
+    case VK_SUBTRACT  : keystr = "subtract"     ; break;
+    case VK_DECIMAL   : keystr = "decimal"      ; break;
+    case VK_DIVIDE    : keystr = "divide"       ; break;
+    case VK_F1        : keystr = "f1"           ; break;
+    case VK_F2        : keystr = "f2"           ; break;
+    case VK_F3        : keystr = "f3"           ; break;
+    case VK_F4        : keystr = "f4"           ; break;
+    case VK_F5        : keystr = "f5"           ; break;
+    case VK_F6        : keystr = "f6"           ; break;
+    case VK_F7        : keystr = "f7"           ; break;
+    case VK_F8        : keystr = "f8"           ; break;
+    case VK_F9        : keystr = "f9"           ; break;
+    case VK_F10       : keystr = "f10"          ; break;
+    case VK_F11       : keystr = "f11"          ; break;
+    case VK_F12       : keystr = "f12"          ; break;
+    case VK_F13       : keystr = "f13"          ; break;
+    case VK_F14       : keystr = "f14"          ; break;
+    case VK_F15       : keystr = "f15"          ; break;
+    case VK_F16       : keystr = "f16"          ; break;
+    case VK_F17       : keystr = "f17"          ; break;
+    case VK_F18       : keystr = "f18"          ; break;
+    case VK_F19       : keystr = "f19"          ; break;
+    case VK_F20       : keystr = "f20"          ; break;
+    case VK_F21       : keystr = "f21"          ; break;
+    case VK_F22       : keystr = "f22"          ; break;
+    case VK_F23       : keystr = "f23"          ; break;
+    case VK_F24       : keystr = "f24"          ; break;
+    case VK_NUMLOCK   : keystr = "numlock"      ; break;
+    case VK_SCROLL    : keystr = "scrolllock"   ; break;
+    case VK_LSHIFT    : keystr = "left-shift"   ; break;
+    case VK_RSHIFT    : keystr = "right-shift"  ; break;
+    case VK_LCONTROL  : keystr = "left-ctrl"    ; break;
+    case VK_RCONTROL  : keystr = "right-ctrl"   ; break;
+    case VK_LMENU     : keystr = "left-alt"     ; break;
+    case VK_RMENU     : keystr = "right-alt"    ; break;
+    case VK_OEM_1     : keystr = "semicolon"    ; break;
+    case VK_OEM_PLUS  : keystr = "plus"         ; break;
+    case VK_OEM_COMMA : keystr = "comma"        ; break;
+    case VK_OEM_MINUS : keystr = "minus"        ; break;
+    case VK_OEM_PERIOD: keystr = "period"       ; break;
+    case VK_OEM_2     : keystr = "forwardslash" ; break;
+    case VK_OEM_3     : keystr = "backtick"     ; break;
+    case VK_OEM_4     : keystr = "leftbracket"  ; break;
+    case VK_OEM_5     : keystr = "backslash"    ; break;
+    case VK_OEM_6     : keystr = "rightbracket" ; break;
+    case VK_OEM_7     : keystr = "quote"        ; break;
+    default:
+        if (event.vk_key>='0' && event.vk_key<='9') {
+            keystr = numbers[event.vk_key - '0'];
+        } else if (event.vk_key>='A' && event.vk_key<='Z') {
+            keystr = letters[event.vk_key - 'A'];
+        }
+    }
+
+    json_t *json = json_sprintf(
+        "%s%s%s%s",
+        event.alt   && event.vk_key!=VK_LMENU    && event.vk_key!=VK_RMENU    ? "alt-"   : "",
+        event.shift && event.vk_key!=VK_LSHIFT   && event.vk_key!=VK_RSHIFT   ? "shift-" : "",
+        event.ctrl  && event.vk_key!=VK_LCONTROL && event.vk_key!=VK_RCONTROL ? "ctrl-"  : "",
+        keystr
+    );
+    lua_manager_queue_event(event.down ? "key-down" : "key-up", json);
+    json_decref(json);
 
     return CallNextHookEx(NULL, nCode, wParam, lParam);
 }
