@@ -1031,9 +1031,22 @@ void dx_end_frame() {
 
     dx_execute_command_list(dx->cmdlist);
 
-    if (IDXGISwapChain4_Present(dx->swapchain, 0, DXGI_PRESENT_ALLOW_TEARING)!=S_OK) {
-        logger_error(dx->log, "Present failed.");
-        exit(-1);
+    uint32_t r = 0;
+    if ((r=IDXGISwapChain4_Present(dx->swapchain, 0, DXGI_PRESENT_ALLOW_TEARING))!=S_OK) {
+        switch (r) {
+        case DXGI_ERROR_DEVICE_RESET:
+            logger_error(dx->log, "Present failed: device reset.");
+            exit(-1);
+        case DXGI_ERROR_DEVICE_REMOVED:
+            logger_error(dx->log, "Present failed: device removed.");
+            exit(-1);
+        case DXGI_STATUS_OCCLUDED:
+            logger_error(dx->log, "Present failed: occluded.");
+            exit(-1);
+        default:
+            logger_error(dx->log, "Present failed: other error 0x%X", r);
+            exit(-1);
+        }
     }
 
     uint64_t fenceval = dx->fence_values[dx->frameind];
