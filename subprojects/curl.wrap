@@ -1,8 +1,0 @@
-[wrap-git]
-directory = curl-8.8.0
-url = https://github.com/curl/curl.git
-revision = curl-8_8_0
-depth = 1
-
-[provide]
-libcurl = libcurl_dep

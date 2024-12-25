@@ -57,9 +57,10 @@ executable(
     dependencies: [
       winmm_lib,
       rpcrt_lib,
+      crypt32_dep,
+      wininet_dep,
+      shlwapi_dep,
       freetype2_dep,
-      curl_dep,
-      curl_link_libs,
       libxml2_dep,
       zlib_dep,
       lua_dep,

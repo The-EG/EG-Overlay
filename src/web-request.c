@@ -3,16 +3,12 @@
 #include "utils.h"
 #include "lua-manager.h"
 #include <stdlib.h>
-#include <curl/curl.h>
 #include <windows.h>
+#include <wininet.h>
+#include <shlwapi.h>
 #include <lua.h>
 #include <lauxlib.h>
-
-static CURL *curl = NULL;
-static logger_t *logger = NULL;
-static HANDLE request_thread = NULL;
-static DWORD request_thread_id = 0;
-static int stop_thread = 0;
+#include "eg-overlay.h"
 
 typedef struct web_request_list_t {
     web_request_t *request;
@@ -23,8 +19,18 @@ typedef struct web_request_list_t {
     struct web_request_list_t *next;
 } web_request_list_t;
 
-static web_request_list_t *request_queue = NULL;
-HANDLE queue_mutex = NULL;
+typedef struct {
+    HINTERNET internet;
+
+    logger_t *log;
+    HANDLE request_thread;
+    int stop_thread;
+
+    web_request_list_t *request_queue;
+    HANDLE queue_mutex;
+} web_request_static_t;
+
+web_request_static_t *wr = NULL;
 
 static DWORD WINAPI web_request_thread(LPVOID lpParam);
 
@@ -43,33 +49,38 @@ struct web_request_t {
     int free_after_perform;
 };
 
+char *web_request_escape_url(const char *url);
+
 void lua_pushwebrequest(lua_State *L, web_request_t *request, int lua_managed);
 web_request_t *lua_checkwebrequest(lua_State *L, int ind);
 int web_request_lua_open_module(lua_State *L);
 
 void web_request_init() {
-    logger = logger_get("web-request");
+    wr = egoverlay_calloc(1, sizeof(web_request_static_t));
+    wr->log = logger_get("web-request");
 
-    if (curl_global_init(CURL_GLOBAL_DEFAULT)!=CURLE_OK) {
-        logger_error(logger, "Error while performing curl_global_init.");
-        error_and_exit("EG-Overlay: Web Request", "Error while performing curl_global_init.");
+    logger_debug(wr->log, "init");
+
+    wr->internet = InternetOpen(
+        "EG-Overlay/" VERSION_STR,
+        INTERNET_OPEN_TYPE_PRECONFIG,
+        NULL, NULL, 0
+    );
+
+    if (wr->internet==NULL) {
+        logger_error(wr->log, "Couldn't initialize WinInet.");
+        error_and_exit("EG-Overlay: Web Request", "Couldn't initialize WinInet.");
     }
 
-    curl = curl_easy_init();
-    if (curl==NULL) {
-        logger_error(logger, "Error while performing curl_easy_init.");
-        error_and_exit("EG-Overlay: Web Request", "Error while performing curl_easy_init.");
-    }
-
-    queue_mutex = CreateMutex(0, FALSE, NULL);
-    if (queue_mutex==NULL) {
-        logger_error(logger, "Couldn't create request queue mutex.");
+    wr->queue_mutex = CreateMutex(0, FALSE, NULL);
+    if (wr->queue_mutex==NULL) {
+        logger_error(wr->log, "Couldn't create request queue mutex.");
         error_and_exit("EG-Overlay: Web Request", "Couldn't create request queue mutex.");
     }
 
-    request_thread = CreateThread(0, 0, &web_request_thread, NULL, 0, &request_thread_id);
-    if (request_thread==NULL) {
-        logger_error(logger, "Couldn't create request thread.");
+    wr->request_thread = CreateThread(0, 0, &web_request_thread, NULL, 0, NULL);
+    if (wr->request_thread==NULL) {
+        logger_error(wr->log, "Couldn't create request thread.");
         error_and_exit("EG-Overlay: Web Request", "Couldn't create request thread.");
     }
 
@@ -77,34 +88,17 @@ void web_request_init() {
 }
 
 void web_request_cleanup() {
-    stop_thread = 1;
-    WaitForSingleObject(request_thread, INFINITE);
-    CloseHandle(request_thread);
+    logger_debug(wr->log, "cleanup");
 
-    CloseHandle(queue_mutex);
+    wr->stop_thread = 1;
+    WaitForSingleObject(wr->request_thread, INFINITE);
+    CloseHandle(wr->request_thread);
 
-    curl_easy_cleanup(curl);
-    curl_global_cleanup();
-}
+    CloseHandle(wr->queue_mutex);
 
-static size_t web_request_write_callback(char *ptr, size_t size, size_t nmemb, void *userdata) {
-    UNUSED_PARAM(size);
+    InternetCloseHandle(wr->internet);
 
-    // naive but should work for text response data just fine
-
-    char **data = (char**)userdata;
-    size_t cur_len = (*data) ? strlen(*data) : 0;
-    size_t new_len = cur_len + nmemb + 1;
-
-    *data = egoverlay_realloc(*data, new_len);
-    //if (cur_len) memcpy(new_data, *data, cur_len);
-    memcpy((*data) + cur_len, ptr, nmemb);
-    (*data)[new_len-1] = 0;
-
-    //free(*data);
-    //*data = new_data;
-
-    return nmemb;
+    egoverlay_free(wr);
 }
 
 struct web_request_lua_callback_data {
@@ -122,14 +116,6 @@ static int web_request_run_lua_callback(lua_State *L, struct web_request_lua_cal
     lua_pushstring(L, data->data);
     lua_pushwebrequest(L, data->req, 0);
 
-    /*
-    if (lua_pcall(L, 3, 0, 0)!=LUA_OK) {
-        const char *errmsg = luaL_checkstring(L, -1);
-        logger_error(logger, "Error occured during web request Lua callback: %s", errmsg);
-        lua_pop(L, 1);
-    }
-    */
-
     // remove our references to the callback and request
     luaL_unref(L, LUA_REGISTRYINDEX, data->cbi);
     luaL_unref(L, LUA_REGISTRYINDEX, data->reqi);
@@ -140,91 +126,152 @@ static int web_request_run_lua_callback(lua_State *L, struct web_request_lua_cal
     return 3;
 }
 
+char *web_request_escape_url(const char *url) {
+    DWORD urllen = 1;
+    char *outurl = egoverlay_calloc(1, sizeof(char));
+
+    if (UrlEscape(url, outurl, &urllen, 0)==E_POINTER) {
+        outurl = egoverlay_realloc(outurl, (urllen+1) * sizeof(char));
+
+        if (UrlEscape(url, outurl, &urllen, 0)!=S_OK) {
+            egoverlay_free(outurl);
+            return NULL;
+        }
+
+        return outurl;
+    }
+
+    egoverlay_free(outurl);
+    return NULL;
+}
+
+void call_lua_cb(web_request_list_t *req, int http_code, const char *data) {
+    size_t ldsize = sizeof(struct web_request_lua_callback_data);
+    struct web_request_lua_callback_data *ld = egoverlay_calloc(1, ldsize);
+    ld->cbi = req->cbi;
+    if (data) {
+        ld->data = egoverlay_calloc(strlen(data)+1, sizeof(char));
+        memcpy(ld->data, data, strlen(data));
+    }
+    ld->req = req->request;
+    ld->reqi = req->requesti;
+    ld->http_code = http_code;
+    lua_manager_add_event_callback(&web_request_run_lua_callback, ld);
+}
+
 static void web_request_perform(web_request_list_t *req) {
     web_request_t *request = req->request;
-    curl_easy_reset(curl);
 
-    CURLU *url = curl_url();
-    curl_url_set(url, CURLUPART_URL, request->url, CURLU_URLENCODE);
+    size_t comburllen = strlen(request->url);
+    for (web_request_value_list_t *v = request->query_params;v;v=v->next) {
+        comburllen += strlen(v->name) + strlen(v->value) + 2;
+    }
 
-    web_request_value_list_t *v = request->query_params;
-    while (v) {
-        size_t query_param_size = strlen(v->name) + strlen(v->value) + 1;
-        char *query_param = egoverlay_calloc(query_param_size + 1, sizeof(char));
+    char *comburl = egoverlay_calloc(comburllen+1, sizeof(char));
+    memcpy(comburl, request->url, strlen(request->url));
+    
+    size_t cind = strlen(request->url);
+    for (web_request_value_list_t *v = request->query_params;v;v=v->next) {
+        if (cind==strlen(request->url)) comburl[cind] = '?';
+        else comburl[cind] = '&';
+        cind++;
+
+        memcpy(comburl + cind, v->name, strlen(v->name));
+        cind += strlen(v->name);
         
-        memcpy(query_param, v->name, strlen(v->name));
-        query_param[strlen(v->name)] = '=';
-        memcpy(query_param + strlen(v->name)+1, v->value, strlen(v->value));
-
-        curl_url_set(url, CURLUPART_QUERY, query_param, CURLU_URLENCODE | CURLU_APPENDQUERY);
-
-        egoverlay_free(query_param);
-
-        v = v->next;
+        comburl[cind] = '=';
+        cind++;
+        
+        memcpy(comburl + cind, v->value, strlen(v->value));
+        cind += strlen(v->value);
     }
 
-    curl_easy_setopt(curl, CURLOPT_CURLU, url);
+    char *url = web_request_escape_url(comburl);
+    egoverlay_free(comburl);
 
-    struct curl_slist *hdrs = NULL;
-
-    v = request->headers;
-    while (v) {
-        size_t header_size = strlen(v->name) + strlen(v->value) + 2;
-        char *header = egoverlay_calloc(header_size + 1, sizeof(char));
-
-        memcpy(header, v->name, strlen(v->name));
-        memcpy(header + strlen(v->name), ": ", 2);
-        memcpy(header + strlen(v->name) + 2, v->value, strlen(v->value));
-
-        hdrs = curl_slist_append(hdrs, header);
-
-        egoverlay_free(header);
-
-        v = v->next;
+    if (!url) {
+        logger_error(wr->log, "Bad URL: %s", request->url);
+        if (req->cb) req->cb(-1, "bad URL", request);
+        if (req->cbi) call_lua_cb(req, -1, "bad URL");
+        return;
     }
 
-    if (hdrs) curl_easy_setopt(curl, CURLOPT_HTTPHEADER, hdrs);
+    size_t hdrslen = 0;
+    char *hdrs = NULL;
+    for (web_request_value_list_t *v = request->headers;v;v=v->next) {
+        size_t hlen = 4 + strlen(v->name) + strlen(v->value);
+        hdrs = egoverlay_realloc(hdrs, hdrslen + hlen);
 
-    char *data = NULL;
+        memcpy(hdrs + hdrslen, v->name, strlen(v->name));
+        hdrslen += strlen(v->name);
+        hdrs[hdrslen++] = ':';
+        hdrs[hdrslen++] = ' ';
+        memcpy(hdrs + hdrslen, v->value, strlen(v->value));
+        hdrslen += strlen(v->value);
+        hdrs[hdrslen++] = '\r';
+        hdrs[hdrslen++] = '\n';
+    }
 
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &web_request_write_callback);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void*)&data);
+    HINTERNET hreq = InternetOpenUrl(wr->internet, url, hdrs, (DWORD)hdrslen, 0, (DWORD_PTR)NULL);
 
-    CURLcode res = curl_easy_perform(curl);
+    if (hdrs) egoverlay_free(hdrs);
 
-    if (res==CURLE_OK) {
-        long http_code = 0;
-        curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+    if (!hreq) {
+        logger_error(wr->log, "Couldn't open URL: %s", url);
+        if (req->cb) req->cb(-1, "Couldn't open URL", request);
+        if (req->cbi) call_lua_cb(req, -1, "Couldn't open URL");
+        egoverlay_free(url);
+        return;
+    }
 
-        if (http_code>=200 && http_code<400) {
-            if (req->source) logger_info(logger, "%s: GET %s -> %d", req->source, request->url, http_code);
-            else logger_info(logger, "GET %s -> %d", request->url, http_code);
-        } else {
-            if (req->source) logger_warn(logger, "%s: GET %s -> %d", req->source, request->url, http_code);
-            else logger_warn(logger, "GET %s -> %d", request->url, http_code);
-        }
+    char *bytes = NULL;
+    size_t byteslen = 0;
 
-        if (req->cb) req->cb(http_code, data, request);
-        if (req->cbi) {
-            size_t ldsize = sizeof(struct web_request_lua_callback_data);
-            struct web_request_lua_callback_data *ld = egoverlay_calloc(1, ldsize);
-            ld->cbi = req->cbi;
-            ld->data = egoverlay_calloc(strlen(data)+1, sizeof(char));
-            memcpy(ld->data, data, strlen(data));
-            ld->req = request;
-            ld->reqi = req->requesti;
-            ld->http_code = http_code;
-            lua_manager_add_event_callback(&web_request_run_lua_callback, ld);
-        }
+    char chunk[1024] = {0};
+    size_t read = 0;
+
+    while (InternetReadFile(hreq, chunk, 1024, (LPDWORD)&read)) {
+        if (read==0) break;
+        bytes = egoverlay_realloc(bytes, sizeof(char) * (byteslen + read));
+        memcpy(bytes + byteslen, chunk, read);
+        byteslen += read;
+    }
+
+    bytes = egoverlay_realloc(bytes, sizeof(char) * (byteslen+1));
+    bytes[byteslen] = '\0';
+
+    uint32_t statuscode = 0;
+    size_t codelen = sizeof(uint32_t);
+    HttpQueryInfo(hreq, HTTP_QUERY_STATUS_CODE | HTTP_QUERY_FLAG_NUMBER, &statuscode, (LPDWORD)&codelen, NULL);
+
+    InternetCloseHandle(hreq);
+
+    if (statuscode>=200 && statuscode<400) {
+        if (req->source) logger_info(wr->log, "%s: GET %s -> %d", req->source, url, statuscode);
+        else logger_info(wr->log, "GET %s -> %d", url, statuscode);
     } else {
-        logger_error(logger, "Error while performing GET to %s: %s", request->url, curl_easy_strerror(res));
+        if (req->source) logger_warn(wr->log, "%s: GET %s -> %d", req->source, url, statuscode);
+        else logger_warn(wr->log, "GET %s -> %d", url, statuscode);
     }
 
-    curl_url_cleanup(url);
+    egoverlay_free(url);
 
-    if (data) egoverlay_free(data);
+    if (req->cb) req->cb(statuscode, NULL, request);
+    if (req->cbi) {
+        size_t ldsize = sizeof(struct web_request_lua_callback_data);
+        struct web_request_lua_callback_data *ld = egoverlay_calloc(1, ldsize);
+        ld->cbi = req->cbi;
+        if (bytes) {
+            ld->data = egoverlay_calloc(strlen(bytes)+1, sizeof(char));
+            memcpy(ld->data, bytes, strlen(bytes));
+        }
+        ld->req = request;
+        ld->reqi = req->requesti;
+        ld->http_code = statuscode;
+        lua_manager_add_event_callback(&web_request_run_lua_callback, ld);
+    }
 
-    if (hdrs) curl_slist_free_all(hdrs);
+    egoverlay_free(bytes);
 
     if (request->free_after_perform) web_request_free(request);
 }
@@ -232,18 +279,18 @@ static void web_request_perform(web_request_list_t *req) {
 static DWORD WINAPI web_request_thread(LPVOID lpParam) {
     UNUSED_PARAM(lpParam);
     
-    logger_debug(logger, "request thread starting...");
-    while(!stop_thread) {
-        WaitForSingleObject(queue_mutex, INFINITE);
+    logger_debug(wr->log, "request thread starting...");
+    while(!wr->stop_thread) {
+        WaitForSingleObject(wr->queue_mutex, INFINITE);
 
-        web_request_list_t *r = request_queue;
+        web_request_list_t *r = wr->request_queue;
 
-        request_queue = NULL;
+        wr->request_queue = NULL;
 
         // we can release the mutex now, any new requests that get queued
         // while we are performing the current queue will just be added
         // to a new list
-        ReleaseMutex(queue_mutex);
+        ReleaseMutex(wr->queue_mutex);
 
         while (r) {
             web_request_perform(r);
@@ -254,7 +301,7 @@ static DWORD WINAPI web_request_thread(LPVOID lpParam) {
         }
         Sleep(25);
     }
-    logger_debug(logger, "request thread ending...");
+    logger_debug(wr->log, "request thread ending...");
 
     return 0;
 }
@@ -347,17 +394,17 @@ void web_request_queue(
 
     request->free_after_perform = free_after;
 
-    WaitForSingleObject(queue_mutex, INFINITE);
+    WaitForSingleObject(wr->queue_mutex, INFINITE);
 
-    if (request_queue==NULL) {
-        request_queue = w;
+    if (wr->request_queue==NULL) {
+        wr->request_queue = w;
     } else {
-        web_request_list_t *last = request_queue;
+        web_request_list_t *last = wr->request_queue;
         while (last->next) last = last->next;
         last->next = w;
     }
 
-    ReleaseMutex(queue_mutex);
+    ReleaseMutex(wr->queue_mutex);
 }
 
 int web_request_lua_new(lua_State *L);
@@ -583,17 +630,17 @@ int web_request_lua_queue(lua_State *L) {
     memcpy(w->source, mod_name, mod_name_len);
     egoverlay_free(mod_name);
 
-    WaitForSingleObject(queue_mutex, INFINITE);
+    WaitForSingleObject(wr->queue_mutex, INFINITE);
 
-    if (request_queue==NULL) {
-        request_queue = w;
+    if (wr->request_queue==NULL) {
+        wr->request_queue = w;
     } else {
-        web_request_list_t *last = request_queue;
+        web_request_list_t *last = wr->request_queue;
         while (last->next) last = last->next;
         last->next = w;
     }
 
-    ReleaseMutex(queue_mutex);
+    ReleaseMutex(wr->queue_mutex);
     
     return 0;
 }

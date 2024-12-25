@@ -18,34 +18,14 @@ cmake_buildtypes = {
 
 generic_cmake_opts = cmake.subproject_options()
 jansson_opts = cmake.subproject_options()
-curl_opts = cmake.subproject_options()
 
 jansson_opts.add_cmake_defines(cmake_buildtypes[get_option('buildtype')])
 jansson_opts.add_cmake_defines({'JANSSON_BUILD_DOCS': 'OFF'})
 generic_cmake_opts.add_cmake_defines(cmake_buildtypes[get_option('buildtype')])
-curl_opts.add_cmake_defines(cmake_buildtypes[get_option('buildtype')])
-
-winmm_lib = cc.find_library('winmm')
-rpcrt_lib = cc.find_library('rpcrt4')
 
 zlib_dep = dependency('zlib')
 
 freetype2_dep = dependency('freetype2')
-
-curl_opts.add_cmake_defines({
-    'BUILD_CURL_EXE': 'OFF',
-    'BUILD_SHARED_LIBS': 'OFF',
-    'HTTP_ONLY': 'ON',
-    'CURL_USE_SCHANNEL': 'ON'
-})
-
-curl_proj = cmake.subproject('curl',options: curl_opts)
-# these aren't included with the static lib dependency
-curl_link_libs = [
-    cc.find_library('crypt32'),
-    cc.find_library('ws2_32')
-]
-curl_dep = curl_proj.dependency('libcurl_static')
 
 libxml2_dep = dependency('libxml-2.0', 
   default_options: [
@@ -86,6 +66,13 @@ lua_dep = lua_proj.get_variable('lua_dep')
 
 jansson_proj = cmake.subproject('jansson-2.14', options:jansson_opts)
 jansson_dep = jansson_proj.dependency('jansson')
+
+winmm_lib = cc.find_library('winmm')
+rpcrt_lib = cc.find_library('rpcrt4')
+
+crypt32_dep = cc.find_library('Crypt32')
+wininet_dep = cc.find_library('WinInet')
+shlwapi_dep = cc.find_library('shlwapi')
 
 d3d12_dep = cc.find_library('D3D12')
 dxguid_dep = cc.find_library('DXGUID')

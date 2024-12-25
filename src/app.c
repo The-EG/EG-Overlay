@@ -432,8 +432,8 @@ void app_cleanup() {
 
     if (!app->runscript) {
         DestroyMenu(app->sys_tray_menu);
+        dx_cleanup();
     }
-    dx_cleanup();
     
     settings_unref(app->settings);
 
