@@ -166,15 +166,11 @@ Dependencies
 All dependencies are either bundled with the source code or automatically
 handled by Meson. They are listed below for reference only.
 
-* Curl 8.8.0
-* GLFW 3.4
 * FreeType 2.13.2
 * zlib 1.3
 * libxml 2.13.1
 * Lua 5.4.6
 * Jansson 2.14
-* stb_image 2.29
 * sqlite 3.46
-* glad 2.0.6
 * Inter font
 * CascadiaCode font (also includes CascadiaMono)
