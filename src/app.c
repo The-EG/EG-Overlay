@@ -387,7 +387,7 @@ LRESULT CALLBACK mouse_hook_proc(int nCode, WPARAM wParam, LPARAM lParam) {
 
     if (wParam==WM_LBUTTONDOWN || wParam==WM_LBUTTONUP) {
         me.button = UI_MOUSE_EVENT_BUTTON_LEFT;
-    } else if (wParam==WM_RBUTTONDOWN || wParam==WM_LBUTTONUP) {
+    } else if (wParam==WM_RBUTTONDOWN || wParam==WM_RBUTTONUP) {
         me.button = UI_MOUSE_EVENT_BUTTON_RIGHT;
     } else if (wParam==WM_MBUTTONDOWN || wParam==WM_MBUTTONUP) {
         me.button = UI_MOUSE_EVENT_BUTTON_MIDDLE;
