@@ -73,6 +73,82 @@ outerbox:pack_end(pathbox, false, 'fill')
 
 outerbox:pack_end(ui.separator('horizontal'), false, 'fill')
 
+local contextmenu = {
+    menu = ui.menu(),
+    cat = nil,
+}
+
+local function contextmenuitem(child, enabled, cb)
+    local mi = ui.menu_item()
+    if enabled==nil then enabled = true end
+    mi:enabled(enabled)
+    mi:set_child(child)
+    contextmenu.menu:add_item(mi)
+
+    if cb then
+        mi:addeventhandler(cb)
+    end
+    
+    return mi
+end
+
+local function contextmenusep()
+    return contextmenuitem(ui.separator('horizontal'), false)
+end
+
+local function contextmenutext(text, enabled, cb)
+    return contextmenuitem(uih.text(text), enabled, cb)
+end
+
+contextmenu.parentmi = contextmenutext('Parent name', false)
+
+contextmenutext('Enable all', true, function(event)
+    if event~='click-left' then return end
+    contextmenu.menu:hide()
+    M.setallactive(true)
+end)
+
+contextmenutext('Disable all', true, function(event)
+    if event~='click-left' then return end
+    contextmenu.menu:hide()
+    M.setallactive(false)
+end)
+
+contextmenusep()
+contextmenu.catmi = contextmenutext('Category Name', false)
+
+contextmenutext('Enable all children', true, function(event)
+    if event~='click-left' then return end
+    contextmenu.menu:hide()
+    M.enableallchildren(contextmenu.cat)
+end)
+
+contextmenutext('Disable others', true, function(event)
+   if event~='click-left' then return end
+   contextmenu.menu:hide()
+   M.disableothers(contextmenu.cat)
+end)
+
+-- contextmenutext('Clear all activations', true, function(event)
+--     if event~='click-left' then return end
+--     log:debug('%s clear all activations', contextmenu.cat.typeid)
+--     contextmenu.menu:hide()
+-- end)
+
+local function showcontextmenu(category)
+    local parentname = '(Top Level)'
+
+    local parent = category:parent()
+    if parent then parentname = parent.displayname end
+
+    contextmenu.catmi:set_child(uih.text(category.displayname, true))
+    contextmenu.parentmi:set_child(uih.text(parentname, true))
+    contextmenu.cat = category
+    
+    local x,y = ui.mouseposition()
+    contextmenu.menu:show(x,y)
+end
+
 local categoryscroll = ui.scrollview()
 local categorybox = ui.box('vertical')
 categorybox:pack_end(categoryscroll, true, 'fill')
@@ -249,6 +325,19 @@ local function updatecategories()
                 doreloadcats()
                 log:debug("done.")
             end)
+
+            text:addeventhandler(function(event)
+                if event=='btn-up-left' then
+                    check:state(not check:state())
+                    data.setcategoryactive(cat, check:state())
+                    log:debug("%s toggled, reloading...", cat.typeid)
+                    doreloadcats()
+                    log:debug("done.")
+                elseif event=='btn-up-right' then
+                    showcontextmenu(cat)
+                end
+            end)
+            text:events(true)
         end
         local textalign = 'fill'
         -- center align separator items if they do not start with spaces
@@ -307,6 +396,133 @@ end
 function M.hide()
     win:hide()
     settings:set('categoryManager.window.show', false)
+end
+
+function M.disableothers(category)
+    local parent = settings:get('categoryManager.path')
+    local onlyinmap = settings:get('categoryManager.onlyShowCategoriesInMap')
+    local mapid = ml.mapid
+
+    local cats = {}
+
+    if parent~='' then
+        for name, mp in pairs(manager.packs) do
+            local category = mp:category(parent)
+
+            if category then
+                for child in category:childreniter() do
+                    if onlyinmap and not (child.isseparator==1) then
+                        if child:hasmarkersinmap(mapid, true) then
+                            coroutine.yield()
+                            table.insert(cats, child)
+                        end
+                    else
+                        table.insert(cats, child)
+                    end
+                end
+            end
+        end
+    else
+        for name, mp in pairs(manager.packs) do
+            for category in mp:toplevelcategoriesiter() do
+                if onlyinmap and not (category.isseparator==1) then 
+                    if category:hasmarkersinmap(mapid, true) then
+                        table.insert(cats, category)
+                    end
+                else
+                    table.insert(cats, category)
+                end
+            end
+        end
+    end
+
+    for i,c in ipairs(cats) do
+        if c.typeid==category.typeid then
+            data.setcategoryactive(c, true)
+        else
+            data.setcategoryactive(c, false)
+        end
+    end
+
+    log:debug("Disabled others, reloading...")
+    updatecategories()
+    doreloadcats()
+    log:debug('done.')
+end
+
+-- disables all categories at the current path
+function M.setallactive(active)
+    local parent = settings:get('categoryManager.path')
+    local onlyinmap = settings:get('categoryManager.onlyShowCategoriesInMap')
+    local mapid = ml.mapid
+
+    local cats = {}
+
+    if parent~='' then
+        for name, mp in pairs(manager.packs) do
+            local category = mp:category(parent)
+
+            if category then
+                for child in category:childreniter() do
+                    if onlyinmap and not (child.isseparator==1) then
+                        if child:hasmarkersinmap(mapid, true) then
+                            coroutine.yield()
+                            table.insert(cats, child)
+                        end
+                    else
+                        table.insert(cats, child)
+                    end
+                end
+            end
+        end
+    else
+        for name, mp in pairs(manager.packs) do
+            for category in mp:toplevelcategoriesiter() do
+                if onlyinmap and not (category.isseparator==1) then 
+                    if category:hasmarkersinmap(mapid, true) then
+                        table.insert(cats, category)
+                    end
+                else
+                    table.insert(cats, category)
+                end
+            end
+        end
+    end
+
+    for i,c in ipairs(cats) do
+        data.setcategoryactive(c, active)
+    end
+
+    if active then
+        log:debug("Enabled all categories, reloading...")
+    else
+        log:debug("Disabled all categories, reloading...")
+    end
+    updatecategories()
+    doreloadcats()
+    log:debug('done.')
+end
+
+function M.enableallchildren(category)
+    local onlyinmap = settings:get('categoryManager.onlyShowCategoriesInMap')
+    local mapid = ml.mapid
+
+    local function enablechildren(cat)
+        if cat.isseparator~=1 then
+            if (onlyinmap and cat:hasmarkersinmap(mapid, true)) or not onlyinmap then
+                data.setcategoryactive(cat,  true)
+                for i,child in ipairs(cat:children()) do
+                    enablechildren(child)
+                end
+            end
+        end
+    end
+
+    enablechildren(category)
+    log:debug("Enabled all children of %s, reloading...", category.typeid)
+    updatecategories()
+    doreloadcats()
+    log:debug("done.")
 end
 
 overlay.addeventhandler('mumble-link-map-changed', function()
