@@ -744,7 +744,7 @@ static DWORD WINAPI app_fgwincheck_thread(LPVOID lpParam) {
                     target_pos->x,
                     target_pos->y,
                     target_rect->right - target_rect->left,
-                    target_rect->bottom - target_rect->top - 1,
+                    target_rect->bottom - target_rect->top,
                     SWP_NOACTIVATE
                 );
             }
