@@ -171,7 +171,7 @@ void dx_init(HWND hwnd) {
         logger_error(dx->log, "Couldn't get DXGIDebug.");
         exit(-1);
     }
-    logger_warn(dx->log, "D3D12 debug validation layer enabled.");
+    logger_warn(dx->log, "D3D12 debug validation layer enabled. This WILL negatively impact performance.");
     ID3D12Debug_EnableDebugLayer(dx->d3ddebug);
     #endif
     
@@ -1032,7 +1032,13 @@ void dx_end_frame() {
     dx_execute_command_list(dx->cmdlist);
 
     uint32_t r = 0;
-    if ((r=IDXGISwapChain4_Present(dx->swapchain, 0, DXGI_PRESENT_ALLOW_TEARING))!=S_OK) {
+    while((r=IDXGISwapChain4_Present(dx->swapchain, 0, DXGI_PRESENT_ALLOW_TEARING))==DXGI_STATUS_OCCLUDED) {
+        // Even though the documentation says OCCLUDED never happens with a FLIP
+        // present model, it *does* happen during UAC elevation.
+        // The easiest thing to do is just wait and retry.
+        Sleep(10);
+    }
+    if (r!=S_OK) {
         switch (r) {
         case DXGI_ERROR_DEVICE_RESET:
             logger_error(dx->log, "Present failed: device reset.");
@@ -1042,7 +1048,8 @@ void dx_end_frame() {
             exit(-1);
         case DXGI_STATUS_OCCLUDED:
             logger_error(dx->log, "Present failed: occluded.");
-            exit(-1);
+            ReleaseMutex(dx->rtv_mutex);
+            return;
         default:
             logger_error(dx->log, "Present failed: other error 0x%X", r);
             exit(-1);
