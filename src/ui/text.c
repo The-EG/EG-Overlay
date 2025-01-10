@@ -315,5 +315,5 @@ int ui_text_lua_events(lua_State *L) {
 }
 
 /*** RST
-    .. include:: /docs/_include/ui_element_colors.rst
+    .. include:: /docs/_include/ui_element_color.rst
 */
