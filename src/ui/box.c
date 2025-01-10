@@ -100,9 +100,9 @@ static void ui_box_draw(ui_box_t *box, int offset_x, int offset_y, mat4f_t *proj
     // how much extra width/height do we have to give to fill items?
     int extra_room = 0;
     if (box->orientation==UI_BOX_ORIENTATION_HORIZONTAL) {
-        extra_room = box->element.width - pref_width - box->padding.left - box->padding.right;
+        extra_room = box->element.width - pref_width;
     } else {
-        extra_room = box->element.height - pref_height - box->padding.bottom - box->padding.top;
+        extra_room = box->element.height - pref_height;
     }
 
     // how many items are set to fill?
