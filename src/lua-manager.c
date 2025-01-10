@@ -1105,27 +1105,53 @@ int overlay_exit(lua_State *L) {
 /*** RST
 .. lua:function:: findfiles(path)
 
-    Return a table containing the files and directories in path.
+    Return a sequence containing the files and directories matching ``path``.
+
+    ``path`` can contain wildcards.
+
+    Each file returned will be a table with the following fields:
+
+    ======== =========================================
+    Field    Description
+    ======== =========================================
+    name     File/directory name.
+    type     ``'directory'`` or ``'file'``.
+    hidden   ``true`` or ``false``.
+    system   ``true`` or ``false``.
+    readonly ``true`` or ``false``.
+    ======== =========================================
 
     :param string path:
-    :rtype: table
+    :rtype: sequence
 
     .. versionhistory::
         :0.1.0: Added
 */
 int overlay_findfiles(lua_State *L) {
-    const char *path = luaL_checkstring(L, 1);
-
+    size_t plen = 0;
+    const char *path = luaL_checklstring(L, 1, &plen);
     
+    if (path[plen-1]=='/' || path[plen-1]=='\\') {
+        plen--;
+    }
+
+    char *p = egoverlay_calloc(plen+1, sizeof(char));
+    memcpy(p, path, plen);
+
     HANDLE h = NULL;
     WIN32_FIND_DATA fd = {0};
 
-    h = FindFirstFile(path, &fd);
+    h = FindFirstFile(p, &fd);
+    egoverlay_free(p);
 
     if (h==INVALID_HANDLE_VALUE) {
+        DWORD err = GetLastError();
+
+        if (err==ERROR_FILE_NOT_FOUND) {
+            return 0;
+        }
         // on the stack so we don't leak it with luaL_error
         char *msgbuf[512] = {0};
-        DWORD err = GetLastError();
         FormatMessage(
             FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
             NULL,
