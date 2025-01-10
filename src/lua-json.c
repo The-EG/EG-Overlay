@@ -26,6 +26,7 @@ void json_lua_init() {
 
 // module functions
 int json_lua_mod_loads(lua_State *L);
+int json_lua_mod_load_file(lua_State *L);
 int json_lua_mod_dumps(lua_State *L);
 int json_lua_mod_JSON_INDENT(lua_State *L);
 int json_lua_mod_JSON_REAL_PRECISION(lua_State *L);
@@ -34,6 +35,7 @@ int json_lua_mod_object(lua_State *L);
 
 luaL_Reg json_mod_funcs[] = {
     "loads"              , &json_lua_mod_loads,
+    "loadfile"           , &json_lua_mod_load_file,
     "dumps"              , &json_lua_mod_dumps,
     "array"              , &json_lua_mod_array,
     "object"             , &json_lua_mod_object,
@@ -147,11 +149,10 @@ Functions
 
         -- with flags
         local data = JSON.loads(jsonstr, JSON.JSON_REJECT_DUPLICATES | JSON.JSON_DECODE_INT_AS_REAL)
-        
+
     .. versionhistory::
         :0.0.1: Added
 */
-
 int json_lua_mod_loads(lua_State *L) {
     const char *string = luaL_checkstring(L, 1);
 
@@ -163,21 +164,95 @@ int json_lua_mod_loads(lua_State *L) {
     json_t *json = json_loads(string, flags, &error);
 
     if (!json) {
-        lua_pushboolean(L, 0);
-        lua_newtable(L);
-        lua_pushstring(L, error.text);
-        lua_setfield(L, -2, "text");
-        lua_pushstring(L, error.source);
-        lua_setfield(L, -2, "source");
-        lua_pushinteger(L, error.position);
-        lua_setfield(L, -2, "position");
+        return luaL_error(L, "%s:%d:%d - %s", error.source, error.line, error.column, error.text);
     } else {
-        lua_pushboolean(L, 1);
         lua_pushjson(L, json);
         json_decref(json);
     }
 
-    return 2;
+    return 1;
+}
+
+/*** RST
+.. lua:function:: loadfile(filename[, flags])
+
+    Load JSON from a string.
+
+    :param string filename:
+    :param integer flags: (Optional) Load flags, see below.
+    :return: A parsed JSON
+    :rtype: JSON.json
+
+    **Load Flags**
+
+    .. lua:data:: JSON_REJECT_DUPLICATES
+
+        Issue a decoding error if any JSON object in the input text contains
+        duplicate keys. Without this flag, the value of the last occurrence of
+        each key ends up in the result. Key equivalence is checked byte-by-byte,
+        without special Unicode comparison algorithms.
+
+    .. lua:data:: JSON_DECODE_ANY
+
+        By default, the decoder expects an array or object as the input. With
+        this flag enabled, the decoder accepts any valid JSON value.
+
+    .. lua:data:: JSON_DISABLE_EOF_CHECK
+
+        By default, the decoder expects that its whole input constitutes a valid
+        JSON text, and issues an error if there’s extra data after the otherwise
+        valid JSON input. With this flag enabled, the decoder stops after
+        decoding a valid JSON array or object, and thus allows extra data after
+        the JSON text.
+
+    .. lua:data:: JSON_DECODE_INT_AS_REAL
+
+        JSON defines only one number type. Jansson distinguishes between ints
+        and reals. For more information see Real vs. Integer. With this flag
+        enabled the decoder interprets all numbers as real values. Integers that
+        do not have an exact double representation will silently result in a
+        loss of precision. Integers that cause a double overflow will cause an
+        error.
+
+    .. lua:data:: JSON_ALLOW_NUL
+
+    .. code-block:: lua
+        :caption: Example
+
+        local jsonstr = [[
+        {
+            "Key": "value",
+            "anotherKey": 1234
+        }
+        ]]
+
+        -- with no flags
+        local data = JSON.loads(jsonstr)
+
+        -- with flags
+        local data = JSON.loads(jsonstr, JSON.JSON_REJECT_DUPLICATES | JSON.JSON_DECODE_INT_AS_REAL)
+
+    .. versionhistory::
+        :0.1.0: Added
+*/
+int json_lua_mod_load_file(lua_State *L) {
+    const char *filename = luaL_checkstring(L, 1);
+
+    int flags = 0;
+
+    if (lua_gettop(L)==2) flags = (int)luaL_checkinteger(L, 2);
+
+    json_error_t error = {0};
+    json_t *json = json_load_file(filename, flags, &error);
+
+    if (!json) {
+        return luaL_error(L, "%s:%d:%d - %s", error.source, error.line, error.column, error.text);
+    } else {
+        lua_pushjson(L, json);
+        json_decref(json);
+    }
+
+    return 1;
 }
 
 /*** RST
@@ -264,14 +339,14 @@ int json_lua_mod_dumps(lua_State *L) {
 }
 
 /*** RST
-    .. lua:function:: array()
+.. lua:function:: array()
 
-        Create a new empty JSON array.
+    Create a new empty JSON array.
 
-        :rtype: JSON.json
+    :rtype: JSON.json
 
-        ..versionhistory::
-            :0.1.0: Added
+    ..versionhistory::
+        :0.1.0: Added
 */
 int json_lua_mod_array(lua_State *L) {
     json_t *arr = json_array();
@@ -281,14 +356,14 @@ int json_lua_mod_array(lua_State *L) {
 }
 
 /*** RST
-    .. lua:function:: object()
+.. lua:function:: object()
 
-        Create a new empty JSON object.
+    Create a new empty JSON object.
 
-        :rtype: JSON.json
+    :rtype: JSON.json
 
-        .. versionhistory::
-            :0.1.0: Added
+    .. versionhistory::
+        :0.1.0: Added
 */
 int json_lua_mod_object(lua_State *L) {
     json_t *obj = json_object();
