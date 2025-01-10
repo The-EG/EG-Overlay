@@ -117,8 +117,7 @@ void ui_text_draw(ui_text_t *text, int offset_x, int offset_y,  mat4f_t *proj) {
     int x = text->element.x + offset_x;
     int y = text->element.y + offset_y + 1;
 
-    if (dx_push_scissor(x, y, x + text->element.width, y+ text->element.height)) {
-
+    if (dx_push_scissor(x, y, x + text->element.width, y + text->element.height - 1)) {
         int loffset = 0;
         for (int curline=0;curline<text->lines;curline++) {
             int nextl = 0;
