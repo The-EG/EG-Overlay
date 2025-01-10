@@ -725,7 +725,7 @@ int mumble_link_lua_map_id(lua_State *L) {
 }
 
 /*** RST
-.. lua:deta:: shardid
+.. lua:data:: shardid
 
     :type: integer
      
