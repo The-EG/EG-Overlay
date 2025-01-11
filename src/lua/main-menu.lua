@@ -54,10 +54,16 @@ main_menu.win:settings(mm_settings, "window")
 
 main_menu.win:show()
 
+local function onbtnevent(event, moduleactions)
+    if event=='click-left' and moduleactions.primary_action then
+        moduleactions.primary_action(event)
+    end
+end
+
 function main_menu.add_item(event, module_actions)
     main_menu.log:debug("Adding item %s", module_actions.name)
     local btn = uih.text_button(module_actions.name)
-    btn:addeventhandler(module_actions.primary_action)
+    btn:addeventhandler(function(e) onbtnevent(e, module_actions) end)
     box:pack_end(btn, false, 'fill')    
 end
 
