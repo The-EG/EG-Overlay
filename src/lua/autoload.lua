@@ -1,7 +1,6 @@
---[[ RST
-:orphan:
-:nosearch:
-]]--
+-- EG-Overlay: autoload.lua
+-- This file is automatically loaded when EG-Overlay is starting. You can add
+-- code here to control settings, or load modules with `require`.
 
 -- Lua garbage collection settings
 -- This is a balance between memory usage and performance.
@@ -32,3 +31,5 @@ require 'map-buddy'
 require 'markers'
 
 require 'psna-tracker'
+
+require 'copy-pasta'

@@ -12,6 +12,7 @@ lua_srcs = [
     'psna-tracker.lua',
     'utils.lua',
     'xml-cleaner.lua',
+    'copy-pasta.lua',
 ]
 
 lua_files = []
