@@ -4,9 +4,9 @@
 
 #include "app.h"
 
-int WinMain(HINSTANCE hInstance, HINSTANCE hPrevIstance, LPSTR lpCmdLine, int nShowCmd) {
+int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd) {
     UNUSED_PARAM(nShowCmd);
-    UNUSED_PARAM(hPrevIstance);
+    UNUSED_PARAM(hPrevInstance);
     UNUSED_PARAM(lpCmdLine);
 
     // check for memory leaks on program exit when debugging
