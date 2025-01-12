@@ -223,4 +223,57 @@ function uih.rgbtorgba(rgbcolor, alpha)
     return (rgbcolor << 8) | (alpha & 0xFF)
 end
 
+local codepointcache = {}
+
+local function name2codepoint(name)
+    if codepointcache[name] then
+        return codepointcache[name]
+    end
+
+    local settings = overlay.settings()
+    local font = settings:get('overlay.ui.font.pathIcon')
+
+    local codepoints = string.gsub(font, '%.ttf', '.codepoints')
+    local f = io.open(codepoints,'r')
+    if not f then error("Couldn't open codepoint map: "..codepoints) end
+
+    for l in f:lines('l') do
+        local nm,cp = l:match('(%g*) (%x*)')
+        if nm==name then
+            codepointcache[name] = tonumber(cp,16)
+            return codepointcache[name]
+        end
+    end
+end
+
+--[[ RST
+.. lua:function:: icon(name[, size[, color] ])
+
+    Create a text with an icon.
+
+    Icons are Google Material Symbols, loaded from a variable font file.
+
+    See `https://fonts.google.com/icons <https://fonts.google.com/icons>`_ for
+    font names. The name must match the names in the codepoints file, that is
+    they must be lower case with spaces replaced by underscore.
+    I.e., ``Arrow Upward`` becomes ``arrow_upward``.
+
+    :rtype: eg-overlay-ui.uitext
+
+    .. versionhistory::
+        :0.1.0: Added
+]]--
+function uih.icon(name, size, color)
+    local settings = overlay.settings()
+    local font = settings:get('overlay.ui.font.pathIcon')
+    local size = size or settings:get('overlay.ui.font.size')
+    local color = color or settings:get('overlay.ui.colors.text')
+
+    local codepoint = name2codepoint(name)
+
+    if not codepoint then error("Invalid icon name: "..name) end
+
+    return ui.text(utf8.char(codepoint), color, font, size)
+end
+
 return uih

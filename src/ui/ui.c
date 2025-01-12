@@ -94,6 +94,7 @@ void ui_init() {
 
     settings_set_default_string(app_settings, "overlay.ui.font.path"    , "fonts/Inter.ttf");
     settings_set_default_string(app_settings, "overlay.ui.font.pathMono", "fonts/CascadiaCode.ttf");
+    settings_set_default_string(app_settings, "overlay.ui.font.pathIcon", "fonts/MaterialSymbolsOutlined.ttf");
     settings_set_default_int   (app_settings, "overlay.ui.font.size"    , 12);
     settings_set_default_int   (app_settings, "overlay.ui.font.weight"  , 400);
     settings_set_default_int   (app_settings, "overlay.ui.font.slant"   , 0);
