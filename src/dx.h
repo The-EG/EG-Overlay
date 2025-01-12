@@ -84,6 +84,8 @@ void dx_draw_instanced(uint32_t vertexes, uint32_t instances, uint32_t first_ver
 int dx_push_scissor(int32_t left, int32_t top, int32_t right, int32_t bottom);
 void dx_pop_scissor();
 
+int dx_region_visible(int32_t left, int32_t top, int32_t right, int32_t bottom);
+
 int dx_push_viewport(float left, float top, float width, float height);
 void dx_pop_viewport();
 

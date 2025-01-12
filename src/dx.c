@@ -981,6 +981,14 @@ void dx_pop_scissor() {
     }
 }
 
+int dx_region_visible(int32_t left, int32_t top, int32_t right, int32_t bottom) {
+    D3D12_RECT *r = (dx->scissors!=NULL ? &dx->scissors->rect : &dx->base_scissor);
+
+    if (left < r->right && right > r->left &&
+        top < r->bottom && bottom > r->top) return 1;
+    return 0;
+}
+
 int dx_push_viewport(float left, float top, float width, float height) {
     dx_viewport_t *vp = egoverlay_calloc(1, sizeof(dx_viewport_t));
     vp->viewport.TopLeftX = left;
