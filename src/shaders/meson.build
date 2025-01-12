@@ -21,6 +21,9 @@ hlsl_srcs = [
 
     {'source': 'trail.vs.hlsl', 'profile': 'vs_6_1', 'includes': ['trail.hlsl', '3dcommon.hlsl']},
     {'source': 'trail.ps.hlsl', 'profile': 'ps_6_1', 'includes': ['trail.hlsl', '3dcommon.hlsl']},
+
+    {'source': 'image.vs.hlsl', 'profile': 'vs_6_1', 'includes': ['image.hlsl']},
+    {'source': 'image.ps.hlsl', 'profile': 'ps_6_1', 'includes': ['image.hlsl']},
 ]
 
 

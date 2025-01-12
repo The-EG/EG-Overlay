@@ -16,6 +16,7 @@
 #include "text-entry.h"
 #include "separator.h"
 #include "grid.h"
+#include "image.h"
 #include "../utils.h"
 
 #include <lauxlib.h>
@@ -101,6 +102,7 @@ void ui_init() {
 
     ui_rect_init();
     ui_font_init();
+    ui_image_init();
 
     ui->input_mutex = CreateMutex(0, FALSE, NULL);
 
@@ -129,6 +131,7 @@ void ui_cleanup() {
 
     CloseHandle(ui->input_mutex);
     logger_debug(ui->log, "cleanup");
+    ui_image_cleanup();
     ui_rect_cleanup();
     ui_font_cleanup();
 
@@ -622,6 +625,7 @@ eg-overlay-ui
     separator
     text-entry
     menu
+    image
 */
 
 static const struct luaL_Reg ui_funcs[] = {
@@ -645,6 +649,7 @@ int ui_lua_open_module(lua_State *L) {
     ui_menu_lua_register_ui_funcs(L);
     ui_separator_lua_register_ui_funcs(L);
     ui_grid_lua_register_ui_funcs(L);
+    ui_image_lua_register_ui_funcs(L);
 
     return 1;
 }
