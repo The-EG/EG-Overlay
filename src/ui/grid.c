@@ -178,6 +178,12 @@ void ui_grid_draw(ui_grid_t *grid, int offset_x, int offset_y, mat4f_t *proj) {
             ui_grid_cell_t *cell = &GRID_CELL(grid, r, c);
 
             if (cell->item && cell->item->draw) {
+                int item_width = 0;
+                int item_height = 0;
+                if (cell->item->get_preferred_size) {
+                    cell->item->get_preferred_size(cell->item, &item_width, &item_height);
+                }
+
                 int extra_x = 0;
                 int extra_y = 0;
                 if (cell->halign==0) {
@@ -190,6 +196,13 @@ void ui_grid_draw(ui_grid_t *grid, int offset_x, int offset_y, mat4f_t *proj) {
                     extra_x += (int)(((float)totalwidth / 2.f) - ((float)cell->item->width / 2.f));
                 } else if (cell->halign==1) {
                     extra_x += grid->colwidths[c] - cell->item->width;
+                } else if (cell->halign==999) {
+                    int totalwidth = 0;
+                    for (int cs=0;cs<cell->colspan;cs++) {
+                        totalwidth += grid->colwidths[c + cs];
+                        if (cs>0) totalwidth += grid->colspacing[c + cs - 1];
+                    }
+                    item_width = totalwidth;
                 }
 
                 if (cell->valign==0) {
@@ -202,7 +215,18 @@ void ui_grid_draw(ui_grid_t *grid, int offset_x, int offset_y, mat4f_t *proj) {
                     extra_y += (int)(((float) totalheight / 2.f) - ((float)cell->item->height / 2.f));
                 } else if (cell->valign==1) {
                     extra_y += grid->rowheights[r] - cell->item->height;
+                } else if (cell->valign==999) {
+                    int totalheight = 0;
+                    for (int rs=0;rs<cell->rowspan;rs++) {
+                        totalheight += grid->rowheights[r + rs];
+                        if (rs>0) totalheight += grid->rowspacing[r + rs - 1];
+                    }
+                    item_height = totalheight;
                 }
+
+                if (item_height) cell->item->height = item_height;
+                if (item_width ) cell->item->width  = item_width;
+
                 ui_element_draw(cell->item, cx + extra_x, cy + extra_y, proj);                
             }
             cx += grid->colwidths[c] + grid->colspacing[c];
