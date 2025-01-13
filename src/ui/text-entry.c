@@ -77,6 +77,7 @@ ui_text_entry_t *ui_text_entry_new(ui_font_t *font) {
 
 void ui_text_entry_free(ui_text_entry_t *entry) {
     if (entry->lua_cbi) lua_manager_unref(entry->lua_cbi);
+    if (entry->hint) egoverlay_free(entry->hint);
     egoverlay_free(entry->text);
     egoverlay_free(entry);
 }
