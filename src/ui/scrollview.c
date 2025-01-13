@@ -320,6 +320,7 @@ int ui_scroll_view_lua_size(lua_State *L);
 int ui_scroll_view_lua_pos(lua_State *L);
 int ui_scroll_view_lua_set_child(lua_State *L);
 int ui_scroll_view_lua_scroll_max_y(lua_State *L);
+int ui_scroll_view_lua_scroll_min_y(lua_State *L);
 int ui_scroll_view_lua_scroll_amount(lua_State *L);
 
 void ui_scroll_view_register_lua_funcs(lua_State *L) {
@@ -333,6 +334,7 @@ luaL_Reg scroll_view_funcs[] = {
     "pos"          , &ui_scroll_view_lua_pos,
     "set_child"    , &ui_scroll_view_lua_set_child,
     "scroll_max_y" , &ui_scroll_view_lua_scroll_max_y,
+    "scroll_min_y" , &ui_scroll_view_lua_scroll_min_y,
     "scroll_amount", &ui_scroll_view_lua_scroll_amount,
     "background"   , &ui_element_lua_background,
     NULL,             NULL
@@ -472,6 +474,22 @@ int ui_scroll_view_lua_scroll_max_y(lua_State *L) {
     ui_scroll_view_t *sv = lua_checkuiscrollview(L, 1);
     ui_scroll_view_scroll_y(sv, INT32_MAX);
     
+    return 0;
+}
+
+/*** RST
+    .. lua:method:: scroll_min_y()
+
+        Set the Y scroll position so that the top most portion of the child
+        element is visible.
+
+        .. versionhistory::
+            :0.1.0: Added
+*/
+int ui_scroll_view_lua_scroll_min_y(lua_State *L) {
+    ui_scroll_view_t *sv = lua_checkuiscrollview(L, 1);
+    ui_scroll_view_scroll_y(sv, 0);
+
     return 0;
 }
 
