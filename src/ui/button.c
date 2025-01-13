@@ -195,7 +195,9 @@ int ui_button_get_preferred_size(ui_button_t *button, int *width, int *height) {
 }
 
 int ui_button_process_mouse_event(ui_button_t *button, ui_mouse_event_t *event, int offset_x, int offset_y) {
-    if (event->event==UI_MOUSE_EVENT_TYPE_ENTER) {
+    if (event->event==UI_MOUSE_EVENT_TYPE_WHEEL || event->event==UI_MOUSE_EVENT_TYPE_HWHEEL) {
+        return 0;
+    } else if (event->event==UI_MOUSE_EVENT_TYPE_ENTER) {
         button->bg_hover = 1;
     } else if (event->event==UI_MOUSE_EVENT_TYPE_LEAVE) {
         button->bg_hover = 0;
