@@ -86,6 +86,7 @@ int overlay_findfiles(lua_State *L);
 int overlay_uuid(lua_State *L);
 int overlay_uuidtobase64(lua_State *L);
 int overlay_uuidfrombase64(lua_State *L);
+int overlay_current_directory(lua_State *L);
 
 luaL_Reg overlay_funcs[] = {
     "addeventhandler"   , &overlay_add_event_handler,
@@ -104,6 +105,7 @@ luaL_Reg overlay_funcs[] = {
     "uuid"              , &overlay_uuid,
     "uuidtobase64"      , &overlay_uuidtobase64,
     "uuidfrombase64"    , &overlay_uuidfrombase64,
+    "currentdirectory"  , &overlay_current_directory,
     NULL                ,  NULL
 };
 
@@ -1318,6 +1320,33 @@ int overlay_uuidfrombase64(lua_State *L) {
     lua_pushstring(L, (char*)uuidstr);
     RpcStringFree(&uuidstr);
 
+    return 1;
+}
+
+/*** RST
+.. lua:function:: currentdirectory()
+
+    Return the current working directory as a string.
+
+    :rtype: string
+
+    .. versionhistory::
+        :0.1.0: Added
+*/
+int overlay_current_directory(lua_State *L) {
+    uint32_t pathlen = GetCurrentDirectory(0, NULL);
+
+    if (!pathlen) return luaL_error(L, "Couldn't get current directory path.");
+
+    char *path = egoverlay_calloc(pathlen, sizeof(char));
+
+    if (!GetCurrentDirectory(pathlen, path)) {
+        egoverlay_free(path);
+        return luaL_error(L, "Couldn't get current directory path.");
+    }
+
+    lua_pushstring(L, path);
+    egoverlay_free(path);
     return 1;
 }
 
