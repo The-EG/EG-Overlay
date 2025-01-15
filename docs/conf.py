@@ -9,7 +9,7 @@ import os
 import sys
 
 project = 'EG-Overlay'
-copyright = '2024, Taylor Talkington'
+copyright = '2025, Taylor Talkington'
 author = 'Taylor Talkington'
 
 version = '0.1.0'
@@ -33,12 +33,14 @@ exclude_patterns = [
     '_ext',
     '_include',
     'src/app.c',
-    'src/gl.c',
-    'src/hashstr.c',
+    'src/dx.c',
+    'src/lamath.c',
     'src/main.c',
     'src/utils.c',
     'src/ui/font.c',
+    'src/ui/rect.c',
     'src/logging/**',
+    'src/lua/autoload.lua',
 ]
 include_patterns = ['docs/**', 'src/**', '*.rst']
 

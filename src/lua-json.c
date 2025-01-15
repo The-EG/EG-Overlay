@@ -6,7 +6,7 @@ jansson
 
 .. code-block:: lua
 
-    local json = require 'jansson'
+    local JSON = require 'jansson'
 
 The :lua:mod:`jansson` Module provides JSON parsing, manipulation, and
 serialization. It is a thin wrapper of the Jansson library.
@@ -99,7 +99,7 @@ Functions
     :param flags: (Optional) Load flags, see below.
     :type flags: integer
     :return: A parsed JSON
-    :rtype: JSON.json
+    :rtype: jansson.json
 
     **Load Flags**
 
@@ -181,7 +181,7 @@ int json_lua_mod_loads(lua_State *L) {
     :param string filename:
     :param integer flags: (Optional) Load flags, see below.
     :return: A parsed JSON
-    :rtype: JSON.json
+    :rtype: jansson.json
 
     **Load Flags**
 
@@ -260,8 +260,8 @@ int json_lua_mod_load_file(lua_State *L) {
 
     Serialize a JSON to a string.
 
-    :param json: a :lua:class:`JSON.json`
-    :type json: JSON.json
+    :param json: a :lua:class:`jansson.json`
+    :type json: jansson.json
     :param flags: (Optional) Dump flags, see below.
     :type flags: integer
     :return: The serialized string
@@ -343,7 +343,7 @@ int json_lua_mod_dumps(lua_State *L) {
 
     Create a new empty JSON array.
 
-    :rtype: JSON.json
+    :rtype: jansson.json
 
     ..versionhistory::
         :0.1.0: Added
@@ -360,7 +360,7 @@ int json_lua_mod_array(lua_State *L) {
 
     Create a new empty JSON object.
 
-    :rtype: JSON.json
+    :rtype: jansson.json
 
     .. versionhistory::
         :0.1.0: Added

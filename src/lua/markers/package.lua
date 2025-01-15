@@ -917,7 +917,7 @@ end
         invoked until all trails in the category in the given ``mapid`` are
         returned.
 
-        :type: trail
+        :rtype: trail
 
         .. versionhistory::
             :0.1.0: Added

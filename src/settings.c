@@ -654,8 +654,8 @@ int settings_lua_del(lua_State *L) {
         :param key: The key to set.
         :type key: string
         :param value: The value to set. Tables are not supported, objects or
-            arrays should be passed as :lua:class:`JSON.json` objects instead.
-        :type value: number, boolean, nil, string, or :lua:class:`JSON.json`
+            arrays should be passed as :lua:class:`jansson.json` objects instead.
+        :type value: number, boolean, nil, string, or :lua:class:`jansson.json`
 
         .. versionhistory::
             :0.0.1: Added
@@ -708,8 +708,8 @@ int settings_lua_set(lua_State *L) {
         :param key: The key to set.
         :type key: string
         :param value: The value to set. Tables are not supported, objects or
-            arrays should be passed as :lua:class:`JSON.json` objects instead.
-        :type value: number, boolean, nil, string, or :lua:class:`JSON.json`
+            arrays should be passed as :lua:class:`jansson.json` objects instead.
+        :type value: number, boolean, nil, string, or :lua:class:`jansson.json`
 
         .. versionhistory::
             :0.0.1: Added
@@ -760,7 +760,7 @@ int settings_lua_set_default(lua_State *L) {
         Get the value for the given key. If the key doesn't exist, return the
         default value, if set. If not, returns ``nil``.
 
-        Object and arrays are returned as :lua:class:`JSON.json` objects.
+        Object and arrays are returned as :lua:class:`jansson.json` objects.
 
         :param key: The key to return. This is a path into the JSON object
             structure separated by ``.``. I.e. ``window.x``.
@@ -862,7 +862,7 @@ int settings_lua_save_on_set(lua_State *L) {
     .. lua:method:: save()
 
         Save the :lua:class:`settings.settings` object to the underlying JSON
-        file. This is required if :lua:meth:`save_on_set` is turned off.
+        file. This is required if :lua:meth:`saveonset` is turned off.
 
         .. versionhistory::
             :0.0.1: Added

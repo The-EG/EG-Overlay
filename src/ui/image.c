@@ -312,6 +312,15 @@ int ui_image_lua_new(lua_State *L) {
     return 1;
 }
 
+/*** RST
+Classes
+-------
+
+.. lua:class:: uiimage
+
+    
+*/
+
 int ui_image_lua_del(lua_State *L) {
     ui_image_t *img = lua_checkuiimage(L, 1);
     ui_element_unref(img);
@@ -319,6 +328,11 @@ int ui_image_lua_del(lua_State *L) {
     return 0;
 }
 
+/*** RST
+    .. lua:method:: size(width, height)
+
+
+*/
 int ui_image_lua_size(lua_State *L) {
     return luaL_error(L, "Not implemented.");
 }

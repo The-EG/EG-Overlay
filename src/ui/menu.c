@@ -498,7 +498,7 @@ int ui_menu_lua_add_item(lua_State *L) {
     .. lua:method:: show(x, y)
 
         Show the menu at the given coordinates. Typically this will be the mouse
-        position. See :lua:func:`eg-overlay-ui.mouse_position`
+        position. See :lua:func:`eg-overlay-ui.mouseposition`
 
         :param integer x:
         :param integer y:

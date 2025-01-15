@@ -45,7 +45,7 @@ Events
 
 .. overlay:event:: mumble-link-map-changed
 
-    Sent anytime :lua:data:`mumble-link.map_id` changes between update events.
+    Sent anytime :lua:data:`mumble-link.mapid` changes between update events.
 
     .. versionhistory::
         :0.0.1: Added
