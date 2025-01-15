@@ -234,7 +234,7 @@ LRESULT CALLBACK keyboard_hook_proc(int nCode, WPARAM wParam, LPARAM lParam) {
     case VK_BACK      : keystr = "backspace"    ; break;
     case VK_TAB       : keystr = "tab"          ; break;
     case VK_CLEAR     : keystr = "clear"        ; break;
-    case VK_RETURN    : keystr = "enter"        ; break;
+    case VK_RETURN    : keystr = "return"       ; break;
     case VK_SHIFT     : keystr = "shift"        ; break;
     case VK_CONTROL   : keystr = "ctrl"         ; break;
     case VK_MENU      : keystr = "alt"          ; break;
