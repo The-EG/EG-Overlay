@@ -30,8 +30,6 @@ struct ui_text_entry_t {
     int caret_pos;
     int caret_x;
 
-    int lua_cbi;
-
     ui_color_t border_color;
     ui_color_t border_hl_color;
     ui_color_t text_color;
@@ -43,13 +41,6 @@ void ui_text_entry_draw(ui_text_entry_t *entry, int offset_x, int offset_y, mat4
 int ui_text_entry_get_preferred_size(ui_text_entry_t *entry, int *width, int *height);
 int ui_text_entry_process_mouse_event(ui_text_entry_t *entry, ui_mouse_event_t *event, int offset_x, int offset_y);
 int ui_text_entry_process_keyboard_event(ui_text_entry_t *entry, ui_keyboard_event_t *event);
-
-typedef struct {
-    ui_text_entry_t *entry;
-    char *key_name;
-} keydown_event_data_t;
-
-int ui_text_lua_keydown_event_run_callback(lua_State *L, keydown_event_data_t *data);
 
 ui_text_entry_t *ui_text_entry_new(ui_font_t *font) {
     ui_text_entry_t *entry = egoverlay_calloc(1, sizeof(ui_text_entry_t));
@@ -76,7 +67,6 @@ ui_text_entry_t *ui_text_entry_new(ui_font_t *font) {
 }
 
 void ui_text_entry_free(ui_text_entry_t *entry) {
-    if (entry->lua_cbi) lua_manager_unref(entry->lua_cbi);
     if (entry->hint) egoverlay_free(entry->hint);
     egoverlay_free(entry->text);
     egoverlay_free(entry);
@@ -93,21 +83,10 @@ void ui_text_entry_set_text(ui_text_entry_t *entry, const char *text) {
     entry->pref_width = ui_font_get_text_width(entry->font, entry->text, (int)strlen(entry->text));
 }
 
-int ui_text_lua_keydown_event_run_callback(lua_State *L, keydown_event_data_t *data) {
-    lua_rawgeti(L, LUA_REGISTRYINDEX, data->entry->lua_cbi);
-    lua_pushstring(L, data->key_name);
-
-    egoverlay_free(data->key_name);
-    egoverlay_free(data);
-
-    return 1;
-}
-
 int ui_text_entry_lua_new(lua_State *L);
 int ui_text_entry_lua_del(lua_State *L);
 int ui_text_entry_lua_hint(lua_State *L);
 int ui_text_entry_lua_text(lua_State *L);
-int ui_text_entry_lua_on_keydown(lua_State *L);
 
 void ui_text_entry_lua_register_funcs(lua_State *L) {
     lua_pushcfunction(L, &ui_text_entry_lua_new);
@@ -202,9 +181,6 @@ void ui_text_entry_set_caret_pos(ui_text_entry_t *entry, int caret_pos) {
 }
 
 int ui_text_entry_process_keyboard_event(ui_text_entry_t *entry, ui_keyboard_event_t *event) {
-    //logger_t *log = logger_get("ui-text-entry");
-
-
     if (event->vk_key==VK_SHIFT ||
         event->vk_key==VK_LSHIFT ||
         event->vk_key==VK_RSHIFT ||
@@ -238,25 +214,16 @@ int ui_text_entry_process_keyboard_event(ui_text_entry_t *entry, ui_keyboard_eve
         return 1;
     }
 
-    if (event->vk_key==VK_RETURN || event->vk_key==VK_UP || event->vk_key==VK_DOWN) {
-        keydown_event_data_t *kdevent = egoverlay_calloc(1, sizeof(keydown_event_data_t));
-        kdevent->entry = entry;
-        
-        if (event->vk_key==VK_RETURN) {
-            kdevent->key_name = egoverlay_calloc(strlen("return")+1, sizeof(char));
-            memcpy(kdevent->key_name, "return", strlen("return"));
-        } else if (event->vk_key==VK_UP) {
-            kdevent->key_name = egoverlay_calloc(strlen("up")+1, sizeof(char));
-            memcpy(kdevent->key_name, "up", strlen("up"));
-        } else if (event->vk_key==VK_DOWN) {
-            kdevent->key_name = egoverlay_calloc(strlen("down")+1, sizeof(char));
-            memcpy(kdevent->key_name, "down", strlen("down"));
-        }
-
-        if (entry->lua_cbi) lua_manager_add_event_callback(&ui_text_lua_keydown_event_run_callback, kdevent);
-        if (event->vk_key==VK_RETURN) return 1;
+    if (event->vk_key==VK_RETURN) {
+        ui_element_call_lua_event_handlers(entry, "return");
+        return 1;
+    } else if (event->vk_key==VK_UP) {
+        ui_element_call_lua_event_handlers(entry, "up");
+        return 1;
+    } else if (event->vk_key==VK_DOWN) {
+        ui_element_call_lua_event_handlers(entry, "down");
+        return 1;
     }
-
 
     if (event->vk_key==VK_LEFT || event->vk_key==VK_RIGHT) {
         int newpos = entry->caret_pos + (event->vk_key==VK_LEFT ? -1 : 1);
@@ -320,23 +287,26 @@ int ui_text_entry_process_keyboard_event(ui_text_entry_t *entry, ui_keyboard_eve
 
         entry->caret_x = ui_font_get_text_width(entry->font, entry->text, entry->caret_pos);
 
+        /*
         keydown_event_data_t *kdevent = egoverlay_calloc(1, sizeof(keydown_event_data_t));
         kdevent->entry = entry;
         kdevent->key_name = egoverlay_calloc(len+1, sizeof(char));
         memcpy(kdevent->key_name, event->ascii, len);
 
         if (entry->lua_cbi) lua_manager_add_event_callback(&ui_text_lua_keydown_event_run_callback, kdevent);
+        */
     }
 
     return 1;
 }
 
 luaL_Reg ui_text_entry_funcs[] = {
-    "__gc"      , &ui_text_entry_lua_del,
-    "hint"      , &ui_text_entry_lua_hint,
-    "text"      , &ui_text_entry_lua_text,
-    "on_keydown", &ui_text_entry_lua_on_keydown,
-    NULL,         NULL
+    "__gc"              , &ui_text_entry_lua_del,
+    "hint"              , &ui_text_entry_lua_hint,
+    "text"              , &ui_text_entry_lua_text,
+    "addeventhandler"   , &ui_element_lua_addeventhandler,
+    "removeeventhandler", &ui_element_lua_removeeventhandler,
+    NULL                ,  NULL
 };
 
 void ui_text_entry_lua_register_metatable(lua_State *L) {
@@ -423,6 +393,17 @@ Classes
 
     A text box that accepts a single line of text.
 
+    In addition to the events in :ref:`ui-events`, buttons can send the
+    following:
+
+    =========== =============================================================
+    Event       Description
+    =========== =============================================================
+    return      Sent when the enter/return key is pressed while the entry has
+                focus.
+    up          Sent when the up key is pressed while the entry has focus.
+    down        Sent when the down key is pressed while the entry has focus.
+    =========== =============================================================
 */
 
 ui_text_entry_t *lua_checkuitextentry(lua_State *L, int ind) {
@@ -497,39 +478,5 @@ int ui_text_entry_lua_text(lua_State *L) {
 }
 
 /*** RST
-    .. lua:method:: on_keydown([handler])
-
-        Set or clear an event handler to be called on every key press. Only one
-        handler can be set at a time.
-
-        .. important::
-            ``handler`` is called with a single string argument that is either
-            the ascii value of the key press, ie. ``'a'`` or ``'A'``, or the
-            following special keys: ``'return'``, ``'up'``, ``'down'``.
-
-        :param function handler:
-
-        .. versionhistory::
-            :0.0.1: Added
+    .. include:: /docs/_include/ui_element_eventhandlers.rst
 */
-int ui_text_entry_lua_on_keydown(lua_State *L) {
-    ui_text_entry_t *entry = lua_checkuitextentry(L, 1);
-
-    if (lua_gettop(L)==1) {
-        luaL_unref(L, LUA_REGISTRYINDEX, entry->lua_cbi);
-        entry->lua_cbi = 0;
-        return 0;
-    }
-
-    if (lua_gettop(L)!=2 || !lua_isfunction(L, 2)) {
-        return luaL_error(L, "text_entry:on_keydown accepts either no argument or a function.");
-    }
-
-
-    if (entry->lua_cbi) luaL_unref(L, LUA_REGISTRYINDEX, entry->lua_cbi);
-
-    lua_pushvalue(L, 2);
-    entry->lua_cbi = luaL_ref(L, LUA_REGISTRYINDEX);
-
-    return 0;
-}

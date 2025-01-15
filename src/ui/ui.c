@@ -172,10 +172,13 @@ int ui_element_has_focus(ui_element_t *element) {
 }
 
 void ui_grab_focus(void *element) {
+    if (ui->focus_element) ui_element_call_lua_event_handlers(ui->focus_element, "unfocus");
     ui->focus_element = element;
+    ui_element_call_lua_event_handlers(element, "focus");
 }
 
 void ui_clear_focus() {
+    if (ui->focus_element) ui_element_call_lua_event_handlers(ui->focus_element, "unfocus");
     ui->focus_element = NULL;
 }
 
@@ -743,6 +746,8 @@ Value               Description
 ``wheel-right``     Mouse wheel scrolled right.
 ``enter``           Mouse cursor entered the element area.
 ``leave``           Mouse cursor left the element area.
+``focus``           Element now has focus (keyboard input).
+``unfocus``         Element no longer has focus.
 =================== ======================================
 
 .. note::

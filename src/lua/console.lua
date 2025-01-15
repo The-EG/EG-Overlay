@@ -259,7 +259,7 @@ local function on_entry_keydown(key)
     end
 end
 
-text_entry:on_keydown(on_entry_keydown)
+text_entry:addeventhandler(on_entry_keydown)
 
 local function primary_action(event)
     if event=='click-left' then
