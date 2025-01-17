@@ -223,6 +223,9 @@ int ui_text_entry_process_keyboard_event(ui_text_entry_t *entry, ui_keyboard_eve
     } else if (event->vk_key==VK_DOWN) {
         ui_element_call_lua_event_handlers(entry, "down");
         return 1;
+    } else if (event->vk_key==VK_TAB) {
+        ui_element_call_lua_event_handlers(entry, "tab");
+        return 1;
     }
 
     if (event->vk_key==VK_LEFT || event->vk_key==VK_RIGHT) {
