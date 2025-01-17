@@ -69,6 +69,10 @@ typedef struct {
 
     int mouse_ldrag_target;
     int mouse_rdrag_target;
+
+    int installhooks;
+    HHOOK mousehook;
+    HHOOK keyboardhook;
 } app_t;
 
 app_t *app = NULL;
@@ -104,6 +108,7 @@ LRESULT CALLBACK winproc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                 NULL
             );
             switch(systraycmd) {
+            case 0: break; // user closed menu without making a selection
             case WM_SYSTRAYQUIT:
                 logger_debug(app->log,"Quit selected.");
                 DestroyWindow(hWnd);
@@ -465,9 +470,8 @@ void app_init(HINSTANCE hinst, int argc, char **argv) {
     app->target_win_class = "ArenaNet_Gr_Window_Class";
     app->log = log;
     app->app_start_time = uli_create.QuadPart;
+    app->installhooks = 1;
     logger_debug(app->log, "init");
-
-    int no_input_hooks = 0;
 
     for (int a=1;a<argc;a++) {
         if (strcmp(argv[a], "--debug")==0) {
@@ -495,7 +499,7 @@ void app_init(HINSTANCE hinst, int argc, char **argv) {
                 exit(0);
         } else if (strcmp(argv[a], "--no-input-hooks")==0) {
             logger_warn(app->log, "Input hooks DISABLED.");
-            no_input_hooks = 1;
+            app->installhooks = 0;
         } else if (strcmp(argv[a], "--lua-script")==0) {
             if (a + 1 == argc) {
                 MessageBox(
@@ -513,7 +517,8 @@ void app_init(HINSTANCE hinst, int argc, char **argv) {
     }
 
     app->settings = settings_new("eg-overlay");
-    settings_set_default_double(app->settings, "overlay.frameTargetTime", 32.0);
+    settings_set_default_double(app->settings, "overlay.frameTargetTime",  32.0);
+    settings_set_default_double(app->settings, "overlay.fgWinCheckTime" , 250.0);
 
     if (app->runscript) {
         return;
@@ -531,11 +536,6 @@ void app_init(HINSTANCE hinst, int argc, char **argv) {
     app_create_window();
 
     dx_init(app->win_hwnd);
-
-    if (!no_input_hooks) {
-        SetWindowsHookEx(WH_MOUSE_LL, &mouse_hook_proc, NULL, 0);
-        SetWindowsHookEx(WH_KEYBOARD_LL, &keyboard_hook_proc, NULL, 0);
-    }
 
     app->sys_tray_menu = CreatePopupMenu();
     AppendMenu(app->sys_tray_menu, MF_GRAYED | MF_STRING , 0             , "EG-Overlay " VERSION_STR);
@@ -686,83 +686,22 @@ static DWORD WINAPI app_render_thread(LPVOID lpParam) {
     return 0;
 }
 
-static DWORD WINAPI app_fgwincheck_thread(LPVOID lpParam) {
-    UNUSED_PARAM(lpParam);
-    logger_debug(app->log, "begin foreground window checker thread...");
-
-    HWND lastwin = NULL;
-    char *fg_cls = egoverlay_calloc(513, sizeof(char));
-    char *target_cls = egoverlay_calloc(513, sizeof(char));
-
-    RECT *target_rect = egoverlay_calloc(1, sizeof(RECT));
-    POINT *target_pos = egoverlay_calloc(1, sizeof(POINT));
-
-    HWND fg_win = NULL;
-
-    while (app->running) {
-        fg_win = GetForegroundWindow();
-
-        if (fg_win && fg_win!=lastwin) {
-            memset(fg_cls, 0, 513);
-            GetClassName(fg_win, fg_cls, 512);
-
-            if (strcmp(fg_cls, app->target_win_class)==0) {
-                logger_debug(app->log, "Target window reactivated, showing overlay. (%s)", fg_cls);
-                ShowWindow(app->win_hwnd, SW_SHOWNA);
-                app->visible = 1;
-                app->target_hwnd = fg_win;
-
-            }
-
-            if (fg_win==app->target_hwnd) {
-                SetWindowPos(app->win_hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
-                SetWindowPos(app->win_hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
-            } else {
-                SetWindowPos(app->win_hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
-            }
-        } else {
-            memset(target_cls, 0, 513);     
-            if (
-                app->target_hwnd &&
-                (GetClassName(app->target_hwnd, target_cls, 512)==0 ||
-                 strcmp(target_cls, app->target_win_class)!=0)
-            ) {
-                logger_debug(app->log, "Target window disappeared, hiding overlay.");
-                ShowWindow(app->win_hwnd, SW_HIDE);
-                app->visible = 0;
-                app->target_hwnd = NULL;                
-            } else if (fg_win==app->target_hwnd) {
-                GetClientRect(app->target_hwnd, target_rect);
-                target_pos->x = target_rect->left;
-                target_pos->y = target_rect->top;
-                ClientToScreen(app->target_hwnd, target_pos);
-
-                SetWindowPos(app->win_hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
-                SetWindowPos(
-                    app->win_hwnd,
-                    HWND_NOTOPMOST,
-                    target_pos->x,
-                    target_pos->y,
-                    target_rect->right - target_rect->left,
-                    target_rect->bottom - target_rect->top,
-                    SWP_NOACTIVATE
-                );
-            }
-
-        }
-        lastwin = fg_win;
-
-        Sleep(100);
+void app_install_hooks() {
+    if (app->installhooks) {
+        logger_debug(app->log, "Installing input hooks...");
+        app->mousehook    = SetWindowsHookEx(WH_MOUSE_LL   , &mouse_hook_proc   , NULL, 0);
+        app->keyboardhook = SetWindowsHookEx(WH_KEYBOARD_LL, &keyboard_hook_proc, NULL, 0);
     }
+}
 
-    egoverlay_free(fg_cls);
-    egoverlay_free(target_cls);
-    egoverlay_free(target_rect);
-    egoverlay_free(target_pos);
-
-    logger_debug(app->log, "end foreground window checker thread.");
-
-    return 0;
+void app_remove_hooks() {
+    if (app->installhooks && app->mousehook && app->keyboardhook) {
+        logger_debug(app->log, "Removing input hooks...");
+        UnhookWindowsHookEx(app->mousehook);
+        UnhookWindowsHookEx(app->keyboardhook);
+        app->mousehook    = NULL;
+        app->keyboardhook = NULL;
+    }
 }
 
 int app_run() {
@@ -781,7 +720,7 @@ int app_run() {
     nid.uVersion = NOTIFYICON_VERSION_4;
     nid.hIcon = LoadIcon(app->inst, MAKEINTRESOURCE(IDI_EGOVERLAY_16x16));
     memcpy(nid.szTip, "EG-Overlay " VERSION_STR, strlen("EG-Overlay " VERSION_STR));
-    
+
     Shell_NotifyIcon(NIM_ADD, &nid);
     Shell_NotifyIcon(NIM_SETVERSION, &nid);
 
@@ -805,14 +744,25 @@ int app_run() {
     DWORD render_thread_id = 0;
     HANDLE render_thread = CreateThread(NULL, 0, &app_render_thread, NULL, 0, &render_thread_id);
 
-    logger_debug(app->log, "Starting foreground window checker thread...");
-    DWORD fgwin_thread_id = 0;
-    HANDLE fgwin_thread = CreateThread(NULL, 0, &app_fgwincheck_thread, NULL, 0, &fgwin_thread_id);
-
     if (render_thread==NULL) {
         logger_error(app->log, "Failed to create render thread.");
         return -1;
     }
+
+    HWND lastwin = NULL;
+    char *fg_cls = egoverlay_calloc(513, sizeof(char));
+    char *target_cls = egoverlay_calloc(513, sizeof(char));
+
+    RECT *target_rect = egoverlay_calloc(1, sizeof(RECT));
+    POINT *target_pos = egoverlay_calloc(1, sizeof(POINT));
+
+    HWND fg_win = NULL;
+
+    double last_fg_check = 0.0;
+
+    double fg_win_check_time = 0.0;
+
+    settings_get_double(app->settings, "overlay.fgWinCheckTime", &fg_win_check_time);
 
     MSG msg = {0};
     while (msg.message!=WM_QUIT) {
@@ -823,17 +773,84 @@ int app_run() {
         #ifdef _DEBUG
         dx_process_debug_messages();
         #endif
+
+        double now = app_get_uptime() / 10000.0;
+
+        if (now - last_fg_check >= fg_win_check_time) {
+            fg_win = GetForegroundWindow();
+
+            if (fg_win && fg_win!=lastwin) {
+                memset(fg_cls, 0, 513);
+                GetClassName(fg_win, fg_cls, 512);
+
+                if (strcmp(fg_cls, app->target_win_class)==0) {
+                    logger_debug(app->log, "Target window reactivated, showing overlay. (%s)", fg_cls);
+                    ShowWindow(app->win_hwnd, SW_SHOWNA);
+                    app->visible = 1;
+                    app->target_hwnd = fg_win;
+
+                }
+
+                if (fg_win==app->target_hwnd) {
+                    app_install_hooks();
+                    SetWindowPos(app->win_hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
+                    SetWindowPos(app->win_hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
+                } else {
+                    app_remove_hooks();
+                    SetWindowPos(app->win_hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
+                }
+            } else {
+                memset(target_cls, 0, 513);     
+                if (
+                    app->target_hwnd &&
+                    (GetClassName(app->target_hwnd, target_cls, 512)==0 ||
+                     strcmp(target_cls, app->target_win_class)!=0)
+                ) {
+                    logger_debug(app->log, "Target window disappeared, hiding overlay.");
+                    ShowWindow(app->win_hwnd, SW_HIDE);
+                    app->visible = 0;
+                    app->target_hwnd = NULL;
+                    app_remove_hooks();
+                } else if (fg_win==app->target_hwnd) {
+                    GetClientRect(app->target_hwnd, target_rect);
+                    target_pos->x = target_rect->left;
+                    target_pos->y = target_rect->top;
+                    ClientToScreen(app->target_hwnd, target_pos);
+
+                    SetWindowPos(app->win_hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
+                    SetWindowPos(
+                        app->win_hwnd,
+                        HWND_NOTOPMOST,
+                        target_pos->x,
+                        target_pos->y,
+                        target_rect->right - target_rect->left,
+                        target_rect->bottom - target_rect->top,
+                        SWP_NOACTIVATE
+                    );
+                }
+
+            }
+            lastwin = fg_win;
+
+            last_fg_check = now;
+        }
+
         Sleep(1);
     }
 
     app->running = 0;
 
+    egoverlay_free(fg_cls);
+    egoverlay_free(target_cls);
+    egoverlay_free(target_rect);
+    egoverlay_free(target_pos);
+
+    app_remove_hooks();
+
     logger_debug(app->log, "Waiting for threads to end...");
     
     WaitForSingleObject(render_thread, INFINITE);
-    WaitForSingleObject(fgwin_thread, INFINITE);
     CloseHandle(render_thread);
-    CloseHandle(fgwin_thread);
 
     ui_clear_top_level_elements();
     lua_manager_cleanup();
