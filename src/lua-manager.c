@@ -87,6 +87,7 @@ int overlay_uuid(lua_State *L);
 int overlay_uuidtobase64(lua_State *L);
 int overlay_uuidfrombase64(lua_State *L);
 int overlay_current_directory(lua_State *L);
+int overlay_logical_drives(lua_State *L);
 
 luaL_Reg overlay_funcs[] = {
     "addeventhandler"   , &overlay_add_event_handler,
@@ -106,6 +107,7 @@ luaL_Reg overlay_funcs[] = {
     "uuidtobase64"      , &overlay_uuidtobase64,
     "uuidfrombase64"    , &overlay_uuidfrombase64,
     "currentdirectory"  , &overlay_current_directory,
+    "logicaldrives"     , &overlay_logical_drives,
     NULL                ,  NULL
 };
 
@@ -1347,6 +1349,38 @@ int overlay_current_directory(lua_State *L) {
 
     lua_pushstring(L, path);
     egoverlay_free(path);
+    return 1;
+}
+
+/*** RST
+.. lua:function:: logicaldrives
+
+    Return a table containing a list of the valid drive letters, i.e. 'C', 'D',
+    etc.
+
+    :rtype: table
+
+    .. versionhistory::
+        :0.1.0: Added
+*/
+int overlay_logical_drives(lua_State *L) {
+    uint32_t drives = GetLogicalDrives();
+
+    char letter = 'A';
+    uint32_t bit = 1;
+    uint32_t ind = 1;
+
+    lua_newtable(L);
+
+    while (letter <= 'Z') {
+        if (drives & bit) {
+            lua_pushfstring(L, "%c", letter);
+            lua_seti(L, -2, ind++);
+        }
+        bit <<= 1;
+        letter++;
+    }
+
     return 1;
 }
 
