@@ -123,14 +123,19 @@ local function addcategorymarkers(category)
 
         local texturename = m.iconfile
 
+        if not texturename then
+            log:error("No IconFile for %s", typeid)
+            texturename = 'default_texture.png'
+        end
+
         if not texturearray:has(texturename) then
             local texture = category.markerpack:datafile(texturename)
             local texdata = texture:data()
 
             if not texdata then
-                log:error("Missing marker image: %s", texture)
+                log:error("Missing marker image: %s", texturename)
                 local default = io.open('textures/eg-overlay-32x32.png', 'rb')
-                texdata = default:read()
+                texdata = default:read('a')
                 default:close()
             end
 
@@ -557,6 +562,9 @@ local function createtooltipinfo(marker, showabovebelow)
         end
         cat = cat:parent()
     end
+
+    if not name then name = marker.category.typeid end
+
     box:pack_end(uih.text(name, true))
     
     box:pack_end(ui.separator('horizontal'), false, 'fill')
