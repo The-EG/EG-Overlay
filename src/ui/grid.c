@@ -196,7 +196,7 @@ void ui_grid_draw(ui_grid_t *grid, int offset_x, int offset_y, mat4f_t *proj) {
                     extra_x += (int)(((float)totalwidth / 2.f) - ((float)cell->item->width / 2.f));
                 } else if (cell->halign==1) {
                     extra_x += grid->colwidths[c] - cell->item->width;
-                } else if (cell->halign==999) {
+                } else if (cell->halign==-999) {
                     int totalwidth = 0;
                     for (int cs=0;cs<cell->colspan;cs++) {
                         totalwidth += grid->colwidths[c + cs];
@@ -215,7 +215,7 @@ void ui_grid_draw(ui_grid_t *grid, int offset_x, int offset_y, mat4f_t *proj) {
                     extra_y += (int)(((float) totalheight / 2.f) - ((float)cell->item->height / 2.f));
                 } else if (cell->valign==1) {
                     extra_y += grid->rowheights[r] - cell->item->height;
-                } else if (cell->valign==999) {
+                } else if (cell->valign==-999) {
                     int totalheight = 0;
                     for (int rs=0;rs<cell->rowspan;rs++) {
                         totalheight += grid->rowheights[r + rs];
