@@ -1,118 +1,424 @@
+-- EG-Overlay
+-- Copyright (c) 2025 Taylor Talkington
+-- SPDX-License-Identifier: MIT
 require 'mumble-link-events'
 
 local overlay = require 'eg-overlay'
-local logger = require 'logger'
 local ml = require 'mumble-link'
 local ui = require 'eg-overlay-ui'
-local uih = require 'ui-helpers'
 local mp = require 'markers.package'
-local o3d = require 'eg-overlay-3d'
-local utils = require 'utils'
+local md = require 'markers.data'
+local ms = require 'markers.settings'
 local gw2 = require 'gw2'
-local markerdata = require 'markers.data'
-
-local settings = require 'markers.settings'
+local dx = require 'dx'
 
 local M = {}
 
--- marker packs
-M.packs = {}
+M.textures = dx.texturemap()
 
-local log = logger.logger:new('markers.manager')
+M.worldsprites = dx.spritelist(M.textures, 'world')
+M.worldsprites:draw(false)
 
-local mlavailable = false
+M.mapsprites = dx.spritelist(M.textures, 'map')
+M.mapsprites:draw(false)
 
--- behavior = 1 GUIDs that can be reshown when the map is changed
-local mapguids = {}
+M.worldtrails = dx.traillist(M.textures, 'world')
+M.worldtrails:draw(false)
 
-local texturearray = o3d.texturemap()
+M.maptrails = dx.traillist(M.textures, 'map')
+M.maptrails:draw(false)
 
--- marker points
-local spritearray    = o3d.spritelist(texturearray, 'world')
-local mapspritearray = o3d.spritelist(texturearray, 'map'  )
+M.coordconv = {}
 
--- marker trails
-local traillist    = o3d.traillist(texturearray, 'world')
-local maptraillist = o3d.traillist(texturearray, 'map'  )
-
--- marker information used to show tooltips
-local tooltipmarkers = {
-    map = {},
-    world = {}
-}
-
--- markers that can be triggered
-local triggermarkers = {}
-
-local coordconverter = nil
-
--- a list of typeids that have markers or trails in one of the lists/arrays above
--- this is structured as markerpack -> typeid
-local activetypeids = {}
-
-local tooltipwin = ui.window('Marker Info', 50, 50)
-tooltipwin:titlebar(false)
-
-local triggerwin = ui.window('Markers', 50, 50)
-settings:setdefault('triggerWindow.x', 50)
-settings:setdefault('triggerWindow.y', 50)
-settings:setdefault('triggerWindow.width', 100)
-settings:setdefault('triggerWindow.height', 100)
-settings:setdefault('triggerWindow.show', false)
-triggerwin:settings(settings, 'triggerWindow')
-
-local function setuptriggerwin()
-    local box = ui.box('horizontal')
-    local btn = uih.text_button('Hide Marker')
-    box:pack_end(btn)
-    box:padding(5,5,5,5)
-    triggerwin:set_child(box)
-
-    btn:addeventhandler(function(event)
-        if event=='click-left' then
-            M.triggermarkers()
-        end
-    end)
+local function m2in(meters)
+    return meters * 39.3701
 end
 
-setuptriggerwin()
-triggerwin:show()
+-- a list of typeids that have markers or trails in one of the lists above
+M.activetypeids = {}
 
-local function addcategorymarkers(category)
+M.markerpacks = {}
+
+M.activatewin = {}
+
+function M.activatewin:setupwin()
+    self.win = ui.window('Activate Marker')
+    self.btn = ui.button()
+    self.box = ui.box('horizontal')
+    self.icon = ui.text(ui.iconcodepoint('location_off'), ui.color('accentText'), ui.fonts.icon:tosizeperc(1.5))
+    self.text = ui.text('Hide marker', ui.color('text'), ui.fonts.regular:tosizeperc(1.25))
+
+    self.win:titlebar(false)
+    self.win:child(self.btn)
+
+    self.btn:child(self.box)
+
+    self.box:paddingleft(5)
+    self.box:paddingright(5)
+    self.box:paddingtop(5)
+    self.box:paddingbottom(5)
+    self.box:spacing(5)
+
+    self.box:pushback(self.icon, 'middle', false)
+    self.box:pushback(self.text, 'middle', false)
+
+    self.visible = false
+
+    self.btn:addeventhandler(function()
+        M.behaviormgr:activatemarker()
+    end, 'click-left')
+end
+
+function M.activatewin:show()
+    local w,h = ui.overlaysize()
+
+    local x = math.floor(w / 2.0 + (w / 10))
+    local y = math.floor(h / 2.0 - (h / 10))
+
+    self.win:position(x, y)
+    
+    if not self.visible then
+        self.win:show()
+        self.visible = true
+    end
+end
+
+function M.activatewin:hide()
+    if self.visible then 
+        self.win:hide()
+        self.visible = false
+    end
+end
+
+M.activatewin:setupwin()
+
+-- a centralized place to handle marker behaviors/activations
+M.behaviormgr = {
+    -- cached marker info (location, behavior type, info to display, etc.)
+    -- indexed by guid
+    markercache = {},
+
+    -- a spatial index to make locating markers near the player efficient
+    spatialindex = {}, 
+
+    -- makers that have been activated in this map
+    -- and should be shown again on map change
+    mapguids = {},
+}
+
+function M.behaviormgr:clear()
+    self.markercache = {}
+    self.spatialindex = {}
+end
+
+function M.behaviormgr:addmarker(marker)
+    local m = {
+        guid = marker.guid,
+        x = marker.xpos or 0,
+        y = marker.ypos or 0,
+        z = marker.zpos or 0,
+        info = marker.info,
+        inforange = marker.inforange or 2,
+        behavior = marker.behavior or 0,
+        triggerrange = marker.triggerrange or 2,
+        typeid = marker.typeid,
+    }
+
+    if not m.info and m.behavior==0 then return end
+
+    local x_ind = math.tointeger(math.floor(m.x / 10))
+    local y_ind = math.tointeger(math.floor(m.y / 10))
+    local z_ind = math.tointeger(math.floor(m.z / 10))
+
+    if not self.spatialindex[x_ind] then self.spatialindex[x_ind] = {} end
+    if not self.spatialindex[x_ind][y_ind] then self.spatialindex[x_ind][y_ind] = {} end
+    if not self.spatialindex[x_ind][y_ind][z_ind] then self.spatialindex[x_ind][y_ind][z_ind] = {} end
+
+    self.markercache[m.guid] = m
+    table.insert(self.spatialindex[x_ind][y_ind][z_ind], m.guid)
+end
+
+function M.behaviormgr:removecategory(typeid)
+    local rmguids = {}
+    
+    for guid, m in pairs(self.markercache) do
+        if m.typeid==typeid then
+            table.insert(rmguids, guid)
+        end
+    end
+
+    for i,guid in ipairs(rmguids) do
+        self.markercache[guid] = nil
+    end
+end
+
+function M.behaviormgr:update()
+    M.activatewin:hide()
+
+    local px, py, pz = ml.avatarposition()
+    
+    local px_ind = math.tointeger(math.floor(px / 10))
+    local py_ind = math.tointeger(math.floor(py / 10))
+    local pz_ind = math.tointeger(math.floor(pz / 10))
+
+    -- find all the valid guids in the spatial index that are close to the player
+    -- we look at the index cell we are in plus the adjacent ones in case we
+    -- are near an edge
+    -- This does limit the range at which a marker will be found...
+    local guids = {}
+    for xi=-1,1,1 do
+        if self.spatialindex[px_ind + xi] then
+            for yi=-1,1,1 do
+                if self.spatialindex[px_ind + xi][py_ind + yi] then
+                    for zi=-1,1,1 do
+                        if self.spatialindex[px_ind + xi][py_ind + yi][pz_ind + zi] then
+                            for i, guid in ipairs(self.spatialindex[px_ind + xi][py_ind + yi][pz_ind + zi]) do
+                                table.insert(guids, guid)
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    local closestguid = nil
+    local closestdsqr = nil
+    
+    -- now go through all the markers we found above and find the closest
+    for i,guid in ipairs(guids) do
+        local m = self.markercache[guid]
+        
+        if not m then goto skipguid end
+
+        local dsqr = (m.x - px)^2 + (m.y - py)^2 + (m.z - pz)^2
+
+        if closestguid==nil or (dsqr < closestdsqr) then
+            closestguid = guid
+            closestdsqr = dsqr
+        end
+
+        ::skipguid::
+    end
+
+    self.closestguid = closestguid
+
+    if self.closestguid then
+        self.closestdist = math.sqrt(closestdsqr)
+    else
+        self.closestdist = nil
+        return
+    end
+
+    local m = self.markercache[closestguid]
+
+    if m.behavior == 0 then return end
+
+    if self.closestdist <= m.triggerrange then
+        M.activatewin:show()
+    end
+end
+
+function M.behaviormgr:activatemarker()
+    if not self.closestguid then return end
+    
+    local m = self.markercache[self.closestguid]
+
+    if not m or m.behavior==0 then return end
+
+    if m.behavior == 1 then
+        table.insert(self.mapguids, m.guid)
+        self.markercache[m.guid] = nil
+        
+        M.worldsprites:remove({guid = m.guid})
+        M.mapsprites:remove({guid = m.guid})
+        overlay.logdebug(string.format('%s activated (behavior = 1)', m.guid))
+        self.closestguid = nil
+    elseif m.behavior == 2 or m.behavior == 3 or m.behavior == 7 or m.behavior == 101 then
+        md.activateguid(m.guid, ml.identity.name())
+        overlay.logdebug(string.format('%s activated (behavior = %d)', m.guid, m.behavior))
+        self.markercache[m.guid] = nil
+        
+        M.worldsprites:remove({guid = m.guid})
+        M.mapsprites:remove({guid = m.guid})
+        self.closestguid = nil
+    elseif m.behavior == 6 then
+        local instid = string.format('%d|%d', ml.context.mapid(), ml.context.shardid())
+        md.activateguid(m.guid, instid)
+        overlay.logdebug(string.format('%s activated (behavior = %d)', m.guid, m.behavior))
+        self.markercache[m.guid] = nil
+        
+        M.worldsprites:remove({guid = m.guid})
+        M.mapsprites:remove({guid = m.guid})
+        self.closestguid = nil
+    end
+end
+
+M.tooltipwin = {}
+M.tooltipwin.fields = {
+    {'guid'       , 'GUID'    },
+    {'behavior'   , 'Behvaior'},
+    {'info'       , 'Info'    },
+    {'triggerrange', 'TriggerRange'},
+}
+M.tooltipwin.cache = {}
+M.tooltipwin.visible = false
+
+function M.tooltipwin:createwin()
+    self.win = ui.window("Markers Tooltip")
+    self.win:titlebar(false)
+    self.box = ui.box('vertical')
+    self.win:child(M.tooltipwin.box)
+    self.box:paddingleft(3)
+    self.box:paddingright(3)
+    self.box:paddingtop(3)
+    self.box:paddingbottom(3)
+    self.box:spacing(3)
+
+    self.titletxt = ui.text('(Title)', ui.color('accentText'), ui.fonts.regular)
+    self.pathtxt = ui.text('(Path)', 0xc7c7c7FF, ui.fonts.regular:tosizeperc(0.85))
+    self.descriptiontxt = ui.text('(Description)', ui.color('text'), ui.fonts.regular)
+
+    self.box:pushback(self.titletxt, 'start', false)
+    self.box:pushback(self.pathtxt, 'start', false)
+
+    self.box:pushback(ui.separator('horizontal'), 'fill', false)
+
+    self.fieldgrid = ui.grid(#M.tooltipwin.fields, 2)
+    self.fieldgrid:colspacing(5)
+    self.fieldgrid:rowspacing(2)
+    
+    self.box:pushback(self.fieldgrid, 'fill', false)
+
+    self.fieldtxt = {}
+
+    for i, field in ipairs(M.tooltipwin.fields) do
+        local name = field[1]
+        local label = field[2]
+        local lbltxt = ui.text(label, ui.color('accentText'), ui.fonts.regular)
+        self.fieldtxt[name] = ui.text('(Value)', ui.color('text'), ui.fonts.monospace)
+        self.fieldgrid:attach(lbltxt, i, 1, 1, 1, 'end', 'start')
+        self.fieldgrid:attach(self.fieldtxt[name], i, 2, 1, 1, 'start', 'start')
+    end
+end
+
+M.tooltipwin:createwin()
+
+function M.tooltipwin:show()
+    local mx, my = ui.mouseposition()
+
+    self.win:position(mx + 30, my)
+    if not self.visible then
+        self.win:show()
+        self.visible = true
+    end
+end
+
+function M.tooltipwin:hide()
+    if self.visible then
+        self.win:hide()
+        self.visible = false
+    end
+end
+
+function M.tooltipwin:setmarker(markerpack, typeid, markerid)
+    local marker = nil
+    if M.tooltipwin.cache[markerpack] and M.tooltipwin.cache[markerpack][typeid] then
+        marker = M.tooltipwin.cache[markerpack][typeid][markerid]
+    end
+
+    if not marker then
+        local pack = M.markerpacks[markerpack]
+        local cat = pack:category(typeid)
+
+        marker = { db = mp.db, category = cat, id = markerid }
+        setmetatable(marker, mp.marker)
+
+        if not M.tooltipwin.cache[markerpack] then M.tooltipwin.cache[markerpack] = {} end
+        if not M.tooltipwin.cache[markerpack][typeid] then M.tooltipwin.cache[markerpack][typeid] = {} end
+
+        local mcache = {}
+        
+        for i, field in ipairs(self.fields) do
+            local f = field[1]
+            local val = marker[f] or '(none)'
+
+            mcache[f] = val
+        end
+
+        mcache.description = marker['tip-description']
+        mcache.title = marker['tip-name'] or marker.displayname
+
+        local p = cat:parent()
+        mcache.path = p.displayname
+        p = p:parent()
+
+        while p and #mcache.path < 50 do
+            mcache.path = p.displayname .. '\u{00bb} ' .. mcache.path
+            p = p:parent()
+        end
+
+        if p then mcache.path = '...\u{00bb} ' .. mcache.path end
+
+        M.tooltipwin.cache[markerpack][typeid][markerid] = mcache
+
+        marker = mcache
+    end
+
+    self.box:removeitem(self.descriptiontxt)
+
+    self.titletxt:text(marker.title)
+    self.pathtxt:text(marker.path)
+
+    if marker.description then
+        self.descriptiontxt:text(marker.description)
+        self.box:insertafter(self.pathtxt, self.descriptiontxt, 'start', false)
+    end
+
+    for i, field in pairs(self.fields) do
+        local name = field[1]
+        self.fieldtxt[name]:text(marker[name])
+    end
+end
+
+function M.addcategorymarkers(category)
     local packpath = category.markerpack.path
     local typeid = category.typeid
 
     local markercount = 0
-    for m in category:markersinmapiter(ml.mapid) do
-        if m.GUID~=nil then
-            if m.behavior==1 and mapguids[m.GUID] then
+    local b6id = string.format('%d|%d', ml.context.mapid(), ml.context.shardid())
+
+    for m in category:markersinmapiter(ml.context.mapid()) do
+        if m.guid ~= nil then
+            if m.behavior == 1 and M.behaviormgr.mapguids[m.guid] then
                 goto nextmarker
-            elseif m.behavior==2 and markerdata.guidactive(m.GUID, 'day') then
+            elseif m.behavior == 2 and md.guidactive(m.guid, 'day') then
                 goto nextmarker
-            elseif m.behavior==2 and markerdata.guidactive(m.GUID, 'day') then
+            elseif m.behavior == 3 and md.guidactive(m.guid, 'permanent') then
                 goto nextmarker
-            elseif m.behavior==3 and markerdata.guidactive(m.GUID, 'permanent') then
+            elseif m.behavior == 6 and md.guidactive(m.guid, 'permanent', b6id) then
                 goto nextmarker
-            elseif m.behavior==6 and markerdata.guidactive(m.GUID, 'permanent', string.format('%d|%d', ml.mapid, ml.shardid)) then
+            elseif m.behavior == 7 and md.guidactive(m.guid, 'day', ml.identity.name()) then
                 goto nextmarker
-            elseif m.behavior==7 and markerdata.guidactive(m.GUID, 'day', ml.charactername) then
-                goto nextmarker
-            elseif m.behavior==101 and markerdata.guidactive(m.GUID, 'week') then
+            elseif m.behavior == 101 and md.guidactive(m.guid, 'week') then
                 goto nextmarker
             end
-        end 
+        end
 
-        local color = uih.rgbtorgba(m.color or 0xFFFFFF)
-        uih.colorsetalphaf(color, m.alpha or 1.0)
+        local color = ((m.color or 0xFFFFFF) << 8) | 0xFF
+        local alpha_f = m.alpha or 1.0
+        local alpha = math.tointeger(alpha_f * 255)
+        color = (color & 0xFFFFFF00) | alpha
 
-        local attrs = {
-            x = utils.meterstoinches(m.xpos),
-            y = utils.meterstoinches(m.ypos + (m.heightoffset or 1.5)),
-            z = utils.meterstoinches(m.zpos),
+        local worldmarkerattrs = {
+            x = m2in(m.xpos),
+            y = m2in(m.ypos + (m.heightoffset or 1.5)),
+            z = m2in(m.zpos),
             size = (m.iconsize or 1.0) * 80,
-            fadefar = m.fadefar,
-            fadenear = m.fadenear,
+            fadefar = m.fadefar or -1,
+            fadenear = m.fadenear or -1,
             color = color,
+            mousetest = ((m.minimapvisibility or 1)==1 or (m.mapvisibility or 1)==1),
             tags = {
                 pack = packpath,
                 typeid = typeid,
@@ -121,75 +427,46 @@ local function addcategorymarkers(category)
             }
         }
 
+        local cx, cy = M.coordconv:map2continent(worldmarkerattrs.x, worldmarkerattrs.z)
+
+        local mapattrs = {
+            x = cx,
+            y = cy,
+            z = 0.0,
+            size = m.mapdisplaysize or 20,
+            tags = worldmarkerattrs.tags,
+            mousetest = true,
+        }
+
         local texturename = m.iconfile
 
         if not texturename then
-            log:error("No IconFile for %s", typeid)
+            overlay.logerror(string.format("No IconFile for %s", typeid))
             texturename = 'default_texture.png'
         end
 
-        if not texturearray:has(texturename) then
+        if not M.textures:has(texturename) then
             local texture = category.markerpack:datafile(texturename)
             local texdata = texture:data()
 
             if not texdata then
-                log:error("Missing marker image: %s", texturename)
+                overlay.logerror(string.format("Missing marker image: %s", texturename))
                 local default = io.open('textures/eg-overlay-32x32.png', 'rb')
                 texdata = default:read('a')
                 default:close()
             end
 
-            texturearray:add(texturename, texdata)
-        end        
-        
-        spritearray:add(texturename, attrs)
-
-        if (m.GUID and m.behavior and m.behavior>0) then
-            table.insert(triggermarkers, {
-                x = utils.meterstoinches(m.xpos),
-                y = utils.meterstoinches(m.ypos),
-                z = utils.meterstoinches(m.zpos),
-                rangesq = utils.meterstoinches(m.triggerrange or 2)^2,
-                behavior = m.behavior,
-                guid = m.guid,
-                marker = m
-            })
+            M.textures:add(texturename, texdata)
         end
 
-        if (
-            (m.minimapvisibility==1 or m.minimapvisibility==nil) or
-            (m.mapvisibility==1 or m.mapvisibility==nil)
-        ) then
-            -- only show in world tooltips for markers show in map
-            table.insert(tooltipmarkers.world, {
-                x = utils.meterstoinches(m.xpos),
-                y = utils.meterstoinches(m.ypos + (m.heightoffset or 1.5)),
-                z = utils.meterstoinches(m.zpos),
-                size = (m.iconsize or 1.0) * 80,
-                fadefar = m.fadefar or -1,
-                guid = m.guid,
-                marker = m
-            })
+        if (m.ingamevisibility or 1) == 1 then
+            M.worldsprites:add(texturename, worldmarkerattrs)
 
-            -- add it to the (mini)map
-            local cx, cy = coordconverter:map2continent(utils.meterstoinches(m.xpos), utils.meterstoinches(m.zpos))
+            M.behaviormgr:addmarker(m)
+        end
 
-            table.insert(tooltipmarkers.map, {
-                x = cx, y = cy, marker = m, size = m.mapdisplaysize, guid = m.guid
-            })
-
-            local mapattrs = {
-                x = cx, y = cy,
-                size = m.mapdisplaysize or 30,
-                color = color,
-                tags = {
-                    pack = packpath,
-                    typeid = typeid,
-                    markerid = m.id,
-                    guid = m.guid
-                }
-            }
-            mapspritearray:add(texturename, mapattrs) 
+        if (m.minimapvisibility or 1) == 1 or (m.mapvisibility or 1) == 1 then
+            M.mapsprites:add(texturename, mapattrs)
         end
 
         markercount = markercount + 1
@@ -197,186 +474,164 @@ local function addcategorymarkers(category)
         ::nextmarker::
     end
 
-    if markercount > 0 then 
-        log:debug("Loaded %d markers from %s", markercount, typeid)
-    end
+    overlay.logdebug(string.format('Loaded %d markers from %s.', markercount, category.typeid))
 end
 
-local function addcategorytrails(category)
+function M.addcategorytrails(category)
     local packpath = category.markerpack.path
     local typeid = category.typeid
 
     local trailcount = 0
-    for t in category:trailsinmapiter(ml.mapid) do
+
+    for trail in category:trailsinmapiter(ml.context.mapid()) do
         local segments = {}
 
         local coords = {}
-        for x,y,z in t:pointsiter() do
+
+        for x,y,z in trail:pointsiter() do
             if x==0.0 and y==0.0 and z==0.0 then
                 -- a special case that some trails use to separate segments
                 -- some trails have little 1 coordinate segments, which I assume
                 -- must be erroneous and are probably ignored by TaCO and Blish
-                -- so we'll ignore them too ¯\_(ツ)_/¯
+                -- ...so we'll ignore them to
                 if #coords > 1 then table.insert(segments, coords) end
                 coords = {}
             else
-                table.insert(coords, {
-                    utils.meterstoinches(x),
-                    utils.meterstoinches(y),
-                    utils.meterstoinches(z)
-                })
+                table.insert(coords, { m2in(x), m2in(y), m2in(z) })
             end
         end
         if #coords > 1 then table.insert(segments, coords) end
 
-        local texturename = t.texture
+        local texturename = trail.texture
 
-        local color = uih.rgbtorgba(t.color or 0xFFFFFF)
-        uih.colorsetalphaf(color, t.alpha or 1.0)
+        local color = ((trail.color or 0xFFFFFF) << 8) | 0xFF
+        local alpha = math.tointeger((trail.alpha or 1.0) * 255)
+        color = (color & 0xFFFFFF00) | alpha
 
-        if not texturearray:has(texturename) then
-            local texturedf = category.markerpack:datafile(texturename)
-            texturearray:add(t.texture, texturedf:data())
+        if not M.textures:has(texturename) then
+            local texture = category.markerpack:datafile(texturename)
+            local texdata = texture:data()
+
+            M.textures:add(texturename, texdata)
         end
 
-        -- show this one in the (mini)map
-        if (
-            (t.minimapvisibility==1 or t.minimapvisibility==nil) or
-            (t.mapvisibility==1 or t.mapvisibility==nil)
-        ) then
-            for i, coords in ipairs(segments) do
-                local contcoords = {}
-
-                for i,c in ipairs(coords) do
-                    local cx, cy = coordconverter:map2continent(c[1], c[3])
-                    table.insert(contcoords, { cx, cy, 0.5 })
-                end
-                local mapattrs = {
-                    color = color,
-                    wall = false,
-                    size = (t.trailscale or 1.0) * 20,
-                    points = contcoords,
-                    tags = {
-                        pack = packpath,
-                        typeid = typeid,
-                        trailid = t.id
-                    }
-                }
-                maptraillist:add(texturename, mapattrs)
-            end            
-        end
-        
-        if not (t.ingamevisibility==0) then
+        if (trail.ingamevisibility or 1) == 1 then
             for i, c in ipairs(segments) do
                 local attrs = {
-                    fadefar = t.fadefar,
-                    fadenear = t.fadenear,
+                    fadefar = trail.fadefar or -1,
+                    fadenear = trail.fadenear or -1,
                     color = color,
-                    wall = (t.iswall or 0)==1,
-                    size = (t.trailscale or 1.0) * 40,
+                    wall = (trail.iswall or 0)==1,
+                    size = (trail.trailscale or 1.0) * 40,
                     points = c,
                     tags = {
                         pack = packpath,
                         typeid = typeid,
-                        trailid = t.id
-                    }
+                        trailid = trail.id,
+                    },
                 }
-                traillist:add(texturename, attrs)
+                M.worldtrails:add(texturename, attrs)
             end
         end
+
+        if (trail.minimapvisibility or 1)==1 or (trail.mapvisibility or 1)==1 then
+            for i, coords in ipairs(segments) do
+                local contcoords = {}
+
+                for i,c in ipairs(coords) do
+                    local cx, cy = M.coordconv:map2continent(c[1], c[3])
+                    table.insert(contcoords, {cx, cy, 0.5})
+                end
+
+                local attrs = {
+                    color = color,
+                    wall = false,
+                    size = (trail.trailscale or 1.0) * 40,
+                    points = contcoords,
+                    tags = {
+                        pack = packpath,
+                        typeid = typeid,
+                        trailid = trail.id,
+                    },
+                }
+
+                M.maptrails:add(texturename, attrs)
+            end
+        end
+
         trailcount = trailcount + 1
-        coroutine.yield()
     end
-    if trailcount > 0 then
-        log:debug("Loaded %d trails from %s", trailcount, typeid)
-    end
+    
+    overlay.logdebug(string.format('Loaded %d trails from %s.', trailcount, category.typeid))
 end
 
 function M.loadmarkerpack(path)
-    M.packs[path] = mp.markerpack:new(path)
+    M.markerpacks[path] = mp.markerpack:new(path)
+end
+
+function M.showcategory(category)
+        local packpath = category.markerpack.path
+        local typeid = category.typeid
+
+        if not M.activetypeids[packpath] then M.activetypeids[packpath] = {} end
+
+        -- this typeid is already shown
+        if M.activetypeids[packpath][typeid] then return end
+
+        M.addcategorymarkers(category)
+        M.addcategorytrails(category)
+
+        M.activetypeids[packpath][typeid] = true
 end
 
 function M.hidecategory(category)
     local packpath = category.markerpack.path
     local typeid = category.typeid
+
     local tags = {pack = packpath, typeid = typeid}
 
-    spritearray:remove(tags)
-    mapspritearray:remove(tags)
-    traillist:remove(tags)
-    maptraillist:remove(tags)
-
-    
-    local newmap = {}
-    for i,mp in ipairs(tooltipmarkers.map) do
-        if mp.marker.category.typeid ~= typeid then table.insert(newmap, mp) end
-    end
-    tooltipmarkers.map = newmap
-
-    local newworld = {}
-    for i,mp in ipairs(tooltipmarkers.world) do
-        if mp.marker.category.typeid ~= typeid then table.insert(newworld, mp) end
-    end
-    tooltipmarkers.world = newworld
-
-    local newtriggers = {}
-    for i,mp in ipairs(triggermarkers) do
-        if mp.marker.category.typeid ~= typeid then table.insert(newtriggers, mp) end
-    end
-    triggermarkers = newtriggers
+    M.worldsprites:remove(tags)
+    M.mapsprites:remove(tags)
+    M.worldtrails:remove(tags)
+    M.maptrails:remove(tags)
 
     for child in category:childreniter() do
         M.hidecategory(child)
     end
 
-    activetypeids[packpath][typeid] = nil
-end
+    M.behaviormgr:removecategory(typeid)
 
-function M.showcategory(category)
-    local packpath = category.markerpack.path
-    local typeid = category.typeid
-
-    if not activetypeids[packpath] then
-        activetypeids[packpath] = {}
-    end
-
-    if activetypeids[packpath][typeid] then return end
-
-    addcategorymarkers(category)
-    addcategorytrails(category)
-
-    activetypeids[packpath][typeid] = true
+    M.activetypeids[packpath][typeid] = nil
 end
 
 function M.reloadcategories(clear)
     if clear then
-        activetypeids = {}
+        M.activetypeids = {}
 
-        tooltipmarkers.map = {}
-        tooltipmarkers.world = {}
+        M.behaviormgr:clear()
 
-        texturearray:clear()
-        spritearray:clear()
-        mapspritearray:clear()
-
-        traillist:clear()
-        maptraillist:clear()
+        M.textures:clear()
+        M.worldsprites:clear()
+        M.mapsprites:clear()
+        M.worldtrails:clear()
+        M.maptrails:clear()
     else
-        for mp, cats in pairs(activetypeids) do
-            local pack = M.packs[mp]
-            for typeid,_ in pairs(cats) do
+        for packpath, typeids in pairs(M.activetypeids) do
+            local pack = M.markerpacks[packpath]
+
+            for typeid,_ in pairs(typeids) do
                 local cat = pack:category(typeid, false)
 
-                if not markerdata.iscategoryactive(cat,true) then
+                if not md.iscategoryactive(cat, true) then
                     M.hidecategory(cat)
                 end
             end
         end
     end
 
-    for name, mp in pairs(M.packs) do
-        for cat in mp:categoriesinmapiter(ml.mapid) do
-            if markerdata.iscategoryactive(cat, true) then
+    for packpath, pack in pairs(M.markerpacks) do
+        for cat in pack:categoriesinmapiter(ml.context.mapid()) do
+            if md.iscategoryactive(cat, true) then
                 M.showcategory(cat)
             end
             coroutine.yield()
@@ -384,357 +639,88 @@ function M.reloadcategories(clear)
     end
 end
 
-local function removetooltipmarkersforguid(guid)
-    local newmap = {}
-    local newworld = {}
+function M.onstartup(event, data)
+    local packpaths = ms:get('markerpacks')
 
-    for i,m in ipairs(tooltipmarkers.map) do
-        if m.guid~=guid then
-            table.insert(newmap, m)
-        end
-    end
-    tooltipmarkers.map = newmap
-
-    for i,m in ipairs(tooltipmarkers.world) do
-        if m.guid~=guid then
-            table.insert(newworld, m)
-        end
-    end
-    tooltipmarkers.world = newworld
-end
-
-function M.triggermarkers()
-    local apos = ml.avatarposition
-
-    local x = apos.x
-    local y = apos.y
-    local z = apos.z
-    
-    x = utils.meterstoinches(x)
-    y = utils.meterstoinches(y)
-    z = utils.meterstoinches(z)
-
-    local newtriggers = {}
-
-    for i,mp in ipairs(triggermarkers) do
-        local distsq = (mp.x - x)^2 + (mp.y - y)^2 + (mp.z - z)^2
-        if distsq <= mp.rangesq then
-            if mp.behavior==1 then
-                table.insert(mapguids, mp.guid)
-                log:debug("%s activated (behavior = 1)", mp.guid)
-                spritearray:remove({guid = mp.guid})
-                mapspritearray:remove({guid = mp.guid})
-                removetooltipmarkersforguid(mp.guid)
-            elseif mp.behavior==2 or mp.behavior==3 or mp.behavior==7 or mp.behvaior==101 then
-                markerdata.activateguid(mp.guid, ml.charactername)
-                log:debug("%s activated (behavior = %d)", mp.guid, mp.behavior)
-                spritearray:remove({guid = mp.guid})
-                mapspritearray:remove({guid = mp.guid})
-                removetooltipmarkersforguid(mp.guid)
-            elseif mp.behavior==6 then
-                local instanceid = string.format("%d|%d", ml.mapid, ml.shardid)
-                markerdata.activateguid(mp.guid, instanceid)
-                log:debug("%s activated (behavior = %d)", mp.guid, mp.behavior)
-                spritearray:remove({guid = mp.guid})
-                mapspritearray:remove({guid = mp.guid})
-                removetooltipmarkersforguid(mp.guid)
-            else
-                table.insert(newtriggers, mp)
-            end
-        else
-            table.insert(newtriggers, mp)
-        end
-    end
-
-    triggermarkers = newtriggers
-end
-
-local function onupdate()
-    local apos = ml.avatarposition
-
-    local x = apos.x
-    local y = apos.y
-    local z = apos.z
-    
-    x = utils.meterstoinches(x)
-    y = utils.meterstoinches(y)
-    z = utils.meterstoinches(z)
-
-    for i,mp in ipairs(triggermarkers) do
-        local distsq = (mp.x - x)^2 + (mp.y - y)^2 + (mp.z - z)^2
-        if distsq <= mp.rangesq then
-            triggerwin:show()
-            return
-        end
-    end
-
-    triggerwin:hide()
-end
-
-local function onmapchange()
-    coordconverter = gw2.coordconverter:new()
-    triggermarkers = {}
-    M.reloadcategories(true)
-end
-
-local function oncharacterchange()
-    M.reloadcategories(true)
-end
-
-local function onstartup()
-    M.packs = {}
-
-    local packpaths = settings:get('markerpacks')
-
-    if packpaths then
-        log:info("Loading marker packs...")
-        for i,packpath in ipairs(settings:get('markerpacks')) do
-            M.packs[packpath] = mp.markerpack:open(packpath)
-        end
-    else
-        log:warn("No markerpacks in settings.")
-    end
-   
-    if ml.mapid ~= 0 then
-        onmapchange()
-    end
-
-
-    if settings:get('categoryManager.window.show') then
-        require('markers.category-manager').show()
-    end
-end
-
-local function createtooltipinfo(marker, showabovebelow)
-    local abovebelowsepcolor = overlay.settings():get('overlay.ui.colors.text')
-
-    local playerpos = ml.avatarposition
-    playerpos.x = utils.meterstoinches(playerpos.x)
-    playerpos.y = utils.meterstoinches(playerpos.y)
-    playerpos.z = utils.meterstoinches(playerpos.z)
-
-    local markerx = utils.meterstoinches(marker.xpos)
-    local markery = utils.meterstoinches(marker.ypos)
-    local markerz = utils.meterstoinches(marker.zpos)
-
-    local dist = math.sqrt(
-        (playerpos.x - markerx)^2 +
-        (playerpos.y - markery)^2 +
-        (playerpos.z - markerz)^2
-    )
-
-    local box = ui.box('vertical')
-    box:spacing(2)
-    local diststr = string.format("%s away", utils.formatnumbercomma(math.floor(dist)))
-
-    local distbox = ui.box('horizontal')
-    distbox:padding(0,0,0,0)
-    distbox:spacing(5)
-
-    local abovebelowsep = ui.separator('vertical')
-    abovebelowsep:color(abovebelowsepcolor)
-
-    if showabovebelow and playerpos.y < markery and (markery - playerpos.y) >= 450 then
-        distbox:pack_end(uih.text('\u{2191} Above', 0x01EFEFFF))
-        distbox:pack_end(abovebelowsep)
-    elseif showabovebelow and playerpos.y > markery and (playerpos.y - markery) >= 450 then
-        distbox:pack_end(uih.text('\u{2193} Below', 0x00FF33FF))
-        distbox:pack_end(abovebelowsep)
-    end
-    distbox:pack_end(uih.text(diststr))
-
-    if marker['tip-name'] then
-        box:pack_end(uih.text(marker['tip-name'], true))
-    end
-
-    local cat = marker.category
-    local name = ''
-    while cat do
-        if name:len() > 30 then 
-            name = '...> ' .. name
-            break
-        end
-
-        if name:len() > 0 then
-            name = cat.displayname .. '> ' .. name
-        else
-            name = cat.displayname
-        end
-        cat = cat:parent()
-    end
-
-    if not name then name = marker.category.typeid end
-
-    box:pack_end(uih.text(name, true))
-    
-    box:pack_end(ui.separator('horizontal'), false, 'fill')
-    box:pack_end(distbox)
-
-    if marker['tip-description'] then
-        box:pack_end(ui.separator('horizontal'), false, 'fill')
-        local desc = marker['tip-description']
-        desc = string.gsub(desc, '%. ', '\n')
-        box:pack_end(uih.text(desc))
-    end
-    
-    if marker.info then
-        box:pack_end(ui.separator('horizontal'), false, 'fill')
-        box:pack_end(uih.text(marker.info))
-    end
-
-    local props = {'guid', 'behavior'}
-    if #props > 0 then
-        box:pack_end(ui.separator('horizontal'), false, 'fill')
-        local propsgrid = ui.grid(#props, 2)
-        propsgrid:rowspacing(2)
-        propsgrid:colspacing(5)
-        for i, prop in ipairs(props) do
-            local nm = uih.text(prop, true)
-            local val = uih.text(marker[prop] or '(nil)')
-            propsgrid:attach(nm, i, 1)
-            propsgrid:attach(val, i, 2)
-        end
-        box:pack_end(propsgrid)
-    end
-
-    return box
-end
-
-local function buildtooltipinfos(tooltipmps, showabovebelow)
-    local box = ui.box('vertical')
-
-    box:padding(5,5,2,2)
-    box:spacing(10)
-
-    for i,mp in ipairs(tooltipmps) do
-        if i > 1 then
-            box:pack_end(ui.separator('horizontal'), false, 'fill')
-        end
-        box:pack_end(createtooltipinfo(mp.marker, showabovebelow), false, 'fill')
-    end
-
-    tooltipwin:set_child(box)
-end
-
-local function drawtooltip()
-    tooltipwin:hide()
-
-    local ld, md, rd = ui.mousebuttonstate()
-
-    if ld or md or rd or not mlavailable then return end
-
-    if not settings:get('showTooltips') or ml.incombat then return end
-
-    local mousecx, mousecy = o3d.mousepointermapcoords()
-
-    local playerpos = ml.avatarposition
-    playerpos.x = utils.meterstoinches(playerpos.x)
-    playerpos.y = utils.meterstoinches(playerpos.y)
-    playerpos.z = utils.meterstoinches(playerpos.z)
-
-    local tooltipmps = {}
-
-    if mousecx then
-        for i, mp in ipairs(tooltipmarkers.map) do
-            local mpdistsq = (
-                (mousecx - mp.x)^2 +
-                (mousecy - mp.y)^2
-            )
-            local searchdistsq = ((mp.size or 20)/2.0)^2
-            if mpdistsq < searchdistsq then
-                table.insert(tooltipmps, mp)
-            end
-        end
-    end
-
-    if #tooltipmps > 0 then
-        buildtooltipinfos(tooltipmps, true)
-        local mx, my = ui.mouseposition()
-        tooltipwin:position(mx - 10, my - 30)
-        tooltipwin:hanchor(1)
-        tooltipwin:vanchor(1)
-        tooltipwin:show()
-
+    if not packpaths then
+        overlay.logwarn('No marker packs in settings...')
         return
     end
 
-    if ml.mapopen then return end
+    overlay.loginfo('Loading marker packs...')
 
-    -- gather up all of the markers that are near the mouse cursor
-    -- be sure to use only attributes that are cached, DO NOT query
-    -- properties directly on the marker. That will perform a sqlite query
-    -- for each marker for every frame. SLOW
-    for i, mp in ipairs(tooltipmarkers.world) do
-        local isfaded = false
-        local mpdsq = (
-            (playerpos.x - mp.x)^2 +
-            (playerpos.y - mp.y)^2 +
-            (playerpos.z - mp.z)^2
-        )
-        if mp.fadefar > 0 then
-            local fadefarsq = mp.fadefar^2
-            if mpdsq > fadefarsq then isfaded = true end
-        end
-
-        if not isfaded and mpdsq < 10000^2 then
-            if o3d.mousepointsat(mp.x, mp.y, mp.z, mp.size/2.0) then
-                table.insert(tooltipmps, mp)
-            end
-        end
+    for i,packpath in ipairs(packpaths) do
+        M.markerpacks[packpath] = mp.markerpack:open(packpath)
     end
 
-    if #tooltipmps > 0 then
-        buildtooltipinfos(tooltipmps, false)
-
-        local mx, my = ui.mouseposition()
-
-        tooltipwin:position(mx + 30, my)
-        tooltipwin:hanchor(-1)
-        tooltipwin:vanchor(-1)
-        tooltipwin:show()
+    if ml.context.mapid() ~= 0 then
+        M.onmapchanged()
     end
 end
 
-local function drawmarkers()
-    if not settings:get('drawMarkers') or not mlavailable then return end
-
-    maptraillist:draw()
-    mapspritearray:draw()
-
-    if ml.mapopen then return end
-
-    traillist:draw()
-    spritearray:draw()
+function M.onmapchanged(event, data)
+    M.coordconv = gw2.coordinateconverter.new()
+    M.behaviormgr.mapguids = {}
+    M.reloadcategories(true)
 end
 
-local function mlavailablechanged(event)
-    if event=='mumble-link-available' then
-        mlavailable = true
+function M.onmlavailable(event, data)
+    if ms:get('showMarkers') then
+        M.worldsprites:draw(true)
+        M.mapsprites:draw(true)
+        M.worldtrails:draw(true)
+        M.maptrails:draw(true)
+    end
+end
+
+function M.onmlunavailable(event, data)
+    M.worldsprites:draw(false)
+    M.mapsprites:draw(false)
+    M.worldtrails:draw(false)
+    M.maptrails:draw(false)
+end
+
+function M.setshowmarkers(show)
+    show = show == true
+    ms:set('showMarkers', show)
+    M.worldsprites:draw(show)
+    M.mapsprites:draw(show)
+    M.worldtrails:draw(show)
+    M.maptrails:draw(show)
+end
+
+function M.onupdate()
+    local worldhovertags = M.worldsprites:mousehovertags()
+    local maphovertags = M.mapsprites:mousehovertags()
+
+    local worldcount = #worldhovertags
+    local mapcount = #maphovertags
+
+    if mapcount > 0 then
+        local tags = maphovertags[mapcount]
+        M.tooltipwin:setmarker(tags.pack, tags.typeid, tags.markerid)
+        M.tooltipwin:show()
+    elseif worldcount > 0 then
+        local tags = worldhovertags[worldcount]
+        M.tooltipwin:setmarker(tags.pack, tags.typeid, tags.markerid)
+        M.tooltipwin:show()
     else
-        mlavailable = false
+        M.tooltipwin:hide()
     end
+
+    M.behaviormgr:update()
 end
 
-local function ondraw()
-    drawtooltip()
-    drawmarkers()
-end
+overlay.addeventhandler('startup'                , M.onstartup)
+overlay.addeventhandler('update'                 , M.onupdate)
+overlay.addeventhandler('mumble-link-map-changed', M.onmapchanged)
+overlay.addeventhandler('mumble-link-available'  , M.onmlavailable)
+overlay.addeventhandler('mumble-link-unavailable', M.onmlunavailable)
 
-local function onkeyup(event, key)
-    if key=='f' then
-        M.triggermarkers()
-    end
-end
+overlay.addkeybindhandler('f', function()
+    M.behaviormgr:activatemarker()
 
-overlay.addeventhandler('update' , onupdate)
-overlay.addeventhandler('startup', onstartup)
-overlay.addeventhandler('draw-3d', ondraw)
-
-overlay.addeventhandler('key-up', onkeyup)
-
-overlay.addeventhandler('mumble-link-map-changed'      , onmapchange)
-overlay.addeventhandler('mumble-link-character-changed', oncharacterchange)
-overlay.addeventhandler('mumble-link-available'        , mlavailablechanged)
-overlay.addeventhandler('mumble-link-unavailable'      , mlavailablechanged)
+    return false
+end)
 
 return M

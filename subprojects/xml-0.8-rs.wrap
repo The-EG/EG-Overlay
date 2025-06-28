@@ -1,0 +1,10 @@
+[wrap-file]
+directory = xml-rs-0.8.26
+source_url = https://crates.io/api/v1/crates/xml-rs/0.8.26/download
+source_filename = xml-rs-0.8.26.tar.gz
+source_hash = A62CE76D9B56901B19A74F19431B0D8B3BC7CA4AD685A746DFD78CA8F4FC6BDA
+
+method = cargo
+
+[provide]
+dependency_names = xml-0.8-rs

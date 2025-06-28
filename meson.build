@@ -1,86 +1,30 @@
-project('eg-overlay', 'c', 'cpp', version: '0.1.0-dev', default_options: ['c_std=c17'])
+# EG-Overlay
+# Copyright (c) 2025 Taylor Talkington
+# SPDX-License-Identifier: MIT
+project('eg-overlay', 'rust', 'c', meson_version: '>=1.3.0', version: '0.3.0-dev', default_options:['rust_std=2024'])
+
+dxc = find_program('dxc')
+pwsh = find_program('pwsh')
+rc = find_program('rc')
+
+fs = import('fs')
 
 version_data = configuration_data()
 version_data.set('version_str', meson.project_version())
-version_data.set('rc_version_num', '0,1,0,0')
+version_data.set('rc_version_num', '0,3,0,0')
 
-cc = meson.get_compiler('c')
-fs = import('fs')
-
-cmake = import('cmake')
-
-cmake_buildtypes = {
-    'debug': {'CMAKE_BUILD_TYPE':'Debug'},
-    'debugoptimized': {'CMAKE_BUILD_TYPE':'RelWithDebInfo'},
-    'minsize': {'CMAKE_BUILD_TYPE':'MinSizeRel'},
-    'release': {'CMAKE_BUILD_TYPE':'Release'}
-}
-
-generic_cmake_opts = cmake.subproject_options()
-jansson_opts = cmake.subproject_options()
-
-jansson_opts.add_cmake_defines(cmake_buildtypes[get_option('buildtype')])
-jansson_opts.add_cmake_defines({'JANSSON_BUILD_DOCS': 'OFF'})
-generic_cmake_opts.add_cmake_defines(cmake_buildtypes[get_option('buildtype')])
-
-zlib_dep = dependency('zlib')
-
-freetype2_dep = dependency('freetype2')
-
-libxml2_dep = dependency('libxml-2.0', 
-  default_options: [
-    'default_library=static',
-    'warning_level=0',
-    'python=false',
-    'readline=false',
-    'threads=disabled',
-    'catalog=false',
-    'debuging=false',
-    'html=false',
-    'ipv6=false',
-    'modules=disabled',
-    'push=false',
-    'readline=false',
-    'zlib=disabled',
-    'sax1=false',
-    'history=false',
-    'iconv=disabled',
-    'icu=disabled',
-    'lzma=disabled',
-    'pattern=false',
-    'regexps=false',
-    'schemas=false',
-    'schematron=false',
-    'xptr=false',
-    'xpath=false',
-    'xinclude=false',
-    'valid=false',
-    'c14n=false',
-    'iso8859x=false',
-    'output=false',
-    ]
-)
+windows_rs_dep = dependency('windows-0.61-rs', default_options:['rust_std=2021'])
+serde_rs = dependency('serde-1-rs', default_options:['rust_std=2018'])
+serde_json_rs = dependency('serde_json-1-rs', default_options:['rust_std=2021'])
+xml_rs = dependency('xml-0.8-rs', default_options:['rust_std=2021'])
 
 lua_proj = subproject('lua-5.4.7')
 lua_dep = lua_proj.get_variable('lua_dep')
 
-jansson_proj = cmake.subproject('jansson-2.14', options:jansson_opts)
-jansson_dep = jansson_proj.dependency('jansson')
+zlib_dep = dependency('zlib')
+freetype2_dep = dependency('freetype2')
 
-winmm_lib = cc.find_library('winmm')
-rpcrt_lib = cc.find_library('rpcrt4')
-
-crypt32_dep = cc.find_library('Crypt32')
-wininet_dep = cc.find_library('WinInet')
-shlwapi_dep = cc.find_library('shlwapi')
-
-d3d12_dep = cc.find_library('D3D12')
-dxguid_dep = cc.find_library('DXGUID')
-dxgi_dep = cc.find_library('DXGI')
-dcomp_dep = cc.find_library('DComp')
-winmm_dep = cc.find_library('WinMM')
-wincodecs_dep = cc.find_library('WindowsCodecs')
-
-dxc = find_program('dxc')
+sqlite_proj = subproject('sqlite-amalgamation-3460000')
+sqlite_dep = sqlite_proj.get_variable('sqlite_dep')
 
 subdir('src')

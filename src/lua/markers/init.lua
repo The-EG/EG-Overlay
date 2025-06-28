@@ -1,27 +1,10 @@
---[[ RST
-Markers
-=======
+-- EG-Overlay
+-- Copyright (c) 2025 Taylor Talkington
+-- SPDX-License-Identifier: MIT
 
-.. overlay:module:: markers
-
-The markers module manages and displays in game markers that are displayed in
-the 3D scene and can be used to help guide the player.
-
-.. toctree::
-    :caption: Marker Pack Development
-    :maxdepth: 1
-
-    markerpacks
-
-.. toctree::
-    :caption: Submodules
-    :maxdepth: 1
-
-    package 
-
-]]--
 require 'mumble-link-events'
-require 'markers.menu'
+--require 'markers.menu'
 require 'markers.manager'
+require 'markers.category-manager'
 
 return {}

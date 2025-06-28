@@ -1,0 +1,10 @@
+[wrap-file]
+directory = serde-1.0.218
+source_url = https://crates.io/api/v1/crates/serde/1.0.218/download
+source_filename = serde-1.0.218.tar.gz
+source_hash = E8DFC9D19BDBF6D17E22319DA49161D5D0108E4188E8B680AEF6299EED22DF60
+
+method = cargo
+
+[provide]
+dependency_names = serde-1-rs

@@ -1,18 +1,22 @@
+# EG-Overlay
+# Copyright (c) 2025 Taylor Talkington
+# SPDX-License-Identifier: MIT
+
 lua_srcs = [
     'autoload.lua',
-    'main-menu.lua',
-    'console.lua',
-    'overlay-stats.lua',
-    'mumble-link-info.lua',
-    'mumble-link-events.lua',
-    'map-buddy.lua',
-    'logger.lua',
-    'ui-helpers.lua',
-    'db.lua',
-    'psna-tracker.lua',
+
+    'overlay-menu.lua',
+
     'utils.lua',
-    'xml-cleaner.lua',
-    'copy-pasta.lua',
+    'mumble-link-events.lua',
+
+    'console.lua',
+
+    'overlay-stats.lua',
+
+    'psna-tracker.lua',
+
+    'mumble-link-info.lua',
 ]
 
 lua_files = []
@@ -20,6 +24,7 @@ lua_files = []
 foreach lua : lua_srcs
     lua_files += fs.copyfile(lua, lua)
 endforeach
+
 
 subdir('gw2')
 subdir('markers')

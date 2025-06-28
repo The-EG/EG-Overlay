@@ -1,3 +1,6 @@
+// EG-Overlay
+// Copyright (c) 2025 Taylor Talkington
+// SPDX-License-Identifier: MIT
 #include "image.hlsl"
 
 PSInput main(uint vertid : SV_VertexID) {

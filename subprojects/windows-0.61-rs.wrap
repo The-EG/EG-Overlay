@@ -1,0 +1,12 @@
+[wrap-file]
+directory = windows-0.61.1
+source_url = https://crates.io/api/v1/crates/windows/0.61.1/download
+source_filename = windows-0.61.1.tar.gz
+source_hash = C5EE8F3D025738CB02BAD7868BBB5F8A6327501E870BF51F1B455B0A2454A419
+
+patch_directory = patches/windows-rs
+
+method = cargo
+
+[provide]
+dependency_names = windows-0.61-rs

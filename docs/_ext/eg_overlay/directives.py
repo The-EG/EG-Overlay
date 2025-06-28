@@ -1,3 +1,6 @@
+# EG-Overlay
+# Copyright (c) 2025 Taylor Talkington
+# SPDX-License-Identifier: MIT
 from docutils import nodes
 
 from sphinx.util.docutils import SphinxDirective

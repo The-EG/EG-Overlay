@@ -1,3 +1,7 @@
+-- EG-Overlay
+-- Copyright (c) 2025 Taylor Talkington
+-- SPDX-License-Identifier: MIT
+
 --[[ RST
 markers.package
 ===============
@@ -5,12 +9,8 @@ markers.package
 .. lua:module:: markers.package
 
 ]]--
-
-local sqlite = require 'sqlite'
-local logger = require 'logger'
+local overlay = require 'eg-overlay'
 local settings = require 'markers.settings'
-
-local log = logger.logger:new('markers.package')
 
 settings:setdefault('markerpackCacheSize', -2000)
 
@@ -60,7 +60,7 @@ function M.markerpack:open(path)
         f:close()
         return M.markerpack:new(path)
     else
-        log:error("Can't open markerpack, path does not exist: %s", path)
+        overlay.logerror(string.format("Can't open markerpack, path does not exist: %s", path))
         return nil
     end
 end
@@ -89,10 +89,10 @@ end
 ]]--
 function M.markerpack:new(path)
     local mp = {}
-    
-    local dbok, db = pcall(sqlite.open, path)
 
-    if not dbok then
+    db = overlay.sqlite3open(path)
+    
+    if not db then
         error(string.format("Couldn't open markerpack: %s", db), 2)
     end
 
@@ -104,7 +104,7 @@ function M.markerpack:new(path)
     if not mp:verifydata() then
         error(string.format("Couldn't verify markerpack data for %s", path), 2)
     else
-        log:debug("Loaded %s", path)
+        overlay.logdebug(string.format("Loaded %s", path))
     end
 
     local cache_size = settings:get('markerpackCacheSize')
@@ -113,7 +113,7 @@ function M.markerpack:new(path)
     -- turn on foreign key checks
     mp.db:execute('PRAGMA foreign_keys = ON')
     mp.db:execute('PRAGMA optimize=0x10002')
-    mp.db:execute("PRAGMA journal_mode = WAL")
+    --mp.db:execute("PRAGMA journal_mode = WAL")
     mp.db:execute("PRAGMA synchronous = NORMAL")
 
     -- prepare all statements once and use them over and over again
@@ -266,6 +266,17 @@ function M.markerpack:new(path)
     return mp
 end
 
+function M.markerpack:close()
+    for v,stmts in pairs(self.statements) do
+        for n, stmt in pairs(stmts) do
+            stmt:finalize()
+        end
+    end
+
+    self.db:__close()
+end
+
+
 --[[ RST
     .. lua:method:: category(typeid[, create])
         
@@ -308,8 +319,12 @@ function M.markerpack:category(typeid, create)
         s:bind(':typeid', typeid)
         s:bind(':parent', parent)
         s:bind(':seq', seq)
-        s:step()
+        local r =  s:step()
         s:reset()
+
+        if r==nil then
+            error(string.format("Error creating new category %s", typeid))
+        end
     else
         local s = self.statements.category.selectbytypeid
         s:reset()
@@ -317,7 +332,7 @@ function M.markerpack:category(typeid, create)
 
         local r = s:step()
         s:reset()
-        if r==nil then return nil end
+        if r==true then return nil end
     end
 
     setmetatable(cat, M.category)
@@ -365,7 +380,7 @@ function M.markerpack:toplevelcategoriesiter()
 
     local iter = function()
         local r = s:step()
-        if r then
+        if type(r)=='table' then
             return self:category(r.typeid)
         else
             s:finalize()
@@ -383,7 +398,7 @@ function M.markerpack:categoriesinmapiter(mapid)
 
     local iter = function()
         local r = s:step()
-        if r then
+        if type(r)=='table' then
             return self:category(r.typeid)
         else
             s:reset()
@@ -462,9 +477,9 @@ function M.markerpack:verifydata()
     local r = s:step()
     s:finalize()
 
-    if r==nil then
+    if r==true then
         self.db:execute([[ INSERT INTO markerpack (version) VALUES (1) ]])
-    else
+    elseif r~=nil then
         if r.version~=1 then
             log:error("Unknown markerpack version %d (%s)", self.path)
             return false
@@ -690,7 +705,7 @@ function M.category:hasmarkersinmap(mapid, includechildren)
     local r = s:step()
     s:reset()
 
-    if r and r.count > 0 then return true end
+    if type(r)=='table' and r.count > 0 then return true end
 
     -- no trails or markers
     return false
@@ -759,7 +774,7 @@ function M.category:childreniter()
     
     local iter = function()
         local r = s:step()
-        if r then
+        if type(r)=='table' then
             return self.markerpack:category(r.typeid)
         else
             s:reset()
@@ -897,7 +912,7 @@ function M.category:markersinmapiter(mapid)
 
     local iter = function()
         local r = s:step()
-        if r then
+        if r and type(r)=='table' then
             local marker = { id = r.id, db = self.db, category = self }
             setmetatable(marker, M.marker)
             return marker
@@ -930,7 +945,7 @@ function M.category:trailsinmapiter(mapid)
 
     local iter = function()
         local r = s:step()
-        if r then
+        if type(r)=='table' then
             local trail = { id = r.id, db = self.db, category = self }
             setmetatable(trail, M.trail)
             return trail
@@ -956,7 +971,7 @@ function M.category:__index(key)
     local r = s:step()
     s:reset()
 
-    if r then return r.value end
+    if r~=true and r~=false then return r.value end
 end
 
 function M.category:__newindex(key, value)
@@ -1068,7 +1083,7 @@ function M.marker:getproperty(key)
     
     local r = s:step()
     s:reset()
-    if r then return r.value end
+    if r and type(r)=='table' then return r.value end
 
     return self.category[key]
 end
@@ -1192,7 +1207,7 @@ function M.trail:pointsiter()
     local iter = function()
         local r = s:step()
 
-        if r then
+        if type(r)=='table' then
             return r.x, r.y, r.z
         else
             s:reset()
@@ -1238,7 +1253,7 @@ function M.trail:getproperty(key)
     local r = s:step()
     s:reset()
 
-    if r then return r.value end
+    if type(r)=='table' then return r.value end
     return self.category[key]
 end
 
@@ -1319,7 +1334,7 @@ function M.datafile:data(value)
         local r = s:step()
         s:reset()
 
-        if r then
+        if r and r~=true then
             return r.data
         else
             return nil

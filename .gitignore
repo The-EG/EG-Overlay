@@ -2,25 +2,26 @@ builddir/
 
 docs/_build
 
-# ignore everything in subprojects except the wrap files
 subprojects/*
-!subprojects/curl.wrap
 !subprojects/freetype2.wrap
-!subprojects/libxml2.wrap
+!subprojects/serde_json-1-rs.wrap
+!subprojects/serde-1-rs.wrap
+!subprojects/windows-0.61-rs.wrap
+!subprojects/xml-0.8-rs.wrap
 !subprojects/zlib.wrap
+!subprojects/packagefiles/
 !subprojects/lua-5.4.7/
-!subprojects/jansson-2.14/
+!subprojects/sqlite-amalgamation-3460000/
 
 __pycache__/
 
 .venv/
 .vscode/*
 
-!.vscode/launch.json
-
 release/
 
-# documentation index
 genindex.rst
 lua-modindex.rst
 overlay-eventindex.rst
+
+src/version.rs

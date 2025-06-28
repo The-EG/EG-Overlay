@@ -1,3 +1,6 @@
+// EG-Overlay
+// Copyright (c) 2025 Taylor Talkington
+// SPDX-License-Identifier: MIT
 #pragma once
 // root constants
 //  0 16 float4x4 view

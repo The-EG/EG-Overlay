@@ -1,3 +1,7 @@
+// EG-Overlay
+// Copyright (c) 2025 Taylor Talkington
+// SPDX-License-Identifier: MIT
+
 #include <winver.h>
 #include "eg-overlay.h"
 
@@ -12,7 +16,7 @@ VS_VERSION_INFO VERSIONINFO
 BEGIN
     BLOCK "StringFileInfo"
     BEGIN
-        BLOCK "040904B0"
+        BLOCK "04090000"
         BEGIN
             VALUE "FileDescription",  "EG-Overlay: A GW2 Overlay"
             VALUE "CompanyName",      "Taylor Talkington (The-EG)"
@@ -25,6 +29,6 @@ BEGIN
     END
     BLOCK "VarFileInfo"
     BEGIN
-        VALUE "Translation", 0x0409, 0x04B0
+        VALUE "Translation", 0x0409, 0x0000
     END
 END

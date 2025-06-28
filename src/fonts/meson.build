@@ -1,3 +1,7 @@
+# EG-Overlay
+# Copyright (c) 2025 Taylor Talkington
+# SPDX-License-Identifier: MIT
+
 fonts = {
     '../../contrib/fonts/Inter/Inter-VariableFont_slnt,wght.ttf': 'Inter.ttf',
     '../../contrib/fonts/CascadiaCode-2404.23/ttf/CascadiaCode.ttf': 'CascadiaCode.ttf',

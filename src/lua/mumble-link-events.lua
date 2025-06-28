@@ -1,3 +1,7 @@
+-- EG-Overlay
+-- Copyright (c) 2025 Taylor Talkington
+-- SPDX-License-Identifier: MIT
+
 --[[ RST
 mumble-link-events
 ==================
@@ -5,7 +9,7 @@ mumble-link-events
 .. lua:module:: mumble-link-events
 
 .. code:: lua
-
+    
     require 'mumble-link-events'
 
 The :lua:mod:`mumble-link-events` module does not have any public functions or
@@ -18,22 +22,20 @@ module.
     :overlay:event:`update` event. Any events that it queues are dispatched on
     the next :overlay:event:`update`.
 
-
 Events
 ------
 
 .. overlay:event:: mumble-link-available
 
-    Sent once :lua:data:`mumble-link.tick` has changed after a
+    Sent once :lua:func:`mumble-link.tick` has changed after a
     :overlay:event:`mumble-link-unavailable` event.
 
     .. versionhistory::
-        :0.0.1: Added
-
+        :0.3.0: Added
 
 .. overlay:event:: mumble-link-unavailable
 
-    Sent anytime :lua:data:`mumble-link.tick` is not updated for at least 400
+    Sent anytime :lua:func:`mumble-link.tick` is not updated for at least 400
     milliseconds, indicating that the game is no longer updating the MumbleLink
     data.
     
@@ -41,62 +43,123 @@ Events
     be sent until :overlay:event:`mumble-link-available` is sent again.
 
     .. versionhistory::
-        :0.0.1: Added
+        :0.3.0: Added
 
 .. overlay:event:: mumble-link-map-changed
 
-    Sent anytime :lua:data:`mumble-link.mapid` changes between update events.
+    Sent anytime :lua:func:`mumble-link.context.mapid` changes between update events.
+
+    Event handlers will be sent a Lua table containing two fields:
+
+    +-------+-------------------------------------------------------------+
+    | Field | Description                                                 |
+    +=======+=============================================================+
+    | from  | The map ID of the prior map.                                |
+    +-------+-------------------------------------------------------------+
+    | to    | The map ID of the new map.                                  |
+    +-------+-------------------------------------------------------------+
+
+    .. warning::
+        ``from`` may be ``0`` if there was not a valid map previously.
 
     .. versionhistory::
-        :0.0.1: Added
+        :0.3.0: Added
+
+.. overlay:event:: mumble-link-character-changed
+
+    Sent anytime :lua:func:`mumble-link.identity.name` changes between update events.
+
+    Event handlers will be sent a Lua table containing two fields:
+
+    +-------+------------------------------------------------------------------+
+    | Field | Description                                                      |
+    +=======+==================================================================+
+    | from  | The previous character name.                                     |
+    +-------+------------------------------------------------------------------+
+    | to    | The new character name.                                          |
+    +-------+------------------------------------------------------------------+
+
+    .. warning::
+        ``from`` may be ``nil`` if there was no previous character name.
+
+    .. versionhistory::
+        :0.3.0: Added
 ]]--
 
 local overlay = require 'eg-overlay'
-local logger = require 'logger'
 local ml = require 'mumble-link'
 
-local log = logger.logger:new("mumble-link-events")
-local is_available = false
-local last_tick = ml.tick
-local last_tick_time = overlay.time()
-local map_id = ml.mapid
+local mlevents = {}
+mlevents.__index = mlevents
 
-local charactername = ml.charactername
+function mlevents.new()
+    local m = {
+        available = false,
+        lasttick = ml.tick(),
+        lastticktime = overlay.time(),
+        mapid = ml.context.mapid(),
+        charactername = ml.identity.name(),
+    }
 
-local tick_to_tick_time = 0.4
+    setmetatable(m, mlevents)
 
-local function update()
-    local now = overlay.time()
-    if not is_available and last_tick~=ml.tick then
-        is_available = true
+    return m
+end
+
+function mlevents:checkavailable(now)
+    local tick = ml.tick()
+
+    if not self.available and self.lasttick ~= tick then
+        self.available = true
         overlay.queueevent('mumble-link-available')
-        log:debug('MumbleLink available')
-    elseif is_available and last_tick==ml.tick and now - last_tick_time >= tick_to_tick_time then
-        is_available = false
+        overlay.logdebug('MumbleLink available')
+    elseif self.available and self.lasttick == tick and now - self.lastticktime >= 0.4 then
+        self.available = false
         overlay.queueevent('mumble-link-unavailable')
-        log:debug('MumbleLink unavailable')
+        overlay.logdebug('MumbleLink unavailable.')
     end
 
-    if last_tick ~= ml.tick then
-        last_tick = ml.tick
-        last_tick_time = now
-    end
-
-    if not is_available then return end
-
-    if charactername~=ml.charactername then
-        log:debug('MumbleLink character changed ( %s -> %s )', charactername, ml.charactername)
-        overlay.queueevent('mumble-link-character-changed', {from=charactername, to=ml.charactername})
-        charactername = ml.charactername
-    end
-
-    if map_id~=ml.mapid then
-        log:debug('MumbleLink new map ( %d -> %d )', map_id, ml.mapid)
-        map_id = ml.mapid
-        overlay.queueevent('mumble-link-map-changed')
+    if self.lasttick ~= tick then
+        self.lasttick = tick
+        self.lastticktime = now
     end
 end
 
-overlay.addeventhandler('update', update)
+function mlevents:checkcharacter(now)
+    local charname = ml.identity.name()
+
+    if self.charactername ~= charname then
+        overlay.queueevent('mumble-link-character-changed', {from=self.charactername, to=charname})
+        overlay.logdebug(string.format('MumbleLink character changed (%s -> %s)',self.charactername, charname))
+
+        self.charactername = charname
+    end
+end
+
+function mlevents:checkmap(now)
+    local mapid = ml.context.mapid()
+
+    if self.mapid ~= mapid then
+        overlay.queueevent('mumble-link-map-changed', {from=self.mapid, to=mapid})
+        overlay.logdebug(string.format('MumbleLink map changed (%s -> %s)', self.mapid, mapid))
+
+        self.mapid = mapid
+    end
+end
+
+function mlevents:onupdate()
+    local now = overlay.time()
+
+    self:checkavailable(now)
+
+    if not self.available then return end
+
+    self:checkcharacter(now)
+    self:checkmap(now)
+end
+
+local e = mlevents.new()
+
+overlay.addeventhandler('update', function() e:onupdate() end)
 
 return {}

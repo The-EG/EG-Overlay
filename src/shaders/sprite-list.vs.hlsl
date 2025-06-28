@@ -1,3 +1,6 @@
+// EG-Overlay
+// Copyright (c) 2025 Taylor Talkington
+// SPDX-License-Identifier: MIT
 #include "sprite-list.hlsl"
 #include "3dcommon.hlsl"
 
@@ -53,7 +56,7 @@ PSInput main(VSInput input, uint vert : SV_VertexID) {
 
     if (ismap==0) {
         if ((input.flags & BILLBOARD) > 0) {
-            vpos = mul(vpos, billboard);
+            vpos = mul(billboard, vpos);
         } else {
             vpos = mul(float4(vpos, 1.0), input.rotation).xyz;
         }
@@ -61,7 +64,10 @@ PSInput main(VSInput input, uint vert : SV_VertexID) {
 
     output.flags = input.flags;
 
-    output.position = mul(proj, mul(view, float4(input.pos + vpos, 1.0)));
+    float4 adjpos = float4(input.pos + vpos, 1.0);
+    float4 viewpos = mul(adjpos, view);
+    output.position = mul(viewpos, proj);
+
     output.color = input.color;
 
     output.fade_dist = distance(player_pos, input.pos);

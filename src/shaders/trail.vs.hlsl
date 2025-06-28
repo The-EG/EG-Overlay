@@ -1,3 +1,6 @@
+// EG-Overlay
+// Copyright (c) 2025 Taylor Talkington
+// SPDX-License-Identifier: MIT
 #include "trail.hlsl"
 #include "3dcommon.hlsl"
 
@@ -9,7 +12,9 @@ struct VSInput {
 PSInput main(VSInput input) {
     PSInput output;
 
-    output.position = mul(proj, mul(view, float4(input.position, 1.0)));
+    float4 viewpos = mul(float4(input.position, 1.0), view);
+
+    output.position = mul(viewpos, proj);
     output.texuv    = input.texuv;
 
     output.cam_player_dist = distance(camera_pos, player_pos);

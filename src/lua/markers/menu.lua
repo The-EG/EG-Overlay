@@ -1,3 +1,6 @@
+-- EG-Overlay
+-- Copyright (c) 2025 Taylor Talkington
+-- SPDX-License-Identifier: MIT
 local overlay  = require 'eg-overlay'
 local ui       = require 'eg-overlay-ui'
 local uih      = require 'ui-helpers'

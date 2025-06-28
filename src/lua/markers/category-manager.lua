@@ -1,15 +1,88 @@
+-- EG-Overlay
+-- Copyright (c) 2025 Taylor Talkington
+-- SPDX-License-Identifier: MIT
+
+--[[ RST
+Markers Category Manager
+========================
+
+This window allows users to control what markers from the loaded marker packs
+are displayed in the overlay.
+]]--
+
 local overlay = require 'eg-overlay'
+local ui = require 'eg-overlay-ui'
 local settings = require 'markers.settings'
 local manager = require 'markers.manager'
-local ui = require 'eg-overlay-ui'
-local uih = require 'ui-helpers'
 local ml = require 'mumble-link'
 local data = require 'markers.data'
-local logger = require 'logger'
-
-local log = logger.logger:new('markers.cat-mgr')
+local overlay_menu = require 'overlay-menu'
 
 local M = {}
+
+local overlay_settings = overlay.overlaysettings()
+local monofontsize = overlay_settings:get('overlay.ui.font.mono.size')
+
+local function checkbox()
+    local c = ui.checkbox(monofontsize + 4)
+    c:bgcolor(0x00000000)
+    c:bghover(0x757575FF)
+    c:border(0xFFFFFFFF)
+    c:borderwidth(1)
+
+    return c
+end
+
+local childrenicon = ui.iconcodepoint('subdirectory_arrow_right')
+
+local function childrenbutton()
+    local btn = ui.button()
+    
+    local txt = ui.text(childrenicon, ui.color('text'), ui.fonts.icon)
+    
+    local box = ui.box('horizontal')
+    box:paddingleft(5)
+    box:paddingright(5)
+    box:alignment('middle')
+    
+    box:pushback(txt, 'start', false)
+
+    btn:child(box)
+
+    return btn
+end
+
+local function textbutton(text)
+    --local osettings = overlay.overlaysettings()
+    local txt = ui.text(text, ui.color('text'), ui.fonts.regular)
+
+    local box = ui.box('vertical')
+    box:paddingleft(5)
+    box:paddingright(5)
+    box:paddingtop(5)
+    box:paddingbottom(5)
+    box:pushback(txt, 'middle', false)
+
+    local btn = ui.button()
+    btn:child(box)
+
+    return btn
+end
+
+local function shortbutton(text)
+    local txt = ui.text(text, ui.color('text'), ui.fonts.regular)
+
+    local box = ui.box('vertical')
+    box:paddingleft(5)
+    box:paddingright(5)
+    box:pushback(txt, 'middle', false)
+
+    local btn = ui.button()
+    btn:child(box)
+
+    return btn
+end
+
 
 -- The path of the categories displayed. This is a category typeid, of which
 -- all child categories are displayed.
@@ -20,513 +93,380 @@ settings:setdefault('categoryManager.window.x', 200)
 settings:setdefault('categoryManager.window.y', 50)
 settings:setdefault('categoryManager.window.width', 300)
 settings:setdefault('categoryManager.window.height', 600)
-settings:setdefault('categoryManager.window.show', false)
+settings:setdefault('categoryManager.window.visible', false)
 
-local function shortbtn(text)
-    local btn = ui.button()
-    local box = ui.box('vertical')
-    local txt = uih.text(text)
-    box:padding(5,5,0,0)
-    box:pack_end(txt)
-    btn:set_child(box)
+local BreadCrumbBox = {}
+BreadCrumbBox.__index = BreadCrumbBox
 
-    return btn
-end
-
-local win = ui.window('Manage Markers', 20, 20)
-win:min_size(300, 300)
-win:resizable(true)
-win:settings(settings, 'categoryManager.window')
-
-local outerbox = ui.box('vertical')
-win:set_child(outerbox)
-outerbox:padding(5, 5, 5, 5)
-outerbox:spacing(2)
-outerbox:align('start')
-
-local pathbox = ui.box('vertical')
-
-pathbox:padding(0, 0, 2, 2)
-pathbox:spacing(2)
-
-local homebtnbox = ui.box('horizontal')
-homebtnbox:spacing(5)
-homebtnbox:padding(3,0,0,0)
-local homebtn = shortbtn('All markers')
-local homecheck = uih.checkbox()
-homebtnbox:pack_end(homecheck, false, 'middle')
-homebtnbox:pack_end(homebtn)
-
-local workingmsg = uih.text('Please wait...')
-
-homecheck:state(settings:get('drawMarkers'))
-
-homecheck:addeventhandler(function(event)
-    if event~='toggle-on' and event~='toggle-off' then return end
-
-    settings:set('drawMarkers', event=='toggle-on')
-end)
-
-pathbox:pack_end(homebtnbox)
-
-outerbox:pack_end(pathbox, false, 'fill')
-
-outerbox:pack_end(ui.separator('horizontal'), false, 'fill')
-
-local contextmenu = {
-    menu = ui.menu(),
-    cat = nil,
-}
-
-local function contextmenuitem(child, enabled, cb)
-    local mi = ui.menu_item()
-    if enabled==nil then enabled = true end
-    mi:enabled(enabled)
-    mi:set_child(child)
-    contextmenu.menu:add_item(mi)
-
-    if cb then
-        mi:addeventhandler(cb)
-    end
+function BreadCrumbBox.new()
+    local b = {}
+    b.box = ui.box('vertical')
     
-    return mi
+    b.home =  {
+        box = ui.box('horizontal'),
+        check = checkbox(),
+        btn = shortbutton('All Markers'),
+        path = '',
+    }
+
+    b.handlers = {}
+
+    setmetatable(b, BreadCrumbBox)
+
+    --b.home.box:paddingleft(3)
+    b.home.box:spacing(5)
+    b.home.box:pushback(b.home.check, 'middle', false)
+    b.home.box:pushback(b.home.btn  , 'middle', false)
+
+    b.home.check:checkstate(settings:get('showMarkers'))
+
+    b.home.check:addeventhandler(function(e)
+        manager.setshowmarkers(e=='toggle-on')
+    end, 'toggle-on', 'toggle-off')
+
+    b.home.btn:addeventhandler(function()
+        b:_runhandlers('')
+    end, 'click-left')
+
+
+
+    b.box:spacing(2)
+    b.box:pushback(b.home.box, 'start', false)
+
+    b:update()
+
+    return b
 end
 
-local function contextmenusep()
-    return contextmenuitem(ui.separator('horizontal'), false)
+function BreadCrumbBox:update()
+    while #self.box > 1 do self.box:popback() end
+
+    local path = settings:get('categoryManager.path')
+    if path == '' then return end
+
+    for name, mp in pairs(manager.markerpacks) do
+        local category = mp:category(path)
+
+        if category then
+            local pathcats = {}
+
+            local c = category
+            while c do
+                table.insert(pathcats, 1, c)
+                c = c:parent()
+            end
+
+            for i, c in ipairs(pathcats) do
+                local box = ui.box('horizontal')
+                local check = checkbox()
+                local btn = shortbutton(c.displayname)
+
+                check:checkstate(data.iscategoryactive(c))
+
+                check:addeventhandler(function (e)
+                    data.setcategoryactive(c, e=='toggle-on')
+                    manager.reloadcategories(false)
+                end, 'toggle-on', 'toggle-off')
+
+                box:spacing(5)
+                box:pushback(check, 'middle', false)
+                box:pushback(btn, 'middle', false)
+
+                btn:addeventhandler(function() self:_runhandlers(c.typeid) end, 'click-left')
+
+                self.box:pushback(box, 'start', false)
+            end
+        end
+    end
 end
 
-local function contextmenutext(text, enabled, cb)
-    return contextmenuitem(uih.text(text), enabled, cb)
+function BreadCrumbBox:_runhandlers(newpath)
+    for i,h in ipairs(self.handlers) do
+        h(newpath)
+    end
 end
 
-contextmenu.parentmi = contextmenutext('Parent name', false)
+function BreadCrumbBox:addeventhandler(handler)
+    table.insert(self.handlers, handler)
 
-contextmenutext('Enable all', true, function(event)
-    if event~='click-left' then return end
-    contextmenu.menu:hide()
-    M.setallactive(true)
-end)
+    return #self.handlers
+end
 
-contextmenutext('Disable all', true, function(event)
-    if event~='click-left' then return end
-    contextmenu.menu:hide()
-    M.setallactive(false)
-end)
+function BreadCrumbBox:removeeventhandler(id)
+    table.remove(self.handlers, id)
+end
 
-contextmenusep()
-contextmenu.catmi = contextmenutext('Category Name', false)
+-- a category/row within the window
+local Category = {}
+Category.__index = Category
 
-contextmenutext('Enable all children', true, function(event)
-    if event~='click-left' then return end
-    contextmenu.menu:hide()
-    M.enableallchildren(contextmenu.cat)
-end)
+function Category.new(category)
+    local c = {}
+    c.category = category
+    c.label = ui.text(category.displayname or category.type, ui.color('text'), ui.fonts.monospace)
 
-contextmenutext('Disable others', true, function(event)
-   if event~='click-left' then return end
-   contextmenu.menu:hide()
-   M.disableothers(contextmenu.cat)
-end)
+    if (category.isseparator or 0) == 0 then
+        c.check = checkbox()
 
--- contextmenutext('Clear all activations', true, function(event)
---     if event~='click-left' then return end
---     log:debug('%s clear all activations', contextmenu.cat.typeid)
---     contextmenu.menu:hide()
--- end)
+        if data.iscategoryactive(category) then
+            c.check:checkstate(true)
+        end
 
-local function showcontextmenu(category)
-    local parentname = '(Top Level)'
+        c.check:addeventhandler(function()
+            data.setcategoryactive(category, false)
+            manager.reloadcategories(false)
+        end, 'toggle-off')
+        c.check:addeventhandler(function()
+            data.setcategoryactive(category, true )
+            manager.reloadcategories(false)
+        end, 'toggle-on')
 
-    local parent = category:parent()
-    if parent then parentname = parent.displayname end
+        if category:childcount() > 0 then
+            c.btn = childrenbutton()
+        end
+    end
 
-    contextmenu.catmi:set_child(uih.text(category.displayname, true))
-    contextmenu.parentmi:set_child(uih.text(parentname, true))
-    contextmenu.cat = category
+    setmetatable(c, Category)
+
+    return c
+end
+
+function Category:attachtogrid(grid, row)
+    if self.check then
+        grid:attach(self.check, row, 1, 1, 1, 'middle','middle')
+    end
+    grid:attach(self.label, row, 2, 1, 1, 'fill', 'middle')
+    if self.btn then
+        grid:attach(self.btn, row, 3, 1, 1, 'middle', 'middle')
+    end
+end
+
+local CategoryManager = {}
+CategoryManager.__index = CategoryManager
+
+function CategoryManager.new()
+    local cm = { }
+
+    setmetatable(cm, CategoryManager)
+
+    cm:setupwin()
+    cm:setupmenu()
+
+    if settings:get('categoryManager.window.visible') then
+        cm:show()
+    end
+
+    return cm
+end
+
+function CategoryManager:setupwin()
+    self.win = ui.window('Markers', 20, 20)
+    self.win:resizable(true)
+    self.win:settings(settings, 'categoryManager.window')
+
+    self.outerbox = ui.box('vertical')
+    self.outerbox:paddingleft(5)
+    self.outerbox:paddingright(5)
+    self.outerbox:paddingtop(5)
+    self.outerbox:paddingbottom(5)
+    self.outerbox:spacing(2)
+    self.outerbox:alignment('start')
+    self.win:child(self.outerbox)
+
+    self.breadcrumbs = BreadCrumbBox.new()
+
+    self.breadcrumbs:addeventhandler(function(newpath)
+        settings:set('categoryManager.path', newpath)
+        self:update()
+    end)
+
+    self.categoryscroll = ui.scrollview()
+
+    self.outerbox:pushback(self.breadcrumbs.box, 'fill', false)
+    self.outerbox:pushback(ui.separator('horizontal'), 'fill', false)
+    self.outerbox:pushback(self.categoryscroll, 'fill', true)
+    self.outerbox:pushback(ui.separator('horizontal'), 'fill', false)
+
+    self.inmapcheck = checkbox()
+    self.inmapcheck:checkstate(settings:get('categoryManager.onlyShowCategoriesInMap'))
+    self.inmapcheck:addeventhandler(function(event) self:showinmaptoggle(event) end,'toggle-on', 'toggle-off')
+
+    self.inmapbox = ui.box('horizontal')
+    self.inmapbox:spacing(5)
+    self.inmapbox:pushback(self.inmapcheck, 'middle', false)
+    self.inmapbox:pushback(ui.text('Only show categories in map', ui.color('text'), ui.fonts.regular), 'middle', false)
+    self.outerbox:pushback(self.inmapbox, 'fill', false)
+
+    self.outerbox:pushback(ui.separator('horizontal'), 'fill', false)
+
+    self.buttonbox = ui.box('horizontal')
+    self.buttonbox:spacing(2)
+    self.buttonbox:alignment('end')
+    self.outerbox:pushback(self.buttonbox, 'fill', false)
     
-    local x,y = ui.mouseposition()
-    contextmenu.menu:show(x,y)
+    self.reloadbtn = textbutton('Reload')
+    self.buttonbox:pushback(self.reloadbtn, 'fill', false)
+
+    self.closebtn = textbutton('Close')
+    self.buttonbox:pushback(self.closebtn, 'fill', false)
+
+    self.reloadbtn:addeventhandler(function() self:update() end, 'click-left')
+    self.closebtn:addeventhandler(function() self:oncloseclick() end, 'click-left')
 end
 
-local categoryscroll = ui.scrollview()
-local categorybox = ui.box('vertical')
-categorybox:pack_end(categoryscroll, true, 'fill')
-outerbox:pack_end(categorybox, true, 'fill')
+function CategoryManager:showinmaptoggle(event)
+    local showinmap = event=='toggle-on'
 
-outerbox:pack_end(ui.separator('horizontal'), false, 'fill')
+    settings:set('categoryManager.onlyShowCategoriesInMap', showinmap)
+    self:update()
+end
 
-local inmapbox = ui.box('horizontal')
-local inmapcheck = uih.checkbox()
-local inmaptext = uih.text('Only show categories in map')
+function CategoryManager:show()
+    self.win:show()
+    settings:set('categoryManager.window.visible', true)
+    self:update()
+end
 
-local reloadbtn = uih.text_button('Reload Markers')
+function CategoryManager:hide()
+    self.win:hide()
+    settings:set('categoryManager.window.visible', false)
+end
 
-inmapcheck:state(settings:get('categoryManager.onlyShowCategoriesInMap'))
+function CategoryManager:setupmenu()
+    self.overlaymenu = {
+        rootitem = ui.textmenuitem('Markers', ui.color('text'), overlay_menu.font),
+        menu = ui.menu(),
+        catmanager = ui.textmenuitem('Manage', ui.color('text'), overlay_menu.font),
+        settings = ui.textmenuitem('Settings', ui.color('text'), overlay_menu.font),
+    }
 
-inmapbox:spacing(10)
-inmapbox:pack_end(inmapcheck)
-inmapbox:pack_end(inmaptext)
+    self.overlaymenu.rootitem:submenu(self.overlaymenu.menu)
+    self.overlaymenu.menu:pushback(self.overlaymenu.catmanager)
+    self.overlaymenu.menu:pushback(self.overlaymenu.settings)
 
-outerbox:pack_end(inmapbox)
-outerbox:pack_end(reloadbtn, false, 'fill')
+    overlay_menu.additem(self.overlaymenu.rootitem)
 
-local closebtn = uih.text_button('Close')
-outerbox:pack_end(closebtn, false, 'fill')
+    self.overlaymenu.catmanager:addeventhandler(function() self:oncatmanagerbtnclick() end, 'click-left')
 
-closebtn:addeventhandler(function(event)
-    if event=='click-left' then
-        M.hide()
+    self:setmenuicons()
+end
+
+function CategoryManager:oncatmanagerbtnclick()
+    if settings:get('categoryManager.window.visible') then
+        self:hide()
+    else
+        self:show()
     end
-end)
-
-local function childrenbutton()
-    local t = uih.text('\u{21AA}')
-    local box = ui.box('horizontal')
-    box:padding(5,5,0,0)
-    local btn = ui.button()
-    btn:set_child(box)
-    box:align('middle')
-    box:pack_end(t, false,'start')
-
-    return btn
+    self:setmenuicons()
 end
 
-local function doreloadcats(full)
-    categorybox:pop_end()
-    categorybox:pack_end(workingmsg)
-    manager.reloadcategories(full)
-    categorybox:pop_end()
-    categorybox:pack_end(categoryscroll, true, 'fill')
-end
-
-reloadbtn:addeventhandler(function(event)
-    if event=='click-left' then
-        doreloadcats(true)
+function CategoryManager:setmenuicons()
+    if settings:get('categoryManager.window.visible') then
+        self.overlaymenu.catmanager:icon(overlay_menu.visible_icon)
+    else
+        self.overlaymenu.catmanager:icon(overlay_menu.hidden_icon)
     end
-end)
+end
 
-local function updatecategories()
-    local parent = settings:get('categoryManager.path')
+function CategoryManager:oncloseclick()
+    settings:set('categoryManager.window.visible', false)
+    self.win:hide()
+
+    self:setmenuicons()
+end
+
+function CategoryManager:getcategoriesforpath(path)
+    local mapid = ml.context.mapid()
     local onlyinmap = settings:get('categoryManager.onlyShowCategoriesInMap')
-    local mapid = ml.mapid
-
     local cats = {}
 
-    categoryscroll:set_child(uih.text('(working)'))
-
-    while pathbox:item_count() > 1 do pathbox:pop_end() end
-
-    coroutine.yield()
-
-    if parent~='' then
-        for name, mp in pairs(manager.packs) do
-            local category = mp:category(parent)
+    if path=='' then
+        for packpath, pack in pairs(manager.markerpacks) do
+            for category in pack:toplevelcategoriesiter() do
+                -- we want categories that are separators OR those that have
+                -- markers in the current map (if that setting is on)
+                if onlyinmap and not (category.isseparator==1) and category:hasmarkersinmap(mapid, true) then
+                    table.insert(cats, category)
+                elseif not onlyinmap or category.isseparator==1 then
+                    table.insert(cats, category)
+                end
+            end
+        end
+    else
+        for packpath, pack in pairs(manager.markerpacks) do
+            local category = pack:category(path)
 
             if category then
-                if pathbox:item_count() == 1 then
-                    local pathcats = {}
-
-                    local c = category
-                    while c do
-                        table.insert(pathcats,1,c)
-                        c = c:parent()
-                    end
-
-                    for i, c in ipairs(pathcats) do
-                        local lbl = ' '
-                        for s = 1, pathbox:item_count()-1 do
-                            lbl = lbl .. '   '
-                        end
-
-                        lbl = lbl .. '\u{2570}\u{2500}'
-                        local box = ui.box('horizontal')
-                        box:spacing(3)
-                        box:pack_end(uih.monospace_text(lbl), false, 'middle')
-
-                        local cb = uih.checkbox()
-                        box:pack_end(cb, false, 'middle')
-                        cb:state(data.iscategoryactive(c))
-
-                        cb:addeventhandler(function(event)
-                            if event~='toggle-on' and event~='toggle-off' then return end
-
-                            data.setcategoryactive(c, event=='toggle-on')
-                            log:debug("%s toggled, reloading...", c.typeid)
-                            doreloadcats()
-                            log:debug("done.")
-                        end)
-
-                        local btn = shortbtn(c.displayname)
-
-                        box:pack_end(btn, true, 'fill')
-                        pathbox:pack_end(box)
-
-                        btn:addeventhandler(function(event)
-                            if event~='click-left' then return end
-                            
-                            settings:set('categoryManager.path', c.typeid)
-                            log:debug("Changed to %s, reloading...", c.typeid)
-                            updatecategories()
-                            log:debug("done.")
-                        end)
-                    end
-                end
-
-                for child in category:childreniter() do
-                    if onlyinmap and not (child.isseparator==1) then
-                        if child:hasmarkersinmap(mapid, true) then
-                            coroutine.yield()
-                            table.insert(cats, child)
-                        end
-                    else
+                for i, child in ipairs(category:children()) do
+                    if onlyinmap and child.isseparator~=1 and child:hasmarkersinmap(mapid, true) then
+                        table.insert(cats, child)
+                    elseif not onlyinmap or child.isseparator==1 then
                         table.insert(cats, child)
                     end
                 end
             end
         end
-    else
-        for name, mp in pairs(manager.packs) do
-            for category in mp:toplevelcategoriesiter() do
-                if onlyinmap and not (category.isseparator==1) then 
-                    if category:hasmarkersinmap(mapid, true) then
-                        table.insert(cats, category)
-                    end
-                else
-                    table.insert(cats, category)
-                end
-            end
-        end
     end
 
-    if #cats==0 then
-        categoryscroll:set_child(uih.text('(none)'))
+    return cats
+end
+
+function CategoryManager:update()
+    overlay.logdebug("Updating categories...")
+
+    self.breadcrumbs:update()
+
+    if settings:get('categoryManager.onlyShowCategoriesInMap') and ml.context.mapid()==0 then
+        local txt = ui.text('(invalid map)', ui.color('text'), ui.fonts.regular)
+        self.categoryscroll:child(txt)
+
+        return
+    end
+
+    local parent = settings:get('categoryManager.path')
+
+    local cats = self:getcategoriesforpath(parent)
+
+    if #cats == 0 then
+        local txt = ui.text('(none)', ui.color('text'), ui.fonts.regular)
+        self.categoryscroll:child(txt)
+
         return
     end
 
     local catgrid = ui.grid(#cats, 3)
-    catgrid:rowspacing(2)
-    catgrid:colspacing(10)
-    categoryscroll:set_child(catgrid)
+    catgrid:colspacing(5)
+    catgrid:rowspacing(3)
     
-    for i, cat in ipairs(cats) do
-        local text = uih.monospace_text(cat.displayname)
+    for i, category in ipairs(cats) do
+        local cat = Category.new(category)
 
-        if cat.isseparator~=1 then
-            local check = uih.checkbox()
-            check:state(data.iscategoryactive(cat))
-            catgrid:attach(check, i, 1, 1, 1, 'start', 'middle')
-
-            check:addeventhandler(function(event)
-                if event~='toggle-on' and event~='toggle-off' then return end
-
-                data.setcategoryactive(cat, event=='toggle-on')
-                log:debug("%s toggled, reloading...", cat.typeid)
-                doreloadcats()
-                log:debug("done.")
-            end)
-
-            text:addeventhandler(function(event)
-                if event=='btn-up-left' then
-                    check:state(not check:state())
-                    data.setcategoryactive(cat, check:state())
-                    log:debug("%s toggled, reloading...", cat.typeid)
-                    doreloadcats()
-                    log:debug("done.")
-                elseif event=='btn-up-right' then
-                    showcontextmenu(cat)
-                end
-            end)
-            text:events(true)
+        if cat.btn then
+            cat.btn:addeventhandler(function()
+                settings:set('categoryManager.path', category.typeid)
+                overlay.logdebug(string.format('Changed to %s, reloading...', category.typeid))
+                self:update()
+            end, 'click-left')
         end
-        local textalign = 'fill'
-        -- center align separator items if they do not start with spaces
-        -- spaces indicate the author already centered the text
-        if cat.isseparator==1 and string.sub(cat.displayname, 1, 1)~=' ' then
-            textalign = 'middle'
-        end
-        catgrid:attach(text , i, 2, 1, 1, textalign, 'middle')
 
-        if cat:childcount() > 0 then
-            local btn = childrenbutton()
-            btn:addeventhandler(function(event)
-                if event=='click-left' then
-                    settings:set('categoryManager.path', cat.typeid)
-                    log:debug("Changed to %s, reloading...", cat.typeid)
-                    updatecategories()
-                    log:debug("done.")
-                end
-            end)
-
-            catgrid:attach(btn, i, 3)
-        end
+        cat:attachtogrid(catgrid, i)
     end
+
+    self.categoryscroll:child(catgrid)
 end
 
-homebtn:addeventhandler(function(event)
-    if event~='click-left' then return end
+function CategoryManager:onmapchanged()
+    local onlyinmap = settings:get('categoryManager.onlyShowCategoriesInMap')
     
-    settings:set('categoryManager.path', '')
-    while pathbox:item_count() > 1 do
-        pathbox:pop_end()
+    if onlyinmap then
+        self:update()
     end
-    updatecategories()
+end
+
+overlay.addeventhandler('startup', function()
+    M._cm = CategoryManager.new()
 end)
 
-
-inmapcheck:addeventhandler(function(event)
-    if event~='toggle-on' and event~='toggle-off' then return end
-
-    settings:set('categoryManager.onlyShowCategoriesInMap', event=='toggle-on')
-    updatecategories()
-end)
-
-
-if settings:get('categoryManager.window.show') then
-    win:show()
-end
-
-function M.show()
-    win:show()
-    coroutine.yield()
-    updatecategories()
-    settings:set('categoryManager.window.show', true)
-end
-
-function M.hide()
-    win:hide()
-    settings:set('categoryManager.window.show', false)
-end
-
-function M.disableothers(category)
-    local parent = settings:get('categoryManager.path')
-    local onlyinmap = settings:get('categoryManager.onlyShowCategoriesInMap')
-    local mapid = ml.mapid
-
-    local cats = {}
-
-    if parent~='' then
-        for name, mp in pairs(manager.packs) do
-            local category = mp:category(parent)
-
-            if category then
-                for child in category:childreniter() do
-                    if onlyinmap and not (child.isseparator==1) then
-                        if child:hasmarkersinmap(mapid, true) then
-                            coroutine.yield()
-                            table.insert(cats, child)
-                        end
-                    else
-                        table.insert(cats, child)
-                    end
-                end
-            end
-        end
-    else
-        for name, mp in pairs(manager.packs) do
-            for category in mp:toplevelcategoriesiter() do
-                if onlyinmap and not (category.isseparator==1) then 
-                    if category:hasmarkersinmap(mapid, true) then
-                        table.insert(cats, category)
-                    end
-                else
-                    table.insert(cats, category)
-                end
-            end
-        end
-    end
-
-    for i,c in ipairs(cats) do
-        if c.typeid==category.typeid then
-            data.setcategoryactive(c, true)
-        else
-            data.setcategoryactive(c, false)
-        end
-    end
-
-    log:debug("Disabled others, reloading...")
-    updatecategories()
-    doreloadcats()
-    log:debug('done.')
-end
-
--- disables all categories at the current path
-function M.setallactive(active)
-    local parent = settings:get('categoryManager.path')
-    local onlyinmap = settings:get('categoryManager.onlyShowCategoriesInMap')
-    local mapid = ml.mapid
-
-    local cats = {}
-
-    if parent~='' then
-        for name, mp in pairs(manager.packs) do
-            local category = mp:category(parent)
-
-            if category then
-                for child in category:childreniter() do
-                    if onlyinmap and not (child.isseparator==1) then
-                        if child:hasmarkersinmap(mapid, true) then
-                            coroutine.yield()
-                            table.insert(cats, child)
-                        end
-                    else
-                        table.insert(cats, child)
-                    end
-                end
-            end
-        end
-    else
-        for name, mp in pairs(manager.packs) do
-            for category in mp:toplevelcategoriesiter() do
-                if onlyinmap and not (category.isseparator==1) then 
-                    if category:hasmarkersinmap(mapid, true) then
-                        table.insert(cats, category)
-                    end
-                else
-                    table.insert(cats, category)
-                end
-            end
-        end
-    end
-
-    for i,c in ipairs(cats) do
-        data.setcategoryactive(c, active)
-    end
-
-    if active then
-        log:debug("Enabled all categories, reloading...")
-    else
-        log:debug("Disabled all categories, reloading...")
-    end
-    updatecategories()
-    doreloadcats()
-    log:debug('done.')
-end
-
-function M.enableallchildren(category)
-    local onlyinmap = settings:get('categoryManager.onlyShowCategoriesInMap')
-    local mapid = ml.mapid
-
-    local function enablechildren(cat)
-        if cat.isseparator~=1 then
-            if (onlyinmap and cat:hasmarkersinmap(mapid, true)) or not onlyinmap then
-                data.setcategoryactive(cat,  true)
-                for i,child in ipairs(cat:children()) do
-                    enablechildren(child)
-                end
-            end
-        end
-    end
-
-    enablechildren(category)
-    log:debug("Enabled all children of %s, reloading...", category.typeid)
-    updatecategories()
-    doreloadcats()
-    log:debug("done.")
-end
-
-overlay.addeventhandler('mumble-link-map-changed', function()
-    updatecategories()
-end)
+overlay.addeventhandler('mumble-link-map-changed', function(event) M._cm:onmapchanged() end)
 
 return M

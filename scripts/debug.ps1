@@ -1,12 +1,15 @@
+# EG-Overlay
+# Copyright (c) 2025 Taylor Talkington
+# SPDX-License-Identifier: MIT
 $workspace = $PSScriptRoot | Split-Path -Parent
 
 $luapath = $workspace + "\builddir\subprojects\lua-5.4.7"
 $zlibpath = $workspace + "\builddir\subprojects\zlib-1.3"
 $ftpath = $workspace + "\builddir\subprojects\freetype-2.13.2"
 $pngpath = $workspace + "\builddir\subprojects\libpng-1.6.40"
-$xmlpath = $workspace + "\builddir\subprojects\libxml2-2.13.1"
+#$xmlpath = $workspace + "\builddir\subprojects\libxml2-2.13.1"
 
-$paths = $luapath, $zlibpath, $ftpath, $pngpath, $xmlpath
+$paths = $luapath, $zlibpath, $ftpath, $pngpath #, $xmlpath
 
 $oldpath = $env:Path
 
@@ -19,12 +22,19 @@ foreach ($p in $paths) {
 $builddir = $workspace + "\builddir"
 
 $workingdir = $builddir + "\src\"
+$srcpath = $workspace + "\src\"
 
 $exe = $workingdir + "eg-overlay.exe"
 
 $cdb = "C:\Program Files (x86)\Windows Kits\10\Debuggers\x64\cdb.exe"
 
-$dbginit = ".lines;l+t;l+s;l+o"
+$windbgscript = $workingdir + "eg-overlay.windbg"
+
+echo ".lines"                >  $windbgscript
+echo "l+t"                   >> $windbgscript
+echo "l+s"                   >> $windbgscript
+echo ".sympath+ $workingdir" >> $windbgscript
+echo ".srcpath+ $srcpath"    >> $windbgscript
 
 $terminal_cls = "CASCADIA_HOSTING_WINDOW_CLASS"
 
@@ -60,7 +70,7 @@ try {
 
     & $cdb `
         -G `
-        -c "$dbginit" `
+        -c "$<$windbgscript" `
         "$exe" $extra_args "--debug"
 } finally {
     Pop-Location

@@ -37,4 +37,6 @@ lua_lib = library('lua-5.4.7',
     install: true
 )
 
-lua_dep = declare_dependency(link_with: lua_lib, include_directories: include_directories('src'))
+lua_inc = include_directories('src')
+
+lua_dep = declare_dependency(link_with: lua_lib, include_directories: lua_inc)

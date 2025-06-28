@@ -1,10 +1,14 @@
+.. EG-Overlay
+.. Copyright (c) 2025 Taylor Talkington
+.. SPDX-License-Identifier: MIT
+
 EG-Overlay
 ==========
 
-EG-Overlay is yet another overlay for GuildWars 2. It is designed to be light
-weight and 'out of the way' as possible from both a resources and module author
-point of view. The core is written in C and everything else is Lua. Modules can
-be written purely in Lua, or Lua C modules can also be used.
+EG-Overlay is yet another overlay for GuildWars 2. It is designed to be
+lightweight and 'out of the way' as possible from both a resources and module
+author point of view. The core is written in Rust and everything else is Lua.
+Modules can be written purely in Lua, or Lua C/Rust modules can also be used.
 
 User Guide
 ----------
@@ -25,13 +29,12 @@ User Guide
     :caption: Bundled Modules
     :hidden:
 
-    /src/lua/main-menu
+    /src/lua/overlay-menu
     /src/lua/console
-    /src/lua/markers/init
-    /src/lua/map-buddy
-    /src/lua/overlay-stats
-    /src/lua/psna-tracker
     /src/lua/mumble-link-info
+    /src/lua/markers/markers
+    /src/lua/overlay-stats
+
 
 Development
 -----------
@@ -52,7 +55,6 @@ detailed below.
 - :doc:`docs/development/compiling`
 - :doc:`docs/development/lua-api`
 - :doc:`docs/development/lua-threads`
-        
 
 .. toctree::
     :caption: Index
@@ -61,3 +63,4 @@ detailed below.
     General <genindex>
     Events <overlay-eventindex>
     Lua Modules <lua-modindex>
+

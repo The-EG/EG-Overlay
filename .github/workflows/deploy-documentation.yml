@@ -1,3 +1,6 @@
+# EG-Overlay
+# Copyright (c) 2025 Taylor Talkington
+# SPDX-License-Identifier: MIT
 name: Build & Deploy EG-Overlay Documentation
 
 on:
@@ -29,6 +32,8 @@ jobs:
         uses: actions/configure-pages@v5
       - name: Setup Python
         uses: actions/setup-python@v5
+        with:
+            python-version: '3.13'
       - name: Install Deps
         run: |
           pip install -r docs/requirements.txt

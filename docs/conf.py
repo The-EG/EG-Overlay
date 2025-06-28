@@ -1,3 +1,7 @@
+# EG-Overlay
+# Copyright (c) 2025 Taylor Talkington
+# SPDX-License-Identifier: MIT
+
 # Configuration file for the Sphinx documentation builder.
 #
 # For the full list of built-in configuration values, see the documentation:
@@ -12,8 +16,8 @@ project = 'EG-Overlay'
 copyright = '2025, Taylor Talkington'
 author = 'Taylor Talkington'
 
-version = '0.1.0'
-release = '0.1.0-dev'
+version = '0.3.0'
+release = '0.3.0-dev'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -27,22 +31,32 @@ extensions = [
 
 templates_path = ['_templates']
 exclude_patterns = [
-    '_build',
-    'Thumbs.db',
-    '.DS_Store',
-    '_ext',
-    '_include',
-    'src/app.c',
-    'src/dx.c',
-    'src/lamath.c',
-    'src/main.c',
-    'src/utils.c',
-    'src/ui/font.c',
-    'src/ui/rect.c',
-    'src/logging/**',
-    'src/lua/autoload.lua',
+    'docs/_build',
+    '**/Thumbs.db',
+    '**/.DS_Store',
+    'docs/_ext',
+    'docs/_include',
 ]
-include_patterns = ['docs/**', 'src/**', '*.rst']
+include_patterns = [
+    'docs/**',
+    'src/**/lua.rs',
+    'src/lua_sqlite3.rs',
+    '*.rst',
+    'src/**/*.rst',
+
+    'src/lua/mumble-link-events.lua',
+    'src/lua/overlay-menu.lua',
+    'src/lua/overlay-stats.lua',
+    'src/lua/utils.lua',
+    'src/lua/console.lua',
+    'src/lua/mumble-link-info.lua',
+    
+    'src/lua/gw2/init.lua',
+    'src/lua/gw2/data.lua',
+
+    'src/lua/markers/data.lua',
+    'src/lua/markers/package.lua',
+]
 
 #root_doc = 'docs/index'
 

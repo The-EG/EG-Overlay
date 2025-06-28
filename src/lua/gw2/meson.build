@@ -1,7 +1,10 @@
+# EG-Overlay
+# Copyright (c) 2025 Taylor Talkington
+# SPDX-License-Identifier: MIT
+
 gw2_lua_srcs = [
     'init.lua',
-    'api.lua',
-    'static.lua'
+    'data.lua',
 ]
 
 foreach lua : gw2_lua_srcs

@@ -1,0 +1,9 @@
+// EG-Overlay
+// Copyright (c) 2025 Taylor Talkington
+// SPDX-License-Identifier: MIT
+
+//! git hash strings
+
+/// The current git commit hash or 'unknown' if the commit could not be determined during the build.
+pub const GITHASH_STR: &str = "@VCS_TAG@";
+

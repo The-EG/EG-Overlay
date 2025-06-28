@@ -1,10 +1,14 @@
+# EG-Overlay
+# Copyright (c) 2025 Taylor Talkington
+# SPDX-License-Identifier: MIT
+
 from sphinx.application import Sphinx
 from sphinx.util.typing import ExtensionMetadata
 
 from .directives import VersionHistoryDirective, LuaTableFieldsDirective, SettingsValuesDirective
 from .domain import OverlayDomain
 
-from .parsers import LuaCommentParser, CCommentParser
+from .parsers import LuaCommentParser, CCommentParser, RustCommentParser
 
 from .luadomain import LuaDomain
 
@@ -22,6 +26,9 @@ def setup(app: Sphinx) -> ExtensionMetadata:
 
     app.add_source_suffix('.c', 'crstcomments')
     app.add_source_parser(CCommentParser)
+
+    app.add_source_suffix('.rs', 'rustrstcomments')
+    app.add_source_parser(RustCommentParser)
 
     return {
         'version': '0.1',

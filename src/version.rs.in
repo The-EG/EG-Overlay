@@ -1,0 +1,9 @@
+// EG-Overlay
+// Copyright (c) 2025 Taylor Talkington
+// SPDX-License-Identifier: MIT
+
+//! EG-Overlay version information
+
+/// The version as a string, including any suffix, ie `'0.0.3-dev'`
+pub const VERSION_STR: &str = "@version_str@";
+

@@ -1,3 +1,6 @@
+# EG-Overlay
+# Copyright (c) 2025 Taylor Talkington
+# SPDX-License-Identifier: MIT
 from sphinx.parsers import RSTParser
 from sphinx.util import logging
 import re
@@ -23,4 +26,8 @@ class LuaCommentParser(CommentParser):
 
 class CCommentParser(CommentParser):
     supported = ('crstcomments',)
+    block_pattern = re.compile(r'^/\*\*\* RST\r?\n(?P<content>.*?)\r?\n^\*/$', re.M | re.S)
+
+class RustCommentParser(CommentParser):
+    supported = ('rustrstcomments',)
     block_pattern = re.compile(r'^/\*\*\* RST\r?\n(?P<content>.*?)\r?\n^\*/$', re.M | re.S)

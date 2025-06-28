@@ -1,4 +1,7 @@
--- EG-Overlay: autoload.lua
+-- EG-Overlay
+-- Copyright (c) 2025 Taylor Talkington
+-- SPDX-License-Identifier: MIT
+
 -- This file is automatically loaded when EG-Overlay is starting. You can add
 -- code here to control settings, or load modules with `require`.
 
@@ -19,17 +22,18 @@
 -- performance.
 collectgarbage('incremental', 110, 200, 8)
 
--- Any modules should be loaded with `require` here
-require 'overlay-stats'
+require 'overlay-menu'
+
 require 'console'
-require 'main-menu'
-
-require 'mumble-link-events'
---require 'mumble-link-info'
-
-require 'map-buddy'
-require 'markers'
+require 'overlay-stats'
 
 require 'psna-tracker'
 
-require 'copy-pasta'
+require 'markers'
+
+--require 'mumble-link-info'
+-- local t2d = require 'markers.taco2db'
+-- 
+-- local c = t2d.taco2db.new("D:\\Documents\\dev\\eg-overlay-rust-branch\\data\\tw_ALL_IN_ONE-3.7.4.taco","D:\\Documents\\dev\\eg-overlay-rust-branch\\data\\tw_ALL_IN_ONE-3.7.4.db")
+-- c:run()
+-- 

@@ -1,112 +1,69 @@
+-- EG-Overlay
+-- Copyright (c) 2025 Taylor Talkington
+-- SPDX-License-Identifier: MIT
+
 --[[ RST
 Lua Console/Log
 ===============
 
-.. image:: /images/modules/console.png
-
 .. overlay:module:: console
 
 The Lua Console can be used to run Lua commands interactively and also displays
-log messages. Lua commands are run as coroutines, long running commands that
-yield properly will not cause the UI to freeze.
-]]--
+log messages.
 
-local overlay = require 'eg-overlay'
-local ui = require 'eg-overlay-ui'
-local uih = require 'ui-helpers'
+Lua commands are run as coroutines, long running commands that yield properly
+will not cause the UI to freeze.
 
-local settings = require 'settings'
-
-local logger = require 'logger'
-
-local console = {}
-
-local app_settings = overlay.settings()
-
-
---[[ RST
 Settings
 --------
 
-The settings for the Lua Console are stored in ``settings/console.lua.json``.
-]]--
-local console_settings = settings.new("console.lua")
-
---[[ RST
+The following settings for the Lua Console are stored in ``settings/console.lua.json``.
 
 .. overlay:modsetting:: window.x
     :type: integer
-    :default: 200
+    :default: 50
 
-    The window position x coordinate.
+    The window X position.
 
     .. versionhistory::
-        :0.0.1: Added
-]]--
-console_settings:setdefault("window.x", 200)
+        :0.3.0: Added
 
---[[ RST
 .. overlay:modsetting:: window.y
     :type: integer
-    :default: 30
+    :default: 50
 
-    The window position y coordinate.
+    The window Y position.
 
     .. versionhistory::
-        :0.0.1: Added
-]]--
-console_settings:setdefault("window.y", 30)
+        :0.3.0: Added
 
---[[ RST
 .. overlay:modsetting:: window.width
     :type: integer
-    :default: 600
+    :default: 400
 
     The window width.
 
     .. versionhistory::
-        :0.0.1: Added
-]]--
-console_settings:setdefault("window.width", 600)
+        :0.3.0: Added
 
---[[ RST
 .. overlay:modsetting:: window.height
     :type: integer
-    :default: 300
+    :default: 200
 
     The window height.
 
     .. versionhistory::
-        :0.0.1: Added
-]]--
-console_settings:setdefault("window.height", 300)
+        :0.3.0: Added
 
---[[ RST
-.. overlay:modsetting:: window.show
+.. overlay:modsetting:: window.visible
     :type: boolean
     :default: false
 
-    Show the Lua Console window?
+    If the window is displayed.
 
     .. versionhistory::
-        :0.0.1: Added
-]]--
-console_settings:setdefault("window.show", false)
+        :0.3.0: Added
 
---[[ RST
-.. overlay:modsetting:: maxLines
-    :type: integer
-    :default: 1000
-
-    The maximum lines to show in the console window. This includes
-    input/commands, output and log messages.
-
-    .. versionhistory::
-        :0.0.1: Added
-]]--
-console_settings:setdefault("maxLines", 1000)
-
---[[ RST
 .. overlay:modsetting:: colors.ERROR
     :type: integer
     :default: 0x911717FF
@@ -114,116 +71,181 @@ console_settings:setdefault("maxLines", 1000)
     The color used to display ERROR messages.
 
     .. versionhistory::
-        :0.0.1: Added
-]]--
-console_settings:setdefault("colors.ERROR"  , 0x911717FF)
+        :0.3.0: Added
 
---[[ RST
 .. overlay:modsetting:: colors.WARNING
     :type: integer
-    :default: 0xb58326FF
+    :default: 0xb8326FF
 
     The color used to display WARNING messages.
-    
-    .. versionhistory::
-        :0.0.1: Added
-]]--
-console_settings:setdefault("colors.WARNING", 0xb58326FF)
 
---[[ RST
+    .. versionhistory::
+        :0.3.0: Added
+
 .. overlay:modsetting:: colors.DEBUG
     :type: integer
     :default: 0x676F80FF
 
     The color used to display DEBUG messages.
-    
-    .. versionhistory::
-        :0.0.1: Added
-]]--
-console_settings:setdefault("colors.DEBUG"  , 0x676F80FF)
 
---[[ RST
+    .. versionhistory::
+        :0.3.0: Added
+
 .. overlay:modsetting:: colors.INFO
     :type: integer
     :default: 0xFFFFFFFF
 
     The color used to display INFO messages.
-    
+
     .. versionhistory::
-        :0.0.1: Added
+        :0.3.0: Added
 ]]--
-console_settings:setdefault("colors.INFO"   , 0xFFFFFFFF)
+local ui = require 'eg-overlay-ui'
+local overlay = require 'eg-overlay'
 
-console.win = ui.window("Lua Console/Log", 0, 0)
-console.win:min_size(600, 300)
-console.win:resizable(true)
-console.win:settings(console_settings, "window")
+local overlay_menu = require 'overlay-menu'
 
-local log = logger.logger:new('console')
+local win = {}
+win.__index = win
 
-local outer_box = ui.box('vertical')
-outer_box:spacing(10)
-outer_box:padding(5,5,2,2)
+function win.new()
+    local w = {
+        settings = overlay.settings('console.lua'),
 
-local message_scroll = ui.scrollview()
-message_scroll:scroll_amount(40)
+        win = ui.window('Lua Console'),
+        sv = ui.scrollview(),
+        outerbox = ui.box('vertical'),
+        msgbox = ui.box('vertical'),
 
-local message_box = ui.box('vertical')
+        prompt_box = ui.box('horizontal'),
+        prompt_lbl = ui.text('Lua>', 0xFFFFFFFF, ui.fonts.monospace),
 
-local prompt_text = uih.monospace_text('Lua> ')
+        entry = ui.entry(ui.fonts.monospace),
 
-local text_entry = ui.text_entry(app_settings:get('overlay.ui.font.pathMono'), app_settings:get('overlay.ui.font.size'))
+        entrymenu = {
+            menu = ui.menu(),
+            paste = ui.textmenuitem('Paste', 0xFFFFFFFF, ui.fonts.regular),
+        },
 
-local prompt_box = ui.box('horizontal')
-prompt_box:align('fill')
-prompt_box:pack_end(prompt_text, false, 'middle')
-prompt_box:pack_end(text_entry, true, 'fill')
+        overlay_menu_mi = ui.textmenuitem('Lua Console', 0xFFFFFFFF, overlay_menu.font),
+    }
 
-outer_box:pack_end(message_scroll, true, 'fill')
-outer_box:pack_end(prompt_box, false, 'fill')
+    w.settings:setdefault('window.x', 50)
+    w.settings:setdefault('window.y', 50)
+    w.settings:setdefault('window.width', 400)
+    w.settings:setdefault('window.height', 200)
+    w.settings:setdefault('window.visible', false)
 
-message_scroll:set_child(message_box)
+    w.settings:setdefault('colors.ERROR'  , 0x911717FF)
+    w.settings:setdefault('colors.WARNING', 0xb58326FF)
+    w.settings:setdefault('colors.DEBUG'  , 0x676F80FF)
+    w.settings:setdefault('colors.INFO'   , 0xFFFFFFFF)
 
-console.win:set_child(outer_box)
+    w.colors = {
+        ERROR   = w.settings:get('colors.ERROR'),
+        WARNING = w.settings:get('colors.WARNING'),
+        DEBUG   = w.settings:get('colors.DEBUG'),
+        INFO    = w.settings:get('colors.INFO'),
+    }
 
-local win_show = console_settings:get("window.show")
+    w.msgbox:spacing(1)
+    w.msgbox:paddingbottom(1)
 
-if console_settings:get("window.show") then console.win:show() end
+    w.outerbox:paddingleft(5)
+    w.outerbox:paddingright(5)
+    w.outerbox:paddingtop(5)
+    w.outerbox:paddingbottom(5)
+    w.outerbox:spacing(5)
 
-local history = {}
-local next_history = nil
+    w.outerbox:pushback(w.sv, 'fill', true)
 
-function console.add_line(text, color)
-    local color = color or settings:get('overlay.ui.colors.text')
+    w.outerbox:pushback(w.prompt_box, 'fill', false)
 
-    local t = uih.monospace_text(text, color)
-    message_box:pack_end(t, false, 'start')
+    w.entry:hint('(Enter Lua command)')
 
-    while message_box:item_count() > console_settings:get('maxLines') do
-        message_box:pop_start()
+    w.entrymenu.menu:pushback(w.entrymenu.paste)
+
+    w.prompt_box:spacing(5)
+    w.prompt_box:pushback(w.prompt_lbl, 'middle', false)
+    w.prompt_box:pushback(w.entry, 'start', true)
+
+    w.win:child(w.outerbox)
+    w.win:resizable(true)
+    w.win:settings(w.settings, 'window')
+
+    w.sv:child(w.msgbox)
+
+    setmetatable(w, win)
+
+    w.overlay_menu_mi:addeventhandler(function() w:onmenuclick() end, 'click-left')
+
+    w.entry:addeventhandler(function(event) w:onreturn() end, 'return-down')
+    w.entry:addeventhandler(function(event) w.entrymenu.menu:show() end, 'click-right')
+    w.entry:addeventhandler(function(event) w:clipboardpaste() end, 'ctrl-v-down')
+    w.entrymenu.paste:addeventhandler(function(event) w:clipboardpaste() end, 'click-left')
+
+    if w.settings:get('window.visible') then
+        w.win:show()
+        w.overlay_menu_mi:icon(overlay_menu.visible_icon)
+    else
+        w.overlay_menu_mi:icon(overlay_menu.hidden_icon)
     end
 
-    message_scroll:scroll_max_y()
+    return w
 end
 
-local function run_text(text)
-    if text == nil or text == '' then return end
-
-    table.insert(history, text)
-    if #history > 20 then
-        table.remove(history, 1)
+function win:onmenuclick()
+    if self.settings:get('window.visible') then
+        self.win:hide()
+        self.settings:set('window.visible', false)
+        self.overlay_menu_mi:icon(overlay_menu.hidden_icon)
+    else
+        self.win:show()
+        self.settings:set('window.visible', true)
+        self.overlay_menu_mi:icon(overlay_menu.visible_icon)
     end
-    next_history = #history
+end
 
-    local color = 0xFFFFFFFF
+function win:clipboardpaste()
+    local t = overlay.clipboardtext()
+    self.entry:text(t)
+    self.entrymenu.menu:hide()
+end
 
-    console.add_line('Lua> '..text, color)
+function win:show()
+    self.win:show()
+end
 
-    text_entry:text('')
+function win:addmessage(msg, color)
+    local txt = ui.text(msg, color, ui.fonts.monospace)
+    self.msgbox:pushback(txt, 'start', false)
 
-    local func, load_err = load(text, 'Lua Console', 't')
+    if #self.msgbox > 1000 then
+        self.msgbox:popfront()
+    end
+
+    self.sv:scrolly(1.0)
+end
+
+function win:onlogmessage(message)
+    local ts, lvl, tgt, msg = message:match('(%d+%-%d+%-%d+ %d+:%d+:%d+%.%d+) | +([%a]+) +| ([^|]+) | (.*)')
+
+    self:addmessage(message, self.colors[lvl])
+end
+
+function win:onreturn()
+    local cmd = self.entry:text()
+
+    if cmd == nil or cmd == '' then return end
+
+    self:addmessage('Lua> ' .. cmd, 0xFFFFFFFF)
+
+    self.entry:text('')
+
+    local func, load_err = load(cmd, 'Lua Console', 't')
+
     if not func then
-        console.add_line(load_err, console_settings:get('colors.ERROR'))
+        self:addmessage(load_err, self.colors.ERROR)
         return
     end
 
@@ -238,8 +260,8 @@ local function run_text(text)
 
         if not ok then
             coroutine.close(func_thread)
-            -- console.add_line(err, console_settings:get('colors.ERROR'))
-            log:error('Error while running console input: %s', err)
+            overlay.logerror(string.format('Error while running console input: %s', err))
+           
             return
         end
         coroutine.yield()
@@ -247,48 +269,7 @@ local function run_text(text)
     coroutine.close(func_thread)
 end
 
-local function on_entry_keydown(key)
-    if key=='return' then
-        run_text(text_entry:text())
-    elseif key=='up' and next_history > 0 then
-        text_entry:text(history[next_history])
-        next_history = next_history - 1
-    elseif key=='down' and next_history < #history then
-        next_history = next_history + 1
-        text_entry:text(history[next_history])
-    end
-end
-
-text_entry:addeventhandler(on_entry_keydown)
-
-local function primary_action(event)
-    if event=='click-left' then
-        if console_settings:get("window.show") then
-            console.win:hide()
-            console_settings:set("window.show", false)
-        else
-            console.win:show()
-            console_settings:set("window.show", true)
-        end
-    end
-end
-
-local function on_log_message(event, data)
-    local color = console_settings:get('colors.'..data.level) or console_settings:get('colors.ERROR')
-
-    console.add_line(data.message, color)
-end
-
-
-local function on_startup()
-    overlay.queueevent('register-module-actions', {
-        name = "Lua Console",
-        primary_action = primary_action
-    })
-end
-
-overlay.addeventhandler('log-message', on_log_message)
-overlay.addeventhandler('startup', on_startup)
+local console = win.new()
 
 -- redefine print so that it prints on the console. kind of hacky...but eh?
 function print(...)
@@ -297,8 +278,12 @@ function print(...)
     for i,p in ipairs({...}) do
         table.insert(strs, tostring(p))
     end
-
-    console.add_line(table.concat(strs, ' '), 0xFFFFFFFF) 
+    console:addmessage(table.concat(strs, ' '), 0xFFFFFFFF) 
 end
 
-return console
+
+overlay.addeventhandler('log-message', function(event, message) console:onlogmessage(message) end)
+overlay.addeventhandler('startup', function()
+    overlay_menu.additem(console.overlay_menu_mi)
+end)
+return {}

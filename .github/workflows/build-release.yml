@@ -1,3 +1,6 @@
+# EG-Overlay
+# Copyright (c) 2025 Taylor Talkington
+# SPDX-License-Identifier: MIT
 name: Build EG-Overlay Release Binaries
 
 on:
@@ -22,12 +25,14 @@ jobs:
             arch: x64
       - name: Setup Python
         uses: actions/setup-python@v5
+        with:
+            python-version: '3.13'
       - name: Install Meson
         run: |
             pip install meson
       - name: Build Release
         run: |
-          .\scripts\generate_release.ps1
+          .\scripts\build-release.ps1
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:

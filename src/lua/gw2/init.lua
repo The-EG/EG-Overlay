@@ -1,205 +1,251 @@
+-- EG-Overlay
+-- Copyright (c) 2025 Taylor Talkington
+-- SPDX-License-Identifier: MIT
+
 --[[ RST
 gw2
 ===
 
 .. lua:module:: gw2
 
-.. code-block:: lua
-
-    local gw2 = require 'gw2'
+Guild Wars 2 utilities, data, and API access.
 
 .. toctree::
-    :maxdepth: 1
     :caption: Submodules
+    :maxdepth: 1
 
-    api
-    static
-
+    data
 ]]--
 
 
-local logger = require 'logger'
-local static = require 'gw2.static'
+local overlay = require 'eg-overlay'
 local ml = require 'mumble-link'
 
-local gw2 = {}
-
-gw2.log = logger.logger:new('gw2')
-
+local M = {}
 
 --[[ RST
 Functions
 ---------
+
+.. lua:function:: currentspecialization()
+
+    Return the information on the player's current (elite) specialization.
+
+    This uses MumbleLink to determine what specialization is in the player's
+    third build slot.
+
+    See :lua:func:`gw2.data.specialization` and 
+    `GW2 API: v2/specializations <https://wiki.guildwars2.com/wiki/API:2/specializations>`_
+
+    .. note::
+        This function will return ``nil`` if the MumbleLink data is invalid,
+        such as before a character has been logged in for the first time.
+
+    :rtype: table
+
+    .. versionhistory::
+        :0.3.0: Added
 ]]--
+function M.currentspecialization()
+    local spec = ml.identity.spec()
+
+    if not spec then return nil end
+
+    return require('gw2.data').specialization(spec)
+end
 
 
 --[[ RST
-.. lua:function:: coord_m2c(x, z, contleft, contright, conttop, contbottom, mapleft, mapright, maptop, mapbottom)
-    
-    Convert a position from map coordinates to continent coordinates.
+Classes
+-------
 
-    :param x: The map X coordinate
-    :type x: number
-    :param z: The map Z/Y coordinate. Note: this is the 3rd coordinate returned by mumble-link!
-    :type z: number
-    :param contleft: The left value of the continent_rect from the GW2 API for the map.
-    :type contleft: number
-    :param contright: The right value of the continent_rect from the GW2 API for the map.
-    :type contright: number
-    :param conttop: The top value of the continent_rect from the GW2 API for the map.
-    :type conttop: number
-    :param contbottom: The bottom value of the continent_rect from the GW2 API for the map.
-    :type contbottom: number
-    :param mapleft: The left value of the map_rect from the GW2 API for the map.
-    :type mapleft: number
-    :param mapright: The right value of the map_rect from the GW2 API for the map.
-    :type mapright: number
-    :param maptop: The top value of the map_rect from the GW2 API for the map.
-    :type maptop: number
-    :param mapbottom: The bottom value of the map_rect from the GW2 API for the map.
-    :type mapbottom: number
-    :returns: The continent coordinates, as two numbers: cx, cy
-    :rtype: number
 
-    .. versionhistory::
-        :0.0.1: Added
+.. lua:class:: basicapi
+
+    A class that provides basic API access.
+
+    This is an intermediate level wrapper, but does not rely upon particular
+    schemas or features of the API to function.
+
+    .. code-block:: lua
+        :caption: Example
+
+        local gw2 = require 'gw2'
+        local overlay = require 'eg-overlay'
+
+        local api = gw2.basicapi.new()
+
+        -- by default requests are not authenticated
+        local build = api:get('/build')
+        overlay.loginfo(string.format("GW2 Build ID: %d", build.id))
+
+        -- user can specify an API key
+        api:useauth('XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXXXXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX')
+
+        local acount = api:get('/account')
+        overlay.loginfo(string.format('Account ID = %s', account.id))
+
 ]]--
-function gw2.coord_m2c(x, z, contleft, contright, conttop, contbottom, mapleft, mapright, maptop, mapbottom)
-    local cx = (contleft   + ( 1 * (x - mapleft) / (mapright - mapleft  ) * (contright - contleft  )))
-    local cy = (contbottom + (-1 * (z - maptop ) / (maptop   - mapbottom) * (conttop   - contbottom)))
+M.basicapi = {}
+M.basicapi.__index = M.basicapi
+
+
+--[[ RST
+    .. lua:function:: new()
+
+        Create a new :lua:class:`basicapi` object.
+
+        :rtype: basicapi
+
+        .. versionhistory::
+            :0.3.0: Added
+]]--
+function M.basicapi.new()
+    local a = {
+        baseurl = 'https://api.guildwars2.com/v2',
+        _schema_version = 'latest',
+        _auth_key = nil,
+    }
+
+    setmetatable(a, M.basicapi)
+
+    return a
+end
+
+--[[ RST
+    .. lua:method:: get(endpoint[, params])
+
+        Perform a GET against ``endpoint`` and return the JSON results as a Lua
+        table.
+
+        .. warning::
+            This function will ``coroutine.yield`` while the request is pending.
+
+        :param string endpoint: Any valid GW2 v2 API endpoint, such as
+            ``'/account'``. See `GW2 API <https://wiki.guildwars2.com/wiki/API:Main>`_.
+        :returns: A table or ``nil`` on failure, HTTP status code, HTTP response headers
+
+        .. versionhistory::
+            :0.3.0: Added
+]]--
+function M.basicapi:get(endpoint, params)
+    local finished = false
+    local resp_data = {}
+    local resp_hdrs = {}
+    local resp_code = 0
+
+    local cb = function(data)
+        finished = true
+        resp_code = data.status
+        resp_hdrs = data.headers
+        if data.status >= 200 and data.status < 400 then
+            resp_data = overlay.parsejson(data.body)
+        else
+            resp_data = nil
+        end
+    end
+
+    local hdrs = {}
+    local query_params = params or {}
+
+    query_params.v = self._schema_version
+
+    if self._auth_key then
+        hdrs['Authorization'] = string.format('Bearer %s', self._auth_key)
+    end
+
+    overlay.webrequest(string.format('%s%s', self.baseurl, endpoint), hdrs, query_params, cb)
+
+    while not finished do coroutine.yield() end
+
+    return resp_data, resp_code, resp_hdrs
+end
+
+--[[ RST
+    .. lua:method:: useauth(key)
+
+        Sets the API authentication key to use when performing API requests.
+
+        By default no key is used. If ``nil`` is specified, no key will be used.
+
+        :param string key: A valid GW2 API Key or ``nil``.
+        
+        .. versionhistory::
+            :0.3.0: Added
+]]--
+function M.basicapi:useauth(key)
+    self._auth_key = key
+end
+
+--[[ RST
+.. lua:class:: coordinateconverter
+
+]]--
+M.coordinateconverter = {}
+M.coordinateconverter.__index = M.coordinateconverter
+
+--[[ RST
+    .. lua:function:: new([mapid])
+
+        Create a new coordinate converter for the given map.
+
+        If ``mapid`` is omitted or nil, the new converter will be created for
+        the current map, based on mumble-link.
+
+        :rtype: coordinateconverter
+
+        .. versionhistory::
+            :0.3.0: Added
+]]--
+function M.coordinateconverter.new(mapid)
+    mapid = mapid or ml.context.mapid()
+
+    if not mapid or mapid==0 then
+        error("Can't create coordinateconverter with invalid mapid", 2)
+    end
+
+    local map = require('gw2.data').map(mapid)
+
+    local cc = {
+        mapid = mapid,
+        map = map,
+    }
+
+    setmetatable(cc, M.coordinateconverter)
+
+    return cc
+end
+
+--[[ RST
+    .. lua:method:: map2continent(mapx, mapz)
+
+        Convert map x, z to continent continent x, y coordinates.
+
+        .. note::
+            
+            This needs the X and Z coordinates from the map coordinates, NOT
+            X and Y.
+
+        :returns: 2 numbers
+
+        .. versionhistory::
+            :0.3.0: Added
+]]--
+function M.coordinateconverter:map2continent(mapx, mapz)
+    local contleft   = self.map.continent_rect_left
+    local contright  = self.map.continent_rect_right
+    local conttop    = self.map.continent_rect_top
+    local contbottom = self.map.continent_rect_bottom
+
+    local mapleft   = self.map.map_rect_left
+    local mapright  = self.map.map_rect_right
+    local maptop    = self.map.map_rect_top
+    local mapbottom = self.map.map_rect_bottom
+
+    local cx = (contleft   + ( 1 * (mapx - mapleft) / (mapright - mapleft  ) * (contright - contleft  )))
+    local cy = (contbottom + (-1 * (mapz - maptop ) / (maptop   - mapbottom) * (conttop   - contbottom)))
+
     return cx, cy
 end
 
---[[ RST
-.. lua:function:: coord_c2m(cx, cy, contleft, contright, conttop, contbottom, mapleft, mapright, maptop, mapbottom)
-
-    Convert a position from continent coordinates to map coordinates.
-
-    :param cx: The continent X coordinate
-    :type cx: number
-    :param cy: The continent Y coordinate.
-    :type cy: number
-    :param contleft: The left value of the continent_rect from the GW2 API for the map.
-    :type contleft: number
-    :param contright: The right value of the continent_rect from the GW2 API for the map.
-    :type contright: number
-    :param conttop: The top value of the continent_rect from the GW2 API for the map.
-    :type conttop: number
-    :param contbottom: The bottom value of the continent_rect from the GW2 API for the map.
-    :type contbottom: number
-    :param mapleft: The left value of the map_rect from the GW2 API for the map.
-    :type mapleft: number
-    :param mapright: The right value of the map_rect from the GW2 API for the map.
-    :type mapright: number
-    :param maptop: The top value of the map_rect from the GW2 API for the map.
-    :type maptop: number
-    :param mapbottom: The bottom value of the map_rect from the GW2 API for the map.
-    :type mapbottom: number
-    :returns: The map coordinates, as two numbers: x, y. NOTE: the y coordinate corresponds to the third coordinate returned by mumble-link!
-    :rtype: number
-
-    .. versionhistory::
-        :0.0.1: Added
-]]--
-function gw2.coord_c2m(cx, cy, contleft, contright, conttop, contbottom, mapleft, mapright, maptop, mapbottom)
-    local mx = (mapleft   + ( 1 * (cx - contleft) / (contright - contleft  ) * (mapright - mapright )))
-    local mz = (mapbottom + (-1 * (cy - contop  ) / (conttop   - contbottom) * (maptop   - mapbottom)))
-    return mx, mz
-end
-
---[[ RST
-.. lua:function:: player_map_coords()
-
-    Returns the current player position in map coordinates. This is the value reported by mumble-link converted to inches.
-
-    :returns: X,Y,Z coordinates
-    :rtype: number
-
-    **Example**
-
-    .. code-block:: lua
-
-        local px, py, pz = gw2.player_map_coords()
-
-    .. versionhistory::
-        :0.0.1: Added
-]]--
-function gw2.player_map_coords()
-    if ml.mapid==0 then return end
-
-    local apos = ml.avatarposition
-
-    return apos.x * 39.3701, apos.y * 39.3701, apos.z * 39.3701
-end
-
---[[ RST
-.. lua:function:: player_continent_coords()
-
-    Returns the current player position in continent coordinates. This is based on the data returned by mumble-link and map data from :lua:mod:`gw2.static`.
-
-    :returns: X, Y coordinates
-    :rtype: number
-
-    **Example**
-
-    .. code-block:: lua
-
-        local cx, cy = gw2.player_continent_coords()
-
-    .. versionhistory::
-        :0.0.1: Added
-]]--
-function gw2.player_continent_coords()
-    if ml.mapid == 0 then return end
-
-    local px, py, pz = gw2.player_map_coords()
-
-    if not px then return end
-
-    local map = static.map(ml.mapid)
-    return gw2.coord_m2c(
-        px, pz,
-        map.continent_rect_left, map.continent_rect_right, map.continent_rect_top, map.continent_rect_bottom,
-        map.map_rect_left, map.map_rect_right, map.map_rect_top, map.map_rect_bottom
-    )
-end
-
-function gw2.map2continent(mapx, mapy)
-    if ml.mapid == 0 then return end
-
-    local map = static.map(ml.mapid)
-
-    return gw2.coord_m2c(
-        mapx, mapy,
-        map.continent_rect_left, map.continent_rect_right, map.continent_rect_top, map.continent_rect_bottom,
-        map.map_rect_left, map.map_rect_right, map.map_rect_top, map.map_rect_bottom
-    )
-end
-
-gw2.coordconverter = {}
-gw2.coordconverter.__index = gw2.coordconverter
-
-function gw2.coordconverter:new()
-    if ml.mapid == 0 then return end
-
-    local map = static.map(ml.mapid)
-
-    if not map then return end
-
-    local o = { map = map, mapid = ml.mapid }
-    setmetatable(o, self)
-
-    return o
-end
-
-function gw2.coordconverter:map2continent(mapx, mapz)
-    return gw2.coord_m2c(
-        mapx, mapz,
-        self.map.continent_rect_left, self.map.continent_rect_right,
-        self.map.continent_rect_top, self.map.continent_rect_bottom,
-        self.map.map_rect_left, self.map.map_rect_right,
-        self.map.map_rect_top, self.map.map_rect_bottom
-    )
-end
-
-return gw2
+return M

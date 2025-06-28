@@ -1,3 +1,7 @@
+.. EG-Overlay
+.. Copyright (c) 2025 Taylor Talkington
+.. SPDX-License-Identifier: MIT
+
 Installation
 ============
 
@@ -5,6 +9,7 @@ EG-Overlay does not need to be installed, instead it can be run from any
 convenient location.
 
 .. warning::
+    
     While it is possible to do so, users should not place EG-Overlay into the
     same folder as GW2.
 

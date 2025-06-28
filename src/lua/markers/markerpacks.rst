@@ -1,3 +1,7 @@
+.. EG-Overlay
+.. Copyright (c) 2025 Taylor Talkington
+.. SPDX-License-Identifier: MIT
+
 EG-Overlay Markerpack Format
 ============================
 
@@ -252,7 +256,7 @@ marker authors or other EG-Overlay modules.
     operates on properties in a case insensitive manner. In other words, a
     property named ``name`` is considered the same as ``Name`` or ``NAME``.
 
-categoryname
+displayname
 ~~~~~~~~~~~~
 
 The name displayed within the UI for a category. This name may also be displayed

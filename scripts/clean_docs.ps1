@@ -1,1 +1,0 @@
-sphinx-build -M clean docs docs\_build -c docs

@@ -1,3 +1,7 @@
+# EG-Overlay
+# Copyright (c) 2025 Taylor Talkington
+# SPDX-License-Identifier: MIT
+
 #from collections import defaultdict
 #from typing import Iterable
 from docutils import nodes
