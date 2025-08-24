@@ -669,7 +669,7 @@ unsafe extern "system" fn overlay_wnd_proc(
                         unsafe { Shell::ShellExecuteA(
                             None,
                             windows::core::s!("open"),
-                            windows::core::s!("https://the-eg.github.io/Eg-Overlay"),
+                            windows::core::s!("https://the-eg.github.io/EG-Overlay"),
                             None,
                             None,
                             WindowsAndMessaging::SW_SHOWNORMAL
