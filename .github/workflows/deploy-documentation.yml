@@ -39,7 +39,7 @@ jobs:
           pip install -r docs/requirements.txt
       - name: Build Documentation
         run: |
-          .\scripts\build_docs.ps1
+          .\scripts\build-docs.ps1
           "" > docs/_build/.nojekyll
       - name: Upload Artifact
         uses: actions/upload-pages-artifact@v3
