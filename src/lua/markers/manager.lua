@@ -153,6 +153,9 @@ function M.behaviormgr:removecategory(typeid)
 end
 
 function M.behaviormgr:update()
+    self.closestguid = nil
+    self.doactivate = false
+
     M.activatewin:hide()
 
     local px, py, pz = ml.avatarposition()
@@ -216,11 +219,13 @@ function M.behaviormgr:update()
 
     if self.closestdist <= m.triggerrange then
         M.activatewin:show()
+        self.doactivate = true
     end
 end
 
 function M.behaviormgr:activatemarker()
     if not self.closestguid then return end
+    if not self.doactivate then return end
     
     local m = self.markercache[self.closestguid]
 
@@ -348,6 +353,28 @@ function M.tooltipwin:setmarker(markerpack, typeid, markerid)
 
         mcache.description = marker['tip-description']
         mcache.title = marker['tip-name'] or marker.displayname
+
+        if mcache.description then
+            -- word wrap long descriptions
+
+            local descwrap = ''
+            local linelen = 0
+            for str in mcache.description:gmatch('([^ ]+)') do
+                if #str + linelen > 60 then
+                    descwrap = descwrap .. '\n' .. str
+                    linelen = #str
+                else
+                    if #descwrap > 0 then
+                        descwrap = descwrap .. ' '
+                        linelen = linelen + 1
+                    end
+                    descwrap = descwrap .. str
+                    linelen = linelen + #str
+                end
+            end
+
+            mcache.description = descwrap
+        end
 
         local p = cat:parent()
         mcache.path = p.displayname
@@ -546,7 +573,7 @@ function M.addcategorytrails(category)
                 local attrs = {
                     color = color,
                     wall = false,
-                    size = (trail.trailscale or 1.0) * 40,
+                    size = (trail.trailscale or 1.0) * 20,
                     points = contcoords,
                     tags = {
                         pack = packpath,
