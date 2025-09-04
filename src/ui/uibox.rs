@@ -223,83 +223,91 @@ impl BoxInner {
 
         if fill_items == 0 { extra_room  = 0; }
 
-        match self.orientation {
-        ui::ElementOrientation::Vertical => {
-            let mut y = match self.alignment {
-                ui::ElementAlignment::Start |
-                ui::ElementAlignment::Fill   => offset_y + self.y + self.padding_top,
-                ui::ElementAlignment::Middle => offset_y + self.y + (self.height / 2) - ((pref_height + extra_room) / 2),
-                ui::ElementAlignment::End    => offset_y + self.y - self.padding_bottom - pref_height,
-            };
-
-            for item in &self.items {
-                let mut item_width = item.element.get_preferred_width();
-                let mut item_height = item.element.get_preferred_height();
-
-                if item.expand {
-                    item_height += item_fill_size;
-                }
-
-                if item.alignment == ui::ElementAlignment::Fill {
-                    item_width = self.width - self.padding_left - self.padding_right;
-                }
-                
-                item.element.set_width(item_width);
-                item.element.set_height(item_height);
-
-                if item.alignment == ui::ElementAlignment::Fill {
-                    item.element.set_width(self.width - self.padding_left - self.padding_right);
-                }
-
-                let x = match item.alignment {
-                ui::ElementAlignment::Start |
-                ui::ElementAlignment::Fill    => offset_x + self.x + self.padding_left,
-                ui::ElementAlignment::Middle  => offset_x + self.x + (self.width / 2) - (item_width / 2),
-                ui::ElementAlignment::End     => offset_x + self.x + self.width - self.padding_right - item_width,
+        let scissor_left = offset_x + self.x + self.padding_left;
+        let scissor_right = offset_x + self.x + self.width - self.padding_right;
+        let scissor_top = offset_y + self.y + self.padding_top;
+        let scissor_bottom = offset_y + self.y + self.height - self.padding_bottom;
+        if frame.push_scissor(scissor_left, scissor_top, scissor_right, scissor_bottom) {
+            match self.orientation {
+            ui::ElementOrientation::Vertical => {
+                let mut y = match self.alignment {
+                    ui::ElementAlignment::Start |
+                    ui::ElementAlignment::Fill   => offset_y + self.y + self.padding_top,
+                    ui::ElementAlignment::Middle => offset_y + self.y + (self.height / 2) - ((pref_height + extra_room) / 2),
+                    ui::ElementAlignment::End    => offset_y + self.y - self.padding_bottom - pref_height,
                 };
 
-                item.element.draw(x, y, frame);
+                for item in &self.items {
+                    let mut item_width = item.element.get_preferred_width();
+                    let mut item_height = item.element.get_preferred_height();
 
-                y += item_height;
-                if !std::ptr::eq(item, self.items.back().unwrap()) { y += self.spacing; }
-            }
-        },
-        ui::ElementOrientation::Horizontal => {
-            let mut x = match self.alignment {
-                ui::ElementAlignment::Start |
-                ui::ElementAlignment::Fill    => offset_x + self.x + self.padding_left,
-                ui::ElementAlignment::Middle  => offset_x + self.x + self.padding_left + ((self.width - self.padding_left - self.padding_right) / 2) - ((pref_width - self.padding_left - self.padding_right) / 2),
-                ui::ElementAlignment::End     => offset_x + self.x + self.width - self.padding_right - pref_width,
-            };
+                    if item.expand {
+                        item_height += item_fill_size;
+                    }
 
-            for item in &self.items {
-                let mut item_width = item.element.get_preferred_width();
-                let item_height = item.element.get_preferred_height();
+                    if item.alignment == ui::ElementAlignment::Fill {
+                        item_width = self.width - self.padding_left - self.padding_right;
+                    }
 
-                if item.expand {
-                    item_width += item_fill_size;
+                    item.element.set_width(item_width);
+                    item.element.set_height(item_height);
+
+                    if item.alignment == ui::ElementAlignment::Fill {
+                        item.element.set_width(self.width - self.padding_left - self.padding_right);
+                    }
+
+                    let x = match item.alignment {
+                    ui::ElementAlignment::Start |
+                    ui::ElementAlignment::Fill    => offset_x + self.x + self.padding_left,
+                    ui::ElementAlignment::Middle  => offset_x + self.x + (self.width / 2) - (item_width / 2),
+                    ui::ElementAlignment::End     => offset_x + self.x + self.width - self.padding_right - item_width,
+                    };
+
+                    item.element.draw(x, y, frame);
+
+                    y += item_height;
+                    if !std::ptr::eq(item, self.items.back().unwrap()) { y += self.spacing; }
                 }
-
-                item.element.set_width(item_width);
-                item.element.set_height(item_height);
-
-                if item.alignment == ui::ElementAlignment::Fill {
-                    item.element.set_height(self.height - self.padding_top - self.padding_bottom);
-                }
-
-                let y = match item.alignment {
-                ui::ElementAlignment::Start |
-                ui::ElementAlignment::Fill    => offset_y + self.y + self.padding_top,
-                ui::ElementAlignment::Middle  => offset_y + self.y + (self.height / 2) - (item_height / 2),
-                ui::ElementAlignment::End     => offset_y + self.y + self.height - self.padding_bottom - item_height,
+            },
+            ui::ElementOrientation::Horizontal => {
+                let mut x = match self.alignment {
+                    ui::ElementAlignment::Start |
+                    ui::ElementAlignment::Fill    => offset_x + self.x + self.padding_left,
+                    ui::ElementAlignment::Middle  => offset_x + self.x + self.padding_left + ((self.width - self.padding_left - self.padding_right) / 2) - ((pref_width - self.padding_left - self.padding_right) / 2),
+                    ui::ElementAlignment::End     => offset_x + self.x + self.width - self.padding_right - pref_width,
                 };
 
-                item.element.draw(x, y, frame);
+                for item in &self.items {
+                    let mut item_width = item.element.get_preferred_width();
+                    let item_height = item.element.get_preferred_height();
 
-                x += item_width;
-                if !std::ptr::eq(item, self.items.back().unwrap()) { x += self.spacing; }
+                    if item.expand {
+                        item_width += item_fill_size;
+                    }
+
+                    item.element.set_width(item_width);
+                    item.element.set_height(item_height);
+
+                    if item.alignment == ui::ElementAlignment::Fill {
+                        item.element.set_height(self.height - self.padding_top - self.padding_bottom);
+                    }
+
+                    let y = match item.alignment {
+                    ui::ElementAlignment::Start |
+                    ui::ElementAlignment::Fill    => offset_y + self.y + self.padding_top,
+                    ui::ElementAlignment::Middle  => offset_y + self.y + (self.height / 2) - (item_height / 2),
+                    ui::ElementAlignment::End     => offset_y + self.y + self.height - self.padding_bottom - item_height,
+                    };
+
+                    item.element.draw(x, y, frame);
+
+                    x += item_width;
+                    if !std::ptr::eq(item, self.items.back().unwrap()) { x += self.spacing; }
+                }
             }
-        }
+            }
+
+            frame.pop_scissor();
         }
     }
 
