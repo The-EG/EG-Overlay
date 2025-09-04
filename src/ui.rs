@@ -35,6 +35,8 @@ use std::fs::File;
 use std::io::BufRead;
 use std::io::BufReader;
 
+use windows::Win32::Foundation;
+
 pub enum Element {
     Text(text::Text),
     Window(window::Window),
@@ -397,11 +399,12 @@ impl Ui {
         top_level.push_back(element.clone());
     }
 
-    pub fn add_input_element(&self, element: &Arc<Element>, offset_x: i64, offset_y: i64) {
+    pub fn add_input_element(&self, element: &Arc<Element>, offset_x: i64, offset_y: i64, scissor: Foundation::RECT) {
         let e = element.clone();
 
         let ie = InputElement {
             element: e,
+            scissor: scissor,
             offset_x: offset_x,
             offset_y: offset_y,
         };
@@ -409,11 +412,12 @@ impl Ui {
         self.input_elements.lock().unwrap().push_front(ie);
     }
 
-    pub fn set_mouse_capture(&self, element: &Arc<Element>, offset_x: i64, offset_y: i64) {
+    pub fn set_mouse_capture(&self, element: &Arc<Element>, offset_x: i64, offset_y: i64, scissor: Foundation::RECT) {
         if self.mouse_capture_element.lock().unwrap().is_some() { return; }
 
         *self.mouse_capture_element.lock().unwrap() = Some(InputElement {
             element: element.clone(),
+            scissor: scissor,
             offset_x: offset_x,
             offset_y: offset_y,
         });
@@ -666,6 +670,8 @@ struct InputElement {
     offset_x: i64,
     offset_y: i64,
 
+    scissor: Foundation::RECT,
+
     element: Arc<Element>,
 }
 
@@ -677,10 +683,15 @@ impl InputElement {
         let bottom = top + e.get_height();
         let right = left + e.get_width();
 
-        x >= left  &&
-        x <= right &&
-        y >= top   &&
-        y <= bottom
+        let s = &self.scissor;
+
+        let within_e = x >= left && x <= right && y >= top && y <= bottom;
+        let within_s = x >= s.left   as i64 &&
+                       x <= s.right  as i64 &&
+                       y >= s.top    as i64 &&
+                       y <= s.bottom as i64;
+
+        return within_e && within_s;
     }
 }
 

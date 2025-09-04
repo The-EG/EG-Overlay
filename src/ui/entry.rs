@@ -229,7 +229,7 @@ impl EntryInner {
             self.font.render_text(frame, cursor_x, ty, &self.inactive_caret, self.fg_color);
         }
 
-        self.ui.upgrade().unwrap().add_input_element(element, offset_x, offset_y);
+        self.ui.upgrade().unwrap().add_input_element(element, offset_x, offset_y, frame.current_scissor());
     }
 
     pub fn process_mouse_event(

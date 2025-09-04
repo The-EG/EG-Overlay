@@ -196,6 +196,12 @@ impl Dx {
         self.swapchain.lock().unwrap().resize(hwnd);
     }
 
+    pub fn get_rtv_size(&self) -> (u32, u32) {
+        let sc = self.swapchain.lock().unwrap();
+
+        (sc.rtv_width, sc.rtv_height)
+    }
+
     /// Creates a new pipeline state.
     ///
     /// `desc` must be a valid pipeline state description; this function will
@@ -877,6 +883,10 @@ impl SwapChain {
         unsafe {
             self.cmd_list.IASetVertexBuffers(slot, views)
         }
+    }
+
+    pub fn current_scissor(&self) -> Foundation::RECT {
+        self.scissors.front().unwrap_or(&self.base_scissor).clone()
     }
 
     pub fn push_scissor(&mut self, left: i64, top: i64, right: i64, bottom: i64) -> bool {

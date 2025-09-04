@@ -16,6 +16,8 @@ use crate::input;
 
 use crate::lua_manager;
 
+use windows::Win32::Foundation;
+
 pub struct Button {
     inner: Mutex<ButtonInner>,
 }
@@ -46,6 +48,8 @@ struct ButtonInner {
 
     highlight: bool,
     hover: bool,
+
+    last_scissor: Foundation::RECT,
 
     event_handlers: HashMap<i64, HashSet<String>>,
 
@@ -87,6 +91,8 @@ impl Button {
 
                 highlight: false,
                 hover: false,
+
+                last_scissor: Foundation::RECT::default(),
 
                 event_handlers: HashMap::new(),
 
@@ -232,7 +238,8 @@ impl ButtonInner {
         let bgy = y + self.border_width;
         r.draw(frame, bgx, bgy, bgw, bgh, bg);
 
-        self.ui.upgrade().unwrap().add_input_element(element, offset_x, offset_y);
+        self.last_scissor = frame.current_scissor();
+        self.ui.upgrade().unwrap().add_input_element(element, offset_x, offset_y, self.last_scissor.clone());
 
         if let Some(c) = &self.child {
             c.draw(cx, cy, frame);
@@ -258,7 +265,7 @@ impl ButtonInner {
             input::MouseEvent::Button(btn) => {
                 if btn.down {
                     self.highlight = true;
-                    self.ui.upgrade().unwrap().set_mouse_capture(element, offset_x, offset_y);
+                    self.ui.upgrade().unwrap().set_mouse_capture(element, offset_x, offset_y, self.last_scissor.clone());
                 } else {
                     let btn_x = self.x + offset_x;
                     let btn_y = self.y + offset_y;
@@ -291,7 +298,10 @@ impl ButtonInner {
                     }
                 }
             },
-            _ => {},
+            _ => {
+                // if we don't process the event then we don't consume it
+                return false;
+            },
         }
 
         true

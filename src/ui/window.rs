@@ -13,6 +13,8 @@ use crate::overlay;
 use crate::input;
 use crate::settings;
 
+use windows::Win32::Foundation;
+
 pub mod lua;
 
 pub struct Window {
@@ -60,6 +62,9 @@ struct WindowInner {
 
     settings: Option<Arc<settings::SettingsStore>>,
     settings_path: Option<String>,
+
+    // needed for adding this window as a mouse capture element
+    last_scissor: Foundation::RECT,
 
     ui: Weak<ui::Ui>,
 }
@@ -109,6 +114,8 @@ impl Window {
 
             settings: None,
             settings_path: None,
+
+            last_scissor: Foundation::RECT::default(),
 
             ui: Arc::downgrade(&overlay::ui()),
         });
@@ -334,7 +341,7 @@ impl WindowInner {
             self.moving = true;
             self.move_last_x = event.x;
             self.move_last_y = event.y;
-            overlay::ui().set_mouse_capture(element, offset_x, offset_y);
+            overlay::ui().set_mouse_capture(element, offset_x, offset_y, self.last_scissor.clone());
         } else if self.moving && event.button == input::MouseButtonEventButton::Left && !event.down {
             self.moving = false;
             overlay::ui().clear_mouse_capture();
@@ -347,7 +354,7 @@ impl WindowInner {
             self.resizing = true;
             self.move_last_x = event.x;
             self.move_last_y = event.y;
-            overlay::ui().set_mouse_capture(element, offset_x, offset_y);
+            overlay::ui().set_mouse_capture(element, offset_x, offset_y, self.last_scissor.clone());
         } else if self.resizing && event.button == input::MouseButtonEventButton::Left && !event.down {
             self.resizing = false;
             overlay::ui().clear_mouse_capture();
@@ -410,7 +417,8 @@ impl WindowInner {
 
         self.draw_decorations(offset_x, offset_y, frame);
 
-        self.ui.upgrade().unwrap().add_input_element(element, offset_x, offset_y);
+        self.last_scissor = frame.current_scissor();
+        self.ui.upgrade().unwrap().add_input_element(element, offset_x, offset_y, self.last_scissor.clone());
 
         if let Some(child) = &self.child {
             let coffx = offset_x + self.x + 2;

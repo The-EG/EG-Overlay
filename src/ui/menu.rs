@@ -172,7 +172,15 @@ impl Menu {
 
         let ui = inner.ui.upgrade().unwrap();
         ui.add_top_level_element(element);
-        ui.set_mouse_capture(element, 0, 0);
+
+        let (width, height) = overlay::dx().get_rtv_size();
+        let r = windows::Win32::Foundation::RECT {
+            left: 0,
+            right: width as i32,
+            top: 0,
+            bottom: height as i32,
+        };
+        ui.set_mouse_capture(element, 0, 0, r);
     }
 
     pub fn hide(&self, element: &Arc<ui::Element>) {
@@ -216,7 +224,7 @@ impl MenuInner {
         r.draw(frame, offset_x + self.x, offset_y + self.y + self.height - 1, self.width, 1, self.border_color); // bottom
 
         if self.parent.upgrade().is_none() {
-            self.ui.upgrade().unwrap().add_input_element(element, offset_x, offset_y);
+            self.ui.upgrade().unwrap().add_input_element(element, offset_x, offset_y, frame.current_scissor());
         }
 
         self.itembox.draw(offset_x + self.x, offset_y + self.y, frame);
@@ -450,7 +458,7 @@ impl MenuItemInner {
                 r.draw(frame, offset_x + self.x, offset_y + self.y, self.width, self.height, self.hover_color);
             }
 
-            self.ui.upgrade().unwrap().add_input_element(element, offset_x, offset_y);        
+            self.ui.upgrade().unwrap().add_input_element(element, offset_x, offset_y, frame.current_scissor());
 
             if self.icon_text.len() > 0 {
                 let icon_x = self.x + offset_x + 5;

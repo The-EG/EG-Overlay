@@ -12,6 +12,8 @@ use crate::ui;
 use crate::overlay;
 use crate::input;
 
+use windows::Win32::Foundation;
+
 pub struct ScrollView {
     inner: Mutex<ScrollViewInner>,
 }
@@ -51,6 +53,8 @@ struct ScrollViewInner {
     horiz_thumb_size: i64,
     horiz_thumb_pos: i64,
     horiz_move_factor: f64,
+
+    last_scissor: Foundation::RECT,
 
     ui: Weak<ui::Ui>,
 }
@@ -93,6 +97,8 @@ impl ScrollView {
             horiz_thumb_size: 0,
             horiz_thumb_pos: 0,
             horiz_move_factor: 0.0,
+
+            last_scissor: Foundation::RECT::default(),
 
             ui: Arc::downgrade(&overlay::ui()),
         };
@@ -199,7 +205,8 @@ impl ScrollViewInner {
         let sy = self.y + offset_y;
 
         if let Some(child) = self.child.as_ref() {
-            self.ui.upgrade().unwrap().add_input_element(element, offset_x, offset_y);
+            self.last_scissor = frame.current_scissor();
+            self.ui.upgrade().unwrap().add_input_element(element, offset_x, offset_y, self.last_scissor.clone());
 
             self.child_width = child.get_preferred_width();
             self.child_height = child.get_preferred_height();
@@ -362,7 +369,7 @@ impl ScrollViewInner {
                 self.last_drag_x = button.x;
                 self.last_drag_y = button.y;
 
-                self.ui.upgrade().unwrap().set_mouse_capture(element, offset_x, offset_y);
+                self.ui.upgrade().unwrap().set_mouse_capture(element, offset_x, offset_y, self.last_scissor.clone());
 
                 return true;
             }
