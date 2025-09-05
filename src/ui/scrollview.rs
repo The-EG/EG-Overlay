@@ -211,6 +211,14 @@ impl ScrollViewInner {
             self.child_width = child.get_preferred_width();
             self.child_height = child.get_preferred_height();
 
+            if self.child_width < self.width - 10 {
+                self.child_width = self.width - 10;
+            }
+
+            if self.child_height < self.height - 10 {
+                self.child_height = self.height - 10;
+            }
+
             // the maximum valid disp_y
             let max_disp_y = self.child_height - self.height + 10;
             let max_disp_x = self.child_width - self.width + 10;
