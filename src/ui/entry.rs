@@ -36,8 +36,6 @@ struct EntryInner {
 
     caret_pos: usize, // character pos
     caret_x: i64,   // pixel pos
-    focus_caret: String,
-    inactive_caret: String,
 
     fg_color: ui::Color,
     hint_color: ui::Color,
@@ -70,8 +68,6 @@ impl Entry {
 
             caret_pos: 0,
             caret_x: 0,
-            focus_caret: settings.get_string("overlay.ui.entryFocusCaret").unwrap(),
-            inactive_caret: settings.get_string("overlay.ui.entryInactiveCaret").unwrap(),
 
             fg_color: settings.get_color("overlay.ui.colors.text").unwrap(),
             hint_color: settings.get_color("overlay.ui.colors.entryHint").unwrap(),
@@ -209,25 +205,9 @@ impl EntryInner {
 
         // cursor
         let cursor_x = self.caret_x + tx;
-        if is_focus {
-            // solid when we have focus
-            self.font.render_text(frame, cursor_x, ty, &self.focus_caret, self.fg_color);
 
-            // draw the character under the cursor as a different color
-            if self.text.len() > 0 {
-                if self.caret_pos < self.text.len() {
-                    self.font.render_text(frame, cursor_x, ty, &self.text[self.caret_pos..self.caret_pos+1], ui::Color::from(0x000000FFu32));
-                }
-            } else {
-                // caret pos must be 0 in this case
-                if let Some(h) = self.hint.as_ref() {
-                    self.font.render_text(frame, tx, ty, &h[0..1], ui::Color::from(0x000000AAu32));
-                }
-            }
-        } else {
-            // faded when not
-            self.font.render_text(frame, cursor_x, ty, &self.inactive_caret, self.fg_color);
-        }
+        // draw a caret bar
+        r.draw(frame, cursor_x, ty, 2, th, self.fg_color);
 
         self.ui.upgrade().unwrap().add_input_element(element, offset_x, offset_y, frame.current_scissor());
     }

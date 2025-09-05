@@ -266,8 +266,6 @@ impl Ui {
 
         o_settings.set_default_value("overlay.ui.colors.entryBG",               0x262626FFu32);
         o_settings.set_default_value("overlay.ui.colors.entryHint",             0x707070FFu32);
-        o_settings.set_default_value("overlay.ui.entryFocusCaret",              "\u{2588}");
-        o_settings.set_default_value("overlay.ui.entryInactiveCaret",           "\u{2591}");
 
         o_settings.set_default_value("overlay.ui.colors.buttonBG",              0x1F253BDDu32);
         o_settings.set_default_value("overlay.ui.colors.buttonBGHover",         0x2E3859FFu32);
