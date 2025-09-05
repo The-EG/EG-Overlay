@@ -34,6 +34,8 @@ struct EntryInner {
     width: i64,
     height: i64,
 
+    readonly: bool,
+
     caret_pos: usize, // character pos
     caret_x: i64,   // pixel pos
 
@@ -65,6 +67,8 @@ impl Entry {
             y: 0,
             width: 0,
             height: 0,
+
+            readonly: false,
 
             caret_pos: 0,
             caret_x: 0,
@@ -206,8 +210,10 @@ impl EntryInner {
         // cursor
         let cursor_x = self.caret_x + tx;
 
-        // draw a caret bar
-        r.draw(frame, cursor_x, ty, 2, th, self.fg_color);
+        if !self.readonly {
+            // draw a caret bar
+            r.draw(frame, cursor_x, ty, 2, th, self.fg_color);
+        }
 
         self.ui.upgrade().unwrap().add_input_element(element, offset_x, offset_y, frame.current_scissor());
     }
@@ -220,7 +226,7 @@ impl EntryInner {
         element: &Arc<ui::Element>
     ) -> bool {
         if let input::MouseEvent::Button(b) = event {
-            if b.button == input::MouseButtonEventButton::Left && b.down {
+            if b.button == input::MouseButtonEventButton::Left && b.down && !self.readonly {
                 self.ui.upgrade().unwrap().set_focus_element(Some(element.clone()));
             }
         }
@@ -242,7 +248,7 @@ impl EntryInner {
                     self.queue_events(format!("click-{}", btnnm).as_str());
                 }
             },
-            _ => {},
+            _ => { return false; },
         }
 
         true

@@ -47,6 +47,7 @@ const ENTRY_FUNCS: &[luaL_Reg] = luaL_Reg_list!{
     c"prefwidth"         , pref_width,
     c"addeventhandler"   , add_event_handler,
     c"removeeventhandler", remove_event_handler,
+    c"readonly"          , read_only,
 };
 
 pub fn register_module_functions(l: &lua_State) {
@@ -236,6 +237,29 @@ unsafe extern "C" fn remove_event_handler(l: &lua_State) -> i32 {
     }
 
     lua::L::unref(l, lua::LUA_REGISTRYINDEX, ehref);
+
+    return 0;
+}
+
+/*** RST
+    .. lua:method:: readonly(value)
+
+        Sets if this entry should be read only or not.
+
+        A read only entry does not receive keyboard focus or events and the
+        value can not be edited by the user.
+
+        :param boolean value:
+
+        .. versionhistory::
+            :0.3.0: Added
+*/
+unsafe extern "C" fn read_only(l: &lua_State) -> i32 {
+    let ele = unsafe { ui::lua::checkelement(l, 1) };
+    let entry = unsafe { checkentry(l, &ele) };
+    let val = lua::toboolean(l, 2);
+
+    entry.inner.lock().unwrap().readonly = val;
 
     return 0;
 }
