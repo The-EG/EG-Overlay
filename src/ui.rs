@@ -222,6 +222,7 @@ pub struct Ui {
     // fonts must be declared before the font manager so that they are dropped
     // first.
     pub regular_font: Arc<font::Font>,
+    pub italic_font: Arc<font::Font>,
     pub mono_font: Arc<font::Font>,
     pub icon_font: Arc<font::Font>,
 
@@ -282,11 +283,17 @@ impl Ui {
         o_settings.set_default_value("overlay.ui.colors.menuItemHighlight",     0x3a4670FFu32);
 
         o_settings.set_default_value("overlay.ui.font.gammaCorrection", 1.4);
+
         o_settings.set_default_value("overlay.ui.font.regular.path"     , "fonts/Inter.ttf");
         o_settings.set_default_value("overlay.ui.font.regular.size"     ,  12);
         o_settings.set_default_value("overlay.ui.font.regular.vars", serde_json::json!({
             "wght": 400,
-            "slnt": 0
+        }));
+
+        o_settings.set_default_value("overlay.ui.font.italic.path", "fonts/Inter-Italic.ttf");
+        o_settings.set_default_value("overlay.ui.font.italic.size", 12);
+        o_settings.set_default_value("overlay.ui.font.italic.vars", serde_json::json!({
+            "wght": 400,
         }));
 
         o_settings.set_default_value("overlay.ui.font.mono.path", "fonts/CascadiaCode.ttf");
@@ -307,6 +314,7 @@ impl Ui {
 
         debug!("Loading default fonts:");
         let reg_font = get_default_font(&font_man, "regular");
+        let ital_font = get_default_font(&font_man, "italic");
         let mono_font = get_default_font(&font_man, "mono");
         let icon_font = get_default_font(&font_man, "icon");
 
@@ -328,6 +336,7 @@ impl Ui {
             rect: rect::Rect::new(),
 
             regular_font: reg_font,
+            italic_font: ital_font,
             mono_font: mono_font,
             icon_font: icon_font,
 

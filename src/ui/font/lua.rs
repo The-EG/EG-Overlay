@@ -18,9 +18,9 @@ Fonts can be accessed using the :lua:func:`getfont` function in the
 Default Fonts
 -------------
 
-EG-Overlay comes with 3 default fonts:
+EG-Overlay comes with 4 default fonts:
 
-- Regular: `Inter <https://github.com/rsms/inter>`_
+- Regular and Italic: `Inter <https://github.com/rsms/inter>`_
 - Monospace:  `Cascadia Code <https://github.com/microsoft/cascadia-code>`_
 - Icon: `Google Material Design Icons <https://github.com/google/material-design-icons>`_
 
@@ -34,6 +34,7 @@ in a ``fonts`` table on the :lua:mod:`eg-overlay-ui` module as ``regular``,
     local ui = require 'eg-overlay-ui'
 
     local regfont = ui.fonts.regular
+    local italfont = ui.fonts.italic
     local monofont = ui.fonts.monospace
     local iconfont = ui.fonts.icon
 
@@ -109,6 +110,8 @@ pub fn register_module_functions(l: &lua_State) {
 
     crate::ui::font::lua::pushfont(l, &ui.regular_font);
     lua::setfield(l, -2, "regular");
+    crate::ui::font::lua::pushfont(l, &ui.italic_font);
+    lua::setfield(l, -2, "italic");
     crate::ui::font::lua::pushfont(l, &ui.mono_font);
     lua::setfield(l, -2, "monospace");
     crate::ui::font::lua::pushfont(l, &ui.icon_font);
