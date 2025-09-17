@@ -65,9 +65,13 @@ pub fn register_module_functions(l: &lua_State) {
         :0.0.1: Added
 */
 unsafe extern "C" fn new_text(l: &lua_State) -> i32 {
-    let text = unsafe { lua::L::checkstring(l, 1) };
-    let color = ui::Color::from( unsafe { lua::L::checkinteger(l, 2) as u32 });
+    lua::checkargstring!(l, 1);
+    lua::checkarginteger!(l, 2);
+
     let font = unsafe { ui::font::lua::checkfont(l, 3) };
+
+    let text = lua::tostring(l, 1);
+    let color = ui::Color::from(lua::tointeger(l, 2) as u32);
 
     let t = ui::text::Text::new(&text, color, &font);
 

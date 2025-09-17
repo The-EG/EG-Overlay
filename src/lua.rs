@@ -60,6 +60,23 @@ pub enum LuaType {
     LUA_TTHREAD        =  8,
 }
 
+impl LuaType {
+    pub fn as_str(&self) -> &str {
+        match self {
+            LuaType::LUA_TNONE          => "none",
+            LuaType::LUA_TNIL           => "nil",
+            LuaType::LUA_TBOOLEAN       => "boolean",
+            LuaType::LUA_TLIGHTUSERDATA => "lightuserdata",
+            LuaType::LUA_TNUMBER        => "number",
+            LuaType::LUA_TSTRING        => "string",
+            LuaType::LUA_TTABLE         => "table",
+            LuaType::LUA_TFUNCTION      => "function",
+            LuaType::LUA_TUSERDATA      => "userdata",
+            LuaType::LUA_TTHREAD        => "thread",
+        }
+    }
+}
+
 /// A Rust function that can be called from Lua.
 pub type lua_CFunction = Option<unsafe extern "C" fn(&lua_State) -> c_int>;
 
@@ -651,6 +668,77 @@ mod api {
 
 }
 
+pub fn dbg_name(l: &lua_State) -> String {
+    let mut dbg = lua_Debug::default();
+
+    getstack(l, 0, &mut dbg).unwrap();
+    getinfo(l, "n", &mut dbg).unwrap();
+
+    let name = unsafe { std::ffi::CStr::from_ptr(dbg.name).to_str().unwrap() };
+
+    String::from(name)
+}
+
+macro_rules! checkarg {
+    ($lua:ident, $ind:literal) => {{
+        if crate::lua::gettop($lua) < $ind {
+            lua::pushstring($lua, format!("missing argument #{} to function {}", $ind, $crate::lua::dbg_name($lua)).as_str());
+            unsafe { lua::error($lua) };
+        }
+    }}
+}
+pub(crate) use checkarg;
+
+macro_rules! checkargstring {
+    ($lua:ident, $ind:literal) => {{
+        $crate::lua::checkarg!($lua, $ind);
+
+        if $crate::lua::luatype($lua, $ind) != $crate::lua::LuaType::LUA_TSTRING {
+            lua::pushstring($lua, format!("expecting string for argument #{} to function {}, found {}",
+                    $ind,
+                    $crate::lua::dbg_name($lua),
+                    $crate::lua::luatype($lua, $ind).as_str()
+                ).as_str()
+            );
+            unsafe { lua::error($lua) };
+        }
+    }}
+}
+pub(crate) use checkargstring;
+
+macro_rules! checkargnumber {
+    ($lua:ident, $ind:literal) => {{
+        $crate::lua::checkarg!($lua, $ind);
+
+        if $crate::lua::luatype($lua, $ind) != $crate::lua::LuaType::LUA_TNUMBER {
+            lua::pushstring($lua, format!("expecting number for argument #{} to function {}, found {}",
+                    $ind,
+                    $crate::lua::dbg_name($lua),
+                    $crate::lua::luatype($lua, $ind).as_str()
+                ).as_str()
+            );
+            unsafe { lua::error($lua) };
+        }
+    }}
+}
+pub(crate) use checkargnumber;
+
+macro_rules! checkarginteger {
+    ($lua:ident, $ind:literal) => {{
+        $crate::lua::checkarg!($lua, $ind);
+        $crate::lua::checkargnumber!($lua, $ind);
+
+        if !$crate::lua::isinteger($lua, $ind) {
+            lua::pushstring($lua, format!("argument #{} to functon {} is a number, but not an integer",
+                    $ind,
+                    $crate::lua::dbg_name($lua)
+                ).as_str()
+            );
+            unsafe { lua::error($lua) };
+        }
+    }}
+}
+pub(crate) use checkarginteger;
 
 /* lauxlib.h */
 
