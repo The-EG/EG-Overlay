@@ -22,6 +22,7 @@ EG-Overlay Modules
     /src/dx/lua
     /src/lua/gw2/init
     /src/lua/mumble-link-events
+    /src/lua/dialogs
     /src/settings/lua
     /src/lua_sqlite3
     /src/zip/lua
@@ -34,6 +35,7 @@ EG-Overlay Modules
 - :lua:mod:`mumble-link-events`
 - :lua:mod:`gw2`
 - :lua:mod:`utils`
+- :lua:mod:`dialogs`
 
 Lua Types
 ---------

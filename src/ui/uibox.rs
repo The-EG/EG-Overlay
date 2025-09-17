@@ -198,6 +198,10 @@ impl Box {
 
         return false;
     }
+
+    pub fn clear(&self) {
+        self.inner.lock().unwrap().items.clear();
+    }
 }
 
 impl BoxInner {

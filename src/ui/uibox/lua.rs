@@ -97,6 +97,8 @@ const BOX_FUNCS: &[luaL_Reg] = luaL_Reg_list!{
     c"popfront"     , pop_front,
     c"popback"      , pop_back,
 
+    c"clear"        , clear,
+
     c"removeitem"   , remove_item,
 
     c"__len"        , len,
@@ -293,6 +295,23 @@ unsafe extern "C" fn pop_back(l: &lua_State) -> i32 {
     let bx = unsafe { checkbox(l, &box_e) };
 
     bx.pop_back();
+
+    return 0;
+}
+
+/*** RST
+    .. lua:method:: clear()
+    
+        Remove all elements from this box.
+
+        .. versionhistory::
+            :0.3.0: Added
+*/
+unsafe extern "C" fn clear(l: &lua_State) -> i32 {
+    let box_e = unsafe { ui::lua::checkelement(l, 1) };
+    let bx = unsafe { checkbox(l, &box_e) };
+
+    bx.clear();
 
     return 0;
 }

@@ -13,6 +13,7 @@ mod lamath;
 mod settings;
 mod lua;
 mod lua_json;
+mod lua_shell;
 mod lua_manager;
 mod lua_sqlite3;
 mod ui;

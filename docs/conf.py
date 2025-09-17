@@ -49,6 +49,7 @@ include_patterns = [
     'src/lua/overlay-stats.lua',
     'src/lua/utils.lua',
     'src/lua/console.lua',
+    'src/lua/dialogs.lua',
     'src/lua/mumble-link-info.lua',
     
     'src/lua/gw2/init.lua',

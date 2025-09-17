@@ -9,6 +9,7 @@ lua_srcs = [
 
     'utils.lua',
     'mumble-link-events.lua',
+    'dialogs.lua',
 
     'console.lua',
 

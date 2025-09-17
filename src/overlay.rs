@@ -195,6 +195,8 @@ pub fn init() {
     // can register openers, etc.
     lua_manager::init();
 
+    crate::lua_shell::init();
+
     // don't keep mods locked, Ui::new needs dx, etc.
     o.mods.lock().unwrap().dx = Some(dx::Dx::new());
     o.mods.lock().unwrap().ui = Some(ui::Ui::new());

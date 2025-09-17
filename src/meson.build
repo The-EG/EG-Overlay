@@ -29,6 +29,7 @@ exe = executable(
             'lua.rs',
             'lua_manager.rs',
             'lua_json.rs',
+            'lua_shell.rs',
             'lua_sqlite3.rs',
             'ml.rs',
             'overlay.rs',
