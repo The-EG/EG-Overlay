@@ -214,7 +214,7 @@ impl EntryInner {
         // cursor
         let cursor_x = self.caret_x + tx;
 
-        if !self.readonly {
+        if !self.readonly && is_focus {
             // draw a caret bar
             r.draw(frame, cursor_x, ty, 2, th, self.fg_color);
         }
