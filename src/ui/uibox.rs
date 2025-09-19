@@ -202,6 +202,8 @@ impl Box {
     pub fn clear(&self) {
         self.inner.lock().unwrap().items.clear();
     }
+
+    pub fn on_lost_focus(&self) { }
 }
 
 impl BoxInner {

@@ -142,6 +142,8 @@ impl Grid {
 
     pub fn get_bg_color(&self) -> ui::Color { todo!() }
     pub fn set_bg_color(&self, _color: ui::Color) { todo!() }
+
+    pub fn on_lost_focus(&self) { }
 }
 
 impl GridInner {

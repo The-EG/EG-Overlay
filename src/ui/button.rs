@@ -185,6 +185,7 @@ impl Button {
         self.inner.lock().unwrap().bg = bg;
     }
 
+    pub fn on_lost_focus(&self) { }
 }
 
 impl ButtonInner {

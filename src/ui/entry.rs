@@ -158,6 +158,10 @@ impl Entry {
     pub fn set_bg_color(&self, bg: ui::Color) {
         self.inner.lock().unwrap().bg_color = bg;
     }
+
+    pub fn on_lost_focus(&self) {
+        self.inner.lock().unwrap().queue_events("unfocus");
+    }
 }
 
 impl EntryInner {
@@ -228,6 +232,8 @@ impl EntryInner {
         if let input::MouseEvent::Button(b) = event {
             if b.button == input::MouseButtonEventButton::Left && b.down && !self.readonly {
                 self.ui.upgrade().unwrap().set_focus_element(Some(element.clone()));
+
+                self.queue_events("focus");
             }
         }
 
@@ -263,7 +269,7 @@ impl EntryInner {
     pub fn process_keyboard_event(&mut self, event: &input::KeyboardEvent) -> bool {
         if let Some(c) = &event.chars {
             if self.caret_pos == self.text.len() {
-                self.text.push_str(&c);    
+                self.text.push_str(&c);
             } else {
                 self.text.insert_str(self.caret_pos, &c);
             }

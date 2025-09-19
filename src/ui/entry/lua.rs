@@ -107,7 +107,7 @@ unsafe extern "C" fn text(l: &lua_State) -> i32 {
 
     if lua::gettop(l) >= 2 {
         let t = unsafe { lua::L::checkstring(l, 2) };
-            
+
         let mut inner = entry.inner.lock().unwrap();
         inner.text = String::from(t);
         inner.update_caret_x();
@@ -146,7 +146,7 @@ unsafe extern "C" fn hint(l: &lua_State) -> i32 {
 
 /*** RST
     .. lua:method:: prefwidth(pixels)
-    
+
         Set the preferred width of the text box.
 
         :param integer pixels:
@@ -171,8 +171,40 @@ unsafe extern "C" fn pref_width(l: &lua_State) -> i32 {
 
         Multiple events can be specified, but at least one is required.
 
-        In addition to the standard element events, an entry will also send
-        key events. Key events are named in a ``{mod1}-{mod2}-{key}-{updown}`` format.
+        Events:
+
+        +--------------+---------------------------------------------------+
+        | Event        | Description                                       |
+        +==============+===================================================+
+        | enter        | Mouse cursor is now over the entry element.       |
+        +--------------+---------------------------------------------------+
+        | leave        | Mouse cursor is no longer over the entry element. |
+        +--------------+---------------------------------------------------+
+        | click-left   | Left/primary mouse button clicked.                |
+        +--------------+---------------------------------------------------+
+        | click-right  | Right/secondary mouse button clicked.             |
+        +--------------+---------------------------------------------------+
+        | click-middle | Middle mouse button clicked.                      |
+        +--------------+---------------------------------------------------+
+        | click-x1     | 4th mouse button clicked.                         |
+        +--------------+---------------------------------------------------+
+        | click-x2     | 5th mouse button clicked.                         |
+        +--------------+---------------------------------------------------+
+        | click-unk    | A unsupported/unknown mouse button was clicked.   |
+        +--------------+---------------------------------------------------+
+        | focus        | The entry now has keyboard input focus.           |
+        +--------------+---------------------------------------------------+
+        | unfocus      | The entry no longer has keyboard input focus.     |
+        +--------------+---------------------------------------------------+
+
+        .. note::
+
+            ``click-*`` events are sent when the respective button is released,
+            and only if the mouse cursor was within the entry on both press and
+            release.
+
+        In addition to the events above, entries will also send key events. Key
+        events are named in a ``{mod1}-{mod2}-{key}-{updown}`` format.
         For example: ``ctrl-v-down`` or ``ctrl-shift-a-up``, etc.
 
         An event handler added with this method can be removed later with
@@ -268,6 +300,6 @@ unsafe extern "C" fn read_only(l: &lua_State) -> i32 {
     .. note::
 
         The following methods are inherited from :lua:class:`uielement`
-    
+
     .. include:: /docs/_include/uielement.rst
 */

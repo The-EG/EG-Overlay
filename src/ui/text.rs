@@ -128,6 +128,8 @@ impl Text {
     pub fn set_bg_color(&self, color: ui::Color) {
         self.text.lock().unwrap().bg_color = color;
     }
+
+    pub fn on_lost_focus(&self)  { }
 }
 
 impl TextInner {

@@ -191,6 +191,8 @@ impl Menu {
         ui.clear_mouse_capture();
         ui.remove_top_level_element(element);
     }
+
+    pub fn on_lost_focus(&self) { }
 }
 
 impl MenuInner {
@@ -426,6 +428,8 @@ impl MenuItem {
     pub fn set_bg_color(&self, color: ui::Color) {
         self.inner.lock().unwrap().bg_color = color;
     }
+
+    pub fn on_lost_focus(&self) { }
 }
 
 impl MenuItemInner {

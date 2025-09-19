@@ -191,6 +191,8 @@ impl ScrollView {
     pub fn set_bg_color(&self, bg: ui::Color) {
         self.inner.lock().unwrap().bg_color = bg;
     }
+
+    pub fn on_lost_focus(&self) { }
 }
 
 impl ScrollViewInner {

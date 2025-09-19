@@ -128,6 +128,10 @@ impl Element {
         element_dispatch!(self, set_bg_color, value);
     }
 
+    pub fn on_lost_focus(&self) {
+        element_dispatch!(self, on_lost_focus);
+    }
+
     pub fn as_text(&self) -> Option<&text::Text> {
         match &self {
             Element::Text(t) => Some(t),
@@ -169,7 +173,7 @@ impl Element {
             _                  => None,
         }
     }
-    
+
     pub fn as_scrollview(&self) -> Option<&scrollview::ScrollView> {
         match &self {
             Element::ScrollView(s) => Some(s),
@@ -229,7 +233,7 @@ pub struct Ui {
     icon_codepoint_cache: Mutex<HashMap<String, String>>,
 
     pub font_manager: font::FontManager,
-    pub rect: rect::Rect,   
+    pub rect: rect::Rect,
 }
 
 fn get_default_font(font_manager: &font::FontManager, key: &str) -> Arc<font::Font> {
@@ -308,7 +312,7 @@ impl Ui {
             "wght": 500,
         }));
         o_settings.set_default_value("overlay.ui.font.icon.codepoints", "fonts/MaterialSymbolsOutlined.codepoints");
-        
+
         // load default fonts
         let font_man = font::FontManager::new();
 
@@ -343,7 +347,7 @@ impl Ui {
             icon_codepoint_cache: Mutex::new(HashMap::new())
         };
 
-        
+
         crate::lua_manager::add_module_opener("eg-overlay-ui", Some(crate::ui::lua::open_module));
 
         return Arc::new(ui);
@@ -523,14 +527,14 @@ impl Ui {
         }
 
         for ie in &*input_elements {
-            if ie.pos_within(event.x() as i64, event.y() as i64) {    
+            if ie.pos_within(event.x() as i64, event.y() as i64) {
                 //debug!("Sending mouse event to element: {}", event);
                 if ie.element.process_mouse_event(ie.offset_x, ie.offset_y, &event) {
                     return true;
                 }
             }
         }
-        
+
         false
     }
 
@@ -547,7 +551,13 @@ impl Ui {
     }
 
     pub fn set_focus_element(&self, element: Option<Arc<Element>>) {
-        *self.focus_element.lock().unwrap() = element;
+        let mut lock = self.focus_element.lock().unwrap();
+
+        if let Some(e) = lock.as_ref() {
+            e.on_lost_focus();
+        }
+
+        *lock = element;
     }
 
     pub fn element_is_focus(&self, element: &Arc<Element>) -> bool {
@@ -616,7 +626,7 @@ impl Drop for Ui {
 
 /// A 32-bit color.
 ///
-/// Colors are 32bit integers, stored in RGBA format.  
+/// Colors are 32bit integers, stored in RGBA format.
 /// This means that they can be conveniently conveyed in hex format,
 /// a.k.a. HTML colors. ie. red = 0xFF0000FF
 #[derive(Copy,Clone)]
