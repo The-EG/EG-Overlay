@@ -230,7 +230,11 @@ impl EntryInner {
         element: &Arc<ui::Element>
     ) -> bool {
         if let input::MouseEvent::Button(b) = event {
-            if b.button == input::MouseButtonEventButton::Left && b.down && !self.readonly {
+            if b.button == input::MouseButtonEventButton::Left &&
+               b.down &&
+               !self.readonly &&
+               !self.ui.upgrade().unwrap().element_is_focus(element)
+            {
                 self.ui.upgrade().unwrap().set_focus_element(Some(element.clone()));
 
                 self.queue_events("focus");

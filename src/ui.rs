@@ -465,12 +465,6 @@ impl Ui {
         self.last_mouse_x.store(event.x(), atomic::Ordering::Relaxed);
         self.last_mouse_y.store(event.y(), atomic::Ordering::Relaxed);
 
-        if let input::MouseEvent::Button(b) = event {
-            if b.down {
-                self.set_focus_element(None);
-            }
-        }
-
         let mut e_under_mouse: Option<&InputElement> = None;
 
         let input_elements = self.input_elements_last_frame.lock().unwrap();
@@ -497,15 +491,29 @@ impl Ui {
             }
             *self.mouse_over_element.lock().unwrap() = Some(e.clone());
 
-        } else if self.mouse_over_element.lock().unwrap().is_some() {
-
-            if let Some(moe) = self.mouse_over_element.lock().unwrap().as_ref() {
-                // there isn't an element under the mouse, but there was during the last event
-                //debug!("Sending mouse event to element (leave2): {}", event);
-                moe.element.process_mouse_event(moe.offset_x, moe.offset_y, &event.as_leave());
+            if !self.element_is_focus(&e.element) {
+                if let input::MouseEvent::Button(b) = event {
+                    if b.down {
+                        self.set_focus_element(None);
+                    }
+                }
             }
-            // can't do this within the if let because the mutex is locked within that scope
-            *self.mouse_over_element.lock().unwrap() = None;
+        } else {
+            if let input::MouseEvent::Button(b) = event {
+                if b.down {
+                    self.set_focus_element(None);
+                }
+            }
+
+            if self.mouse_over_element.lock().unwrap().is_some() {
+                if let Some(moe) = self.mouse_over_element.lock().unwrap().as_ref() {
+                    // there isn't an element under the mouse, but there was during the last event
+                    //debug!("Sending mouse event to element (leave2): {}", event);
+                    moe.element.process_mouse_event(moe.offset_x, moe.offset_y, &event.as_leave());
+                }
+                // can't do this within the if let because the mutex is locked within that scope
+                *self.mouse_over_element.lock().unwrap() = None;
+            }
         }
 
         if self.mouse_capture_element.lock().unwrap().is_some() {
@@ -554,6 +562,12 @@ impl Ui {
         let mut lock = self.focus_element.lock().unwrap();
 
         if let Some(e) = lock.as_ref() {
+            if let Some(new_e) = element.as_ref() {
+                if Arc::ptr_eq(e, new_e) {
+                    // element is already focus, do nothing
+                    return;
+                }
+            }
             e.on_lost_focus();
         }
 
