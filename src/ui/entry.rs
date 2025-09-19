@@ -223,8 +223,8 @@ impl EntryInner {
     }
 
     pub fn process_mouse_event(
-        &self,
-        _offset_x: i64,
+        &mut self,
+        offset_x: i64,
         _offset_y: i64,
         event: &input::MouseEvent,
         element: &Arc<ui::Element>
@@ -256,6 +256,15 @@ impl EntryInner {
                     };
 
                     self.queue_events(format!("click-{}", btnnm).as_str());
+                } else if btn.button == input::MouseButtonEventButton::Left {
+                    let tx = self.x + offset_x + 2;
+                    let len = event.x() - tx;
+                    if len > 0 {
+                        self.caret_pos = self.caret_pos_from_len(len as u64);
+                    } else {
+                        self.caret_pos = 0;
+                    }
+                    self.update_caret_x();
                 }
             },
             input::MouseEvent::Wheel(wheel) => {
@@ -277,6 +286,17 @@ impl EntryInner {
         }
 
         true
+    }
+
+    fn caret_pos_from_len(&self, len: u64) -> usize {
+        let mut lastpos = 0;
+
+        while lastpos < self.text.len() {
+            if self.font.get_text_width(&self.text[0..(lastpos+1)]) > len { break; }
+            lastpos += 1;
+        }
+
+        return lastpos;
     }
 
     fn update_caret_x(&mut self) {
