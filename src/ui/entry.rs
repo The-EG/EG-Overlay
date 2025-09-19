@@ -254,6 +254,21 @@ impl EntryInner {
                     self.queue_events(format!("click-{}", btnnm).as_str());
                 }
             },
+            input::MouseEvent::Wheel(wheel) => {
+                let ename: &str = if wheel.horizontal && wheel.value > 0 {
+                    "wheel-right"
+                } else if wheel.horizontal {
+                    "wheel-left"
+                } else if wheel.value > 0 {
+                    "wheel-up"
+                } else {
+                    "wheel-down"
+                };
+
+                for _ in 0..wheel.value.abs() {
+                    self.queue_events(ename);
+                }
+            },
             _ => { return false; },
         }
 

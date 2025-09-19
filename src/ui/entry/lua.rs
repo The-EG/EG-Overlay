@@ -192,6 +192,14 @@ unsafe extern "C" fn pref_width(l: &lua_State) -> i32 {
         +--------------+---------------------------------------------------+
         | click-unk    | A unsupported/unknown mouse button was clicked.   |
         +--------------+---------------------------------------------------+
+        | wheel-up     | Mouse wheel moved up.                             |
+        +--------------+---------------------------------------------------+
+        | wheel-down   | Mouse wheel moved down.                           |
+        +--------------+---------------------------------------------------+
+        | wheel-right  | Mouse wheel moved right.                          |
+        +--------------+---------------------------------------------------+
+        | wheel-left   | Mouse wheel moved left.                           |
+        +--------------+---------------------------------------------------+
         | focus        | The entry now has keyboard input focus.           |
         +--------------+---------------------------------------------------+
         | unfocus      | The entry no longer has keyboard input focus.     |
@@ -202,6 +210,10 @@ unsafe extern "C" fn pref_width(l: &lua_State) -> i32 {
             ``click-*`` events are sent when the respective button is released,
             and only if the mouse cursor was within the entry on both press and
             release.
+
+            ``wheel-*`` events are sent multiple times, one for each value of the
+            corresponding wheel event. In other words, a single large scroll event
+            will result in multiple ``wheel-*`` events.
 
         In addition to the events above, entries will also send key events. Key
         events are named in a ``{mod1}-{mod2}-{key}-{updown}`` format.
