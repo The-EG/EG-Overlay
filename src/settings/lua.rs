@@ -34,6 +34,7 @@ const SETTINGS_FUNCS: &[luaL_Reg] = luaL_Reg_list!{
     c"setdefault", set_default,
     c"get"       , get,
     c"set"       , set,
+    c"remove"    , remove,
 };
 
 
@@ -120,8 +121,8 @@ unsafe extern "C" fn get(l: &lua_State) -> i32 {
 /*** RST
     .. lua:method:: set(key, value)
 
-    .. versionhistory::
-        :0.3.0: Added
+        .. versionhistory::
+            :0.3.0: Added
 */
 unsafe extern "C" fn set(l: &lua_State) -> i32 {
     let s = unsafe { checksettings(l, 1) };
@@ -130,6 +131,23 @@ unsafe extern "C" fn set(l: &lua_State) -> i32 {
     let val = lua_json::tojson(l, 3);
 
     s.set(&key, val);
+
+    return 0;
+}
+
+/*** RST
+    .. lua:method:: remove(key)
+
+        .. versionhistory::
+            :0.3.0: Added
+*/
+unsafe extern "C" fn remove(l: &lua_State) -> i32 {
+    lua::checkargstring!(l, 2);
+
+    let s = unsafe { checksettings(l, 1) };
+    let key = lua::tostring(l, 2);
+
+    s.remove(&key);
 
     return 0;
 }

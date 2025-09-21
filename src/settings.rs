@@ -171,6 +171,43 @@ impl SettingsStore {
         }
     }
 
+    pub fn remove(&self, key: &str) -> bool {
+        let mut data = self.data.lock().unwrap();
+
+        let key_parts: Vec<&str> = key.split('.').collect();
+
+        let parent_key = key_parts[..key_parts.len()-1].join(".");
+        let value_key = key_parts[key_parts.len()-1];
+
+        let parent: &mut serde_json::Value;
+
+        if parent_key.len()==0 {
+            parent = &mut data;
+        } else {
+            create_values_for_path(&mut data, &parent_key);
+            if let Some(p) = get_value_for_path(&mut data, &parent_key) {
+                parent = p;
+            } else {
+                error!("Couldn't remove value {} in {}", value_key, parent_key);
+                return false;
+            }
+        }
+
+        if let Some(parentobj) = parent.as_object_mut() {
+            let ret: bool = if let Some(_) = parentobj.remove(value_key) { true  } else { false };
+
+            drop(data);
+
+            if ret && self.save_on_set.load(atomic::Ordering::Relaxed) {
+                self.save();
+            }
+
+            return ret;
+        }
+
+        false
+    }
+
     pub fn get(&self, key: &str) -> Option<serde_json::Value> {
         let mut data = self.data.lock().unwrap();
 
