@@ -12,7 +12,7 @@ Overlay Stats shows the system performance statistics for the overlay and can be
 used to monitor CPU and memory impacts.
 ]]--
 local ui = require 'eg-overlay-ui'
-local overlay = require 'eg-overlay'
+local overlay = require 'overlay'
 local overlay_menu = require 'overlay-menu'
 
 local utils = require 'utils'

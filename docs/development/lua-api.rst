@@ -27,8 +27,8 @@ EG-Overlay Modules
     /src/lua_sqlite3
     /src/zip/lua
     /src/lua/utils
-   
-- :lua:mod:`eg-overlay`
+
+- :lua:mod:`overlay`
 - :lua:mod:`eg-overlay-ui`
 - :lua:mod:`dx`
 - :lua:mod:`mumble-link`

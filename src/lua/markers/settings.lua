@@ -18,7 +18,7 @@ The markers module stores settings in ``settings/markers.lua.json``.
     :type: boolean
     :default: true
 ]]--
-local overlay = require 'eg-overlay'
+local overlay = require 'overlay'
 local settings = overlay.settings('markers.lua')
 
 settings:setdefault('showMarkers', true)

@@ -3,7 +3,7 @@
 -- SPDX-License-Identifier: MIT
 require 'mumble-link-events'
 
-local overlay = require 'eg-overlay'
+local overlay = require 'overlay'
 local ml = require 'mumble-link'
 local ui = require 'eg-overlay-ui'
 local mp = require 'markers.package'

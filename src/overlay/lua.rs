@@ -3,16 +3,16 @@
 // SPDX-License-Identifier: MIT
 
 /*** RST
-eg-overlay
-==========
+overlay
+=======
 
-.. lua:module:: eg-overlay
+.. lua:module:: overlay
 
 .. code:: lua
 
-    local overlay = require 'eg-overlay'
+    local overlay = require 'overlay'
 
-The :lua:mod:`eg-overlay` module contains core functions that other modules use
+The :lua:mod:`overlay` module contains core functions that other modules use
 to communicate with the overlay.
 
 Functions
@@ -41,7 +41,7 @@ impl LuaEventData {
         let refi = lua::L::ref_(l, lua::LUA_REGISTRYINDEX);
 
         Box::new(LuaEventData {
-            value: refi,  
+            value: refi,
         })
     }
 }
@@ -110,7 +110,7 @@ pub unsafe extern "C" fn open_module(l: &lua_State) -> i32 {
     .. code-block:: lua
         :caption: Example
 
-        local overlay = require 'eg-overlay'
+        local overlay = require 'overlay'
         local now = overlay.time()
 
         overlay.loginfo(string.format('The overlay has been running for %f seconds', now))
@@ -121,7 +121,7 @@ pub unsafe extern "C" fn open_module(l: &lua_State) -> i32 {
 unsafe extern "C" fn time(l: &lua_State) -> i32 {
     let t = crate::overlay::uptime().as_secs_f64();
     lua::pushnumber(l, t);
-    
+
     return 1;
 }
 
@@ -192,7 +192,7 @@ pub(crate) use luaerror;
     Logs a debug message to the log.
 
     .. note::
-    
+
         Lua's ``string.format`` can be used to format messages.
 
     .. code-block:: lua
@@ -298,7 +298,7 @@ unsafe extern "C" fn log_error(l: &lua_State) -> i32 {
 .. lua:function:: addeventhandler(event, handler)
 
     Add an event handler for the given event name.
-    
+
     The handler function will be called every time the given event is
     posted with two arguments: the event name and event data. The data may be
     ``nil``, any Lua data type.
@@ -311,7 +311,7 @@ unsafe extern "C" fn log_error(l: &lua_State) -> i32 {
     .. code-block:: lua
         :caption: Example
 
-        local overlay = require 'eg-overlay'
+        local overlay = require 'overlay'
 
         -- run on_update_once on only the first update event
         local update_event_handler = 0
@@ -330,7 +330,7 @@ unsafe extern "C" fn add_event_handler(l: &lua_State) -> i32 {
     let event = unsafe { lua::L::checkstring(l, 1) };
 
     if lua::luatype(l,2)!=lua::LuaType::LUA_TFUNCTION {
-        lua::pushstring(l, "eg-overlay.addeventhandler: argument #2 must be a function");
+        lua::pushstring(l, "overlay.addeventhandler: argument #2 must be a function");
         return unsafe { lua::error(l) };
     }
 
@@ -353,7 +353,7 @@ unsafe extern "C" fn add_event_handler(l: &lua_State) -> i32 {
     :param integer cbi: Callback ID
 
     .. seealso::
-        
+
         See :lua:func:`addeventhandler` for example.
 
     .. versionhistory::
@@ -379,7 +379,7 @@ unsafe extern "C" fn remove_event_handler(l: &lua_State) -> i32 {
 
     The handler function will be called every time the corresponding key is
     pressed.
-    
+
     If the handler function returns ``true``, the key event will be consumed,
     it will not be sent to other handlers or to GW2.
 
@@ -400,7 +400,7 @@ unsafe extern "C" fn remove_event_handler(l: &lua_State) -> i32 {
     .. code-block:: lua
         :caption: Example
 
-        local overlay = require 'eg-overlay'
+        local overlay = require 'overlay'
 
         local function onkey()
             -- do things
@@ -418,7 +418,7 @@ unsafe extern "C" fn add_keybind_handler(l: &lua_State) -> i32 {
     let keyname = unsafe { lua::L::checkstring(l, 1) };
 
     if lua::luatype(l,2)!=lua::LuaType::LUA_TFUNCTION {
-        lua::pushstring(l, "eg-overlay.addkeybindhandler: argument #2 must be a function");
+        lua::pushstring(l, "overlay.addkeybindhandler: argument #2 must be a function");
         return unsafe { lua::error(l) };
     }
 
@@ -481,7 +481,7 @@ unsafe extern "C" fn settings(l: &lua_State) -> i32 {
 
 /*** RST
 .. lua:function:: memusage()
-    
+
     Returns a table containing the overlay's system memory usage.
 
     This usage is for the application as a whole, not just Lua. A table is
@@ -508,7 +508,7 @@ unsafe extern "C" fn settings(l: &lua_State) -> i32 {
     .. code-block:: lua
         :caption: Example
 
-        local overlay = require 'eg-overlay'
+        local overlay = require 'overlay'
 
         local mem = overlay.memusage()
 
@@ -552,12 +552,12 @@ unsafe extern "C" fn memusage(l: &lua_State) -> i32 {
     .. code-block:: lua
         :caption: Example
 
-        local overlay = require 'eg-overlay'
+        local overlay = require 'overlay'
 
         local gpumem = overlay.videomemusage()
 
         overlay.loginfo(string.format('Overlay GPU memory: %2.f MiB', gpumem / 1024.0 / 1024.0))
-        
+
 
     .. versionhistory::
         :0.3.0: Added
@@ -635,7 +635,7 @@ unsafe extern "C" fn process_time(l: &lua_State) -> i32 {
     let total  = Duration::from_nanos((filetime_to_u64!(ft_now) - filetime_to_u64!(ft_create)) * 100);
     let kernel = Duration::from_nanos(filetime_to_u64!(ft_kernel) * 100);
     let user   = Duration::from_nanos(filetime_to_u64!(ft_user) * 100);
-    
+
     let sys_user   = Duration::from_nanos(filetime_to_u64!(ft_sys_user) * 100);
     let sys_kernel = Duration::from_nanos(filetime_to_u64!(ft_sys_kernel) * 100);
 
@@ -661,7 +661,7 @@ unsafe extern "C" fn process_time(l: &lua_State) -> i32 {
 
 /*** RST
 .. lua:function:: queueevent(event[, data])
-    
+
     Add a new event to the event queue.
 
     .. note::
@@ -670,7 +670,7 @@ unsafe extern "C" fn process_time(l: &lua_State) -> i32 {
         rendered.
 
     .. warning::
-        
+
         Module authors should take care to use unique event names. It is
         possible to queue any event with this function, however if proper data
         is not supplied event handlers may behave in unexpected ways.
@@ -681,7 +681,7 @@ unsafe extern "C" fn process_time(l: &lua_State) -> i32 {
     .. code-block:: lua
         :caption: Example
 
-        local overlay = require 'eg-overlay'
+        local overlay = require 'overlay'
 
         local eventdata = {
             foo = 'bar',
@@ -720,7 +720,7 @@ unsafe extern "C" fn queue_event(l: &lua_State) -> i32 {
     .. code-block:: lua
         :caption: Example
 
-        local overlay = require 'eg-overlay'
+        local overlay = require 'overlay'
 
         local modulefolder = overlay.datafolder('my-module')
 
@@ -733,7 +733,7 @@ unsafe extern "C" fn data_folder(l: &lua_State) -> i32 {
     let name = unsafe { lua::L::checkstring(l, 1) };
 
     let mut path = std::env::current_exe().unwrap();
-    
+
     path.pop();
     path.push("data");
     path.push(name);
@@ -774,7 +774,7 @@ unsafe extern "C" fn overlay_settings(l: &lua_State) -> i32 {
     Restart the overlay.
 
     .. danger::
-        
+
         This will shut down the overlay and restart it immediately.
 
     .. versionhistory::
@@ -815,13 +815,13 @@ unsafe extern "C" fn version_string(l: &lua_State) -> i32 {
     .. code-block:: lua
         :caption: Example
 
-        local overlay = require 'eg-overlay'
+        local overlay = require 'overlay'
 
         -- get the text from the clipboard
         local t = overlay.clipboardtext()
 
         overlay.loginfo(string.format("Got text from clipboard: %s", t))
-    
+
         -- set the text on the clipboard
         overlay.clipboardtext("Hello world from EG-Overlay!")
 
@@ -835,7 +835,7 @@ unsafe extern "C" fn clipboard_text(l: &lua_State) -> i32 {
         return 0;
     } else {
         if let Some(text) = crate::utils::get_clipboard_text() {
-            lua::pushstring(l, &text);    
+            lua::pushstring(l, &text);
         } else {
             lua::pushnil(l);
         }
@@ -846,7 +846,7 @@ unsafe extern "C" fn clipboard_text(l: &lua_State) -> i32 {
 
 /*** RST
 .. lua:function:: sqlite3open(db)
-    
+
     Open or create a SQLite3 database.
 
     .. seealso::
@@ -859,7 +859,7 @@ unsafe extern "C" fn clipboard_text(l: &lua_State) -> i32 {
     .. code-block:: lua
         :caption: Example
 
-        local overlay = require 'eg-overlay'
+        local overlay = require 'overlay'
 
         local db = overlay.open('some-data.db')
 
@@ -904,7 +904,7 @@ unsafe extern "C" fn sqlite3_open(l: &lua_State) -> i32 {
     .. code-block:: lua
         :caption: Example
 
-        local overlay = require 'eg-overlay'
+        local overlay = require 'overlay'
 
         local function on_response(body, code, hdrs)
             overlay.loginfo(string.format('Got %d response from server.', code))
@@ -946,7 +946,7 @@ unsafe extern "C" fn web_request(l: &lua_State) -> i32 {
     }
 
     let url = unsafe { lua::L::checkstring(l, 1) };
-    
+
     lua::pushvalue(l, 4);
     let callback = lua::L::ref_(l, lua::LUA_REGISTRYINDEX);
 
@@ -1010,7 +1010,7 @@ unsafe extern "C" fn web_request(l: &lua_State) -> i32 {
     .. code-block:: lua
         :caption: Example
 
-        local overlay = require 'eg-overlay'
+        local overlay = require 'overlay'
 
         -- objects are parsed into tables
         local obj = overlay.parsejson('{"test": 1234}')
@@ -1140,7 +1140,7 @@ fn push_stringevent(l: &lua_State, event: &str, data: &str) {
 
 /*** RST
 .. lua:function:: parsexml(xml, eventcallback)
-    
+
     Attempt to parse the given XML string in an event driven manner (i.e. SAX).
 
     ``eventcallback`` will be called on each event, corresponding to various elements
@@ -1151,7 +1151,7 @@ fn push_stringevent(l: &lua_State, event: &str, data: &str) {
     ``true`` on success and ``false`` on any failure.
 
     .. note::
-        
+
         Raising an error during the callback will cause parsing to fail and this
         function to return ``false``.
 
@@ -1168,7 +1168,7 @@ fn push_stringevent(l: &lua_State, event: &str, data: &str) {
     end-document     ``nil``
     start-element    A Lua table. See below for fields.
     end-element      A Lua table containing the following fields:
-                     
+
                      - ``local_name``: the element name without prefixes or namespaces
                      - ``namespace``: the element name namespace
                      - ``prefix``: the element name prefix
@@ -1186,7 +1186,7 @@ fn push_stringevent(l: &lua_State, event: &str, data: &str) {
     Field      Description
     ========== =================================================================
     name       A Lua table containing the following fields:
-               
+
                - ``local_name``: the element name without prefixes or namespaces
                - ``namespace``: the element name namespace
                - ``prefix``: the element name prefix

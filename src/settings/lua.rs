@@ -10,7 +10,7 @@ Settings
 
     Settings store allow modules to store data that is backed by JSON files.
 
-    Create a settings store with :lua:func:`eg-overlay.settings`.
+    Create a settings store with :lua:func:`overlay.settings`.
 */
 #[allow(unused_imports)]
 use crate::logging::{debug, info, warn, error};

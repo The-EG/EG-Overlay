@@ -15,7 +15,7 @@ The nearest waypoint or POI will be copied to the clipboard when the name of a
 location is clicked.
 ]]--
 
-local overlay = require 'eg-overlay'
+local overlay = require 'overlay'
 local ui = require 'eg-overlay-ui'
 
 local overlay_menu = require 'overlay-menu'

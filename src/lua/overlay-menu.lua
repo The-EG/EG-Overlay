@@ -8,7 +8,7 @@ Overlay Menu
 
 
 ]]--
-local overlay = require 'eg-overlay'
+local overlay = require 'overlay'
 local ui = require 'eg-overlay-ui'
 
 local M = {}

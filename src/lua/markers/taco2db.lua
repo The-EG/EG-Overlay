@@ -1,7 +1,7 @@
 -- EG-Overlay
 -- Copyright (c) 2025 Taylor Talkington
 -- SPDX-License-Identifier: MIT
-local overlay = require 'eg-overlay'
+local overlay = require 'overlay'
 local markerspackage = require 'markers.package'
 
 local M = {}

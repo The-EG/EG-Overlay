@@ -10,7 +10,7 @@ markers.data
 
 
 ]]--
-local overlay = require 'eg-overlay'
+local overlay = require 'overlay'
 
 local M = {}
 

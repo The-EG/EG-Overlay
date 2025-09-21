@@ -12,7 +12,7 @@ Mumble Link Info displays the information available from the GW2 MumbleLink
 shared memory.
 ]]--
 
-local overlay = require 'eg-overlay'
+local overlay = require 'overlay'
 local ui = require 'eg-overlay-ui'
 local ml = require 'mumble-link'
 

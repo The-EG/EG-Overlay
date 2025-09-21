@@ -186,11 +186,11 @@ pub fn init() {
     utils::init_com_for_thread();
 
     crate::lua_sqlite3::init();
-    
+
     register_win_class();
     create_window();
     create_tray_menu();
- 
+
     // Lua has to be brought up before nearly everything else, so that modules
     // can register openers, etc.
     lua_manager::init();
@@ -319,7 +319,7 @@ pub fn run() {
         ).unwrap()
     };
     let overlay_tip = c"EG-Overlay";
-    unsafe { 
+    unsafe {
         std::ptr::copy_nonoverlapping(
             overlay_tip.as_ptr() as *const i8,
             nid.szTip.as_mut_ptr(),
@@ -329,15 +329,15 @@ pub fn run() {
         Shell::Shell_NotifyIconA(Shell::NIM_SETVERSION, &nid).expect("Failed to set shell icon version.");
     }
 
-    lua_manager::add_module_opener("eg-overlay", Some(crate::overlay::lua::open_module));
+    lua_manager::add_module_opener("overlay", Some(crate::overlay::lua::open_module));
 
     overlay.running.store(true, atomic::Ordering::Relaxed);
 
     debug!("Starting render thread...");
-    
+
     let overlay_render = overlay.clone();
     let render = std::thread::Builder::new().name("EG-Overlay Render Thread".to_string()).spawn(move || {
-        render_thread(overlay_render);    
+        render_thread(overlay_render);
     }).expect("Couldn't spawn render thread.");
 
     let mut last_fg_check = 0.0f64;
@@ -372,7 +372,7 @@ pub fn run() {
                     last_fg_check = now;
                     continue;
                 }
-                
+
                 let cls_name = std::ffi::CStr::from_bytes_until_nul(&cls_name_bytes).unwrap().to_str().unwrap();
 
                 if cls_name == overlay.target_win_class && !overlay.visible.load(atomic::Ordering::Relaxed) {
@@ -389,7 +389,7 @@ pub fn run() {
 
                     let mut target_rect = Foundation::RECT::default();
                     unsafe { WindowsAndMessaging::GetClientRect(fg_win, &mut target_rect).unwrap() };
-                    
+
                     let mut target_pos = Foundation::POINT {
                         x: target_rect.left,
                         y: target_rect.top,
@@ -432,7 +432,7 @@ pub fn run() {
                     }
                 }
             }
-    
+
             let target_hwnd = Foundation::HWND(overlay.target_hwnd.load(atomic::Ordering::Relaxed) as *mut std::ffi::c_void);
             let mut target_cls_bytes = [0u8; 512];
 
@@ -448,7 +448,7 @@ pub fn run() {
             } /*else if fg_win == target_hwnd {
                 let mut target_rect = Foundation::RECT::default();
                 unsafe { WindowsAndMessaging::GetClientRect(target_hwnd, &mut target_rect).unwrap() };
-                
+
                 let mut target_pos = Foundation::POINT {
                     x: target_rect.left,
                     y: target_rect.top,
@@ -483,7 +483,7 @@ pub fn run() {
 
             last_fg_check = now;
         }
-    
+
         std::thread::sleep(std::time::Duration::from_millis(1));
     }
 
@@ -526,7 +526,7 @@ impl EgOverlay {
         self.mods.lock().unwrap().ui.as_ref().unwrap().clone()
     }
 
-    
+
     pub fn ml(&self) -> Arc<ml::MumbleLink> {
         self.mods.lock().unwrap().ml.as_ref().unwrap().clone()
     }
@@ -563,7 +563,7 @@ pub fn cleanup() {
     lua_manager::cleanup();
 
     let do_restart = OVERLAY.lock().unwrap().as_ref().unwrap().restart.load(atomic::Ordering::SeqCst);
-    
+
     *OVERLAY.lock().unwrap() = None;
 
     if unsafe { Debug::IsDebuggerPresent().into() } {
@@ -589,12 +589,12 @@ pub fn cleanup() {
 
         let cmdcstr = std::ffi::CString::new(cmd).unwrap();
         let cmdraw = cmdcstr.into_raw();
-        
+
         let mut si = Threading::STARTUPINFOA::default();
         si.cb = std::mem::size_of::<Threading::STARTUPINFOA>() as u32;
 
         let mut pi = Threading::PROCESS_INFORMATION::default();
-        
+
         unsafe {
             Threading::CreateProcessA(
                 None,
@@ -620,21 +620,20 @@ unsafe extern "system" fn overlay_wnd_proc(
     wparam: Foundation::WPARAM,
     lparam: Foundation::LPARAM
 ) -> Foundation::LRESULT {
-    
     match msg {
         WindowsAndMessaging::WM_CLOSE => unsafe {
             warn!("Window closed");
             WindowsAndMessaging::DestroyWindow(hwnd).unwrap();
         },
         WindowsAndMessaging::WM_DESTROY => unsafe {
-            WindowsAndMessaging::PostQuitMessage(0); 
+            WindowsAndMessaging::PostQuitMessage(0);
         },
         WindowsAndMessaging::WM_SIZE => {
             let overlay = OVERLAY.lock().unwrap();
             if overlay.is_none() { return Foundation::LRESULT(0); }
-            
+
             let o = overlay.as_ref().unwrap();
-            
+
             if o.have_dx() {
                 o.dx().resize_swapchain(hwnd);
             }

@@ -18,7 +18,7 @@ Guild Wars 2 utilities, data, and API access.
 ]]--
 
 
-local overlay = require 'eg-overlay'
+local overlay = require 'overlay'
 local ml = require 'mumble-link'
 
 local M = {}

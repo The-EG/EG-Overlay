@@ -3,8 +3,9 @@
 -- SPDX-License-Identifier: MIT
 
 require 'mumble-link-events'
---require 'markers.menu'
 require 'markers.manager'
 require 'markers.category-manager'
+
+require 'markers.settings-win'
 
 return {}

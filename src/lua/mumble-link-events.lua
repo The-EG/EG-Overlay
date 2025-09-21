@@ -86,7 +86,7 @@ Events
         :0.3.0: Added
 ]]--
 
-local overlay = require 'eg-overlay'
+local overlay = require 'overlay'
 local ml = require 'mumble-link'
 
 local mlevents = {}

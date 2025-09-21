@@ -9,7 +9,7 @@ markers.package
 .. lua:module:: markers.package
 
 ]]--
-local overlay = require 'eg-overlay'
+local overlay = require 'overlay'
 local settings = require 'markers.settings'
 
 settings:setdefault('markerpackCacheSize', -2000)

@@ -10,7 +10,7 @@ This window allows users to control what markers from the loaded marker packs
 are displayed in the overlay.
 ]]--
 
-local overlay = require 'eg-overlay'
+local overlay = require 'overlay'
 local ui = require 'eg-overlay-ui'
 local settings = require 'markers.settings'
 local manager = require 'markers.manager'

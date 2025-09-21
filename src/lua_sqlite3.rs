@@ -49,7 +49,7 @@ fn get_stmt_err_msg(stmt: &api::sqlite3_stmt) -> String {
 
     A SQLite3 database connection.
 
-    Database connections are created using :lua:func:`eg-overlay.sqlite3open`.
+    Database connections are created using :lua:func:`overlay.sqlite3open`.
 */
 const SQLITE3_METATABLE_NAME: &str = "SQLite3";
 
