@@ -10,16 +10,15 @@ Texture2D    texture : register(t0);
 SamplerState texsampler : register(s0);
 
 float4 main(PSInput input) :SV_Target {
-    
+
     if (ismap==0) {
         discard_if_in_map(input.position, map_left, map_top, map_height);
         if (input.fade_alpha < 0.01) discard;
     }
-    
 
     float4 texcolor = texture.Sample(texsampler, input.texuv);
-    
-    float alpha = texcolor.a;
+
+    float alpha = texcolor.a * input.color.a;
 
     if (ismap==0) {
         alpha = min(alpha, input.fade_alpha);
