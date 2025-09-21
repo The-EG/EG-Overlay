@@ -183,7 +183,19 @@ unsafe extern "C" fn attach(l: &lua_State) -> i32 {
         valign : valign,
     };
 
-    grid.inner.lock().unwrap().set_item(row - 1, col - 1, Some(item));
+    let mut inner = grid.inner.lock().unwrap();
+
+    if row > inner.rows {
+        crate::overlay::lua::luaerror!(l, "row out of bounds.");
+        return 0;
+    }
+
+    if col > inner.cols {
+        crate::overlay::lua::luaerror!(l, "col out of bounds.");
+        return 0;
+    }
+
+    inner.set_item(row - 1, col - 1, Some(item));
 
     return 0;
 }
