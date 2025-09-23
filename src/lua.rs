@@ -292,10 +292,12 @@ pub fn pushvalue(state: &lua_State, index: i32) {
 }
 
 /// Converts the Lua value at the given index to a string and returns it.
-pub fn tostring(state: &lua_State, ind: i32) -> String {
+pub fn tostring(state: &lua_State, ind: i32) -> Option<String> {
     let cstr = unsafe { api::lua_tolstring(state, ind, 0 as *mut usize) };
 
-    unsafe { CStr::from_ptr(cstr).to_string_lossy().into_owned() }
+    if cstr.is_null() { return None; }
+
+    Some(unsafe { CStr::from_ptr(cstr).to_string_lossy().into_owned() })
 }
 
 /// Converts the Lua value at the given index to a string and returns it as an

@@ -143,7 +143,7 @@ pub fn run_file(path: &str) {
     let thread = lua::newthread(l).expect("Couldn't create Lua thread.");
 
     if let Err(_r) = lua::L::loadfile(thread, path) {
-        let err_msg = lua::tostring(thread, -1);
+        let err_msg = lua::tostring(thread, -1).unwrap();
         panic!("Couldn't load {}: {}", path, err_msg);
     }
 
@@ -160,9 +160,9 @@ pub fn run_file(path: &str) {
     }
 
     if r!=lua::LUA_OK {
-        let err_msg = lua::tostring(thread, -1);
+        let err_msg = lua::tostring(thread, -1).unwrap();
         lua::L::traceback(l, thread, Some(&err_msg), 0);
-        let traceback = lua::tostring(l, -1);
+        let traceback = lua::tostring(l, -1).unwrap();
         error!("Error occured during lua run file: {}", traceback);
 
         lua::pop(l, 1);
@@ -290,10 +290,13 @@ pub fn process_keybinds(keyevent: &crate::input::KeyboardEvent) -> bool {
                 lua::pop(l, 1);
                 if r { return true; }
             },
-            Err(_) => {
-                let errmsg = lua::tostring(l, -1);
-                error!("Error during keybind callback: {}", errmsg);
-                lua::pop(l, 1);
+            Err(err) => {
+                error!("{:?} error during keybind callack for {}.", err, keyname);
+                if lua::gettop(l) >= 1 {
+                    let errmsg = lua::tostring(l, -1).unwrap_or(String::from("<invalid error msg>"));
+                    error!("Error during keybind callback for {}: {}", keyname, errmsg);
+                    lua::pop(l, 1);
+                }
             }
         }
     }
@@ -364,9 +367,9 @@ pub fn run_event_queue() {
                 lua::closethread(cothread, None);
             } else {
                 // error occurred in the handler
-                let errmsg = lua::tostring(cothread, -1);
+                let errmsg = lua::tostring(cothread, -1).unwrap();
                 lua::L::traceback(lua, cothread, Some(&errmsg), 0);
-                let traceback = lua::tostring(lua, -1);
+                let traceback = lua::tostring(lua, -1).unwrap();
 
                 error!("Error occured during lua event handler ({}): {}", event.name, traceback);
                 lua::pop(lua, 1); // traceback
@@ -425,9 +428,9 @@ pub fn run_event_queue() {
             lua::closethread(cothread, None);
         } else {
             // error occurred in the handler
-            let errmsg = lua::tostring(cothread, -1);
+            let errmsg = lua::tostring(cothread, -1).unwrap();
             lua::L::traceback(lua, cothread, Some(&errmsg), 0);
-            let traceback = lua::tostring(lua, -1);
+            let traceback = lua::tostring(lua, -1).unwrap();
 
             error!("Error occured during targeted lua event handler ({}): {}", event.target, traceback);
             lua::pop(lua, 1); // traceback
@@ -461,9 +464,9 @@ pub fn resume_coroutines() -> bool {
             lua::closethread(co.state, None);
         } else {
             // error occurred in the handler
-            let errmsg = lua::tostring(co.state, -1);
+            let errmsg = lua::tostring(co.state, -1).unwrap();
             lua::L::traceback(lua, co.state, Some(&errmsg), 0);
-            let traceback = lua::tostring(lua, -1);
+            let traceback = lua::tostring(lua, -1).unwrap();
 
             error!("Error occured while resuming event coroutine: {}", traceback);
 

@@ -182,7 +182,7 @@ unsafe extern "C" fn get_font(l: &lua_State) -> i32 {
         lua::pushnil(l);
 
         while lua::next(l, 3) != 0 {
-            let var = lua::tostring(l, -2);
+            let var = lua::tostring(l, -2).unwrap();
             let val = lua::tointeger(l, -1);
 
             vars.push((String::from(var), val as i32));

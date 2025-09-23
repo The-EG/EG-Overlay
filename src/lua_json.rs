@@ -61,7 +61,7 @@ pub fn tojson(l: &lua_State, ind: i32) -> serde_json::Value {
             };
             return serde_json::Value::Number(n);
         },
-        lua::LuaType::LUA_TSTRING => serde_json::Value::String(String::from(lua::tostring(l, ind))),
+        lua::LuaType::LUA_TSTRING => serde_json::Value::String(String::from(lua::tostring(l, ind).unwrap())),
         lua::LuaType::LUA_TTABLE  => table_to_json(l, ind),
         lua::LuaType::LUA_TNONE |
         lua::LuaType::LUA_TLIGHTUSERDATA |
@@ -94,7 +94,7 @@ fn table_to_json(l: &lua_State, ind: i32) -> serde_json::Value {
         while lua::next(l, ind) > 0 {
             lua::pushvalue(l, -2); // copy the key
 
-            let key = String::from(lua::tostring(l, -1)); // this might convert it to a string
+            let key = lua::tostring(l, -1).unwrap_or(String::new()); // this might convert it to a string
             lua::pop(l, 1); // pop the copy
 
             let val = tojson(l, lua::gettop(l));

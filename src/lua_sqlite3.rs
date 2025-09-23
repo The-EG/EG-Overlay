@@ -378,7 +378,7 @@ unsafe extern "C" fn stmt_bind(l: &lua_State) -> i32 {
                 unsafe { api::sqlite3_bind_int64(stmt, c, v) }
             },
             lua::LuaType::LUA_TSTRING => {
-                let v = lua::tostring(l, 3);
+                let v = lua::tostring(l, 3).unwrap();
                 let vstr = CString::new(v.as_str()).unwrap();
                 unsafe { api::sqlite3_bind_text64(
                     stmt,

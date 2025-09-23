@@ -256,18 +256,18 @@ unsafe extern "C" fn open_module(l: &lua_State) -> i32 {
 unsafe extern "C" fn get_shell_item(l: &lua_State) -> i32 {
     lua::checkargstring!(l, 1);
 
-    let loc = lua::tostring(l, 1);
+    let loc = lua::tostring(l, 1).unwrap();
 
     match loc.as_str() {
         "this-pc" => pushshellitem(l, &ShellItem::this_pc()),
         "desktop" => pushshellitem(l, &ShellItem::desktop()),
         "path" => {
-            if lua::gettop(l) < 2 {
+            if lua::gettop(l) < 2 || lua::luatype(l, 2) != lua::LuaType::LUA_TSTRING {
                 luaerror!(l, "path requires a second argument.");
                 return 0;
             }
 
-            let path = lua::tostring(l, 2);
+            let path = lua::tostring(l, 2).unwrap();
 
             if let Ok(item) = ShellItem::from_path(&path) {
                 pushshellitem(l, &item);

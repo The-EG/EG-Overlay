@@ -70,7 +70,7 @@ unsafe extern "C" fn new_text(l: &lua_State) -> i32 {
 
     let font = unsafe { ui::font::lua::checkfont(l, 3) };
 
-    let text = lua::tostring(l, 1);
+    let text = lua::tostring(l, 1).unwrap();
     let color = ui::Color::from(lua::tointeger(l, 2) as u32);
 
     let t = ui::text::Text::new(&text, color, &font);

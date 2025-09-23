@@ -31,7 +31,7 @@ use std::mem::ManuallyDrop;
 
 use std::collections::HashSet;
 
-use crate::overlay::lua::luawarn;
+use crate::overlay::lua::{luawarn, luaerror};
 
 use crate::lua;
 use crate::lua::lua_State;
@@ -640,8 +640,11 @@ unsafe extern "C" fn menuitem_add_event_handler(l: &lua_State) -> i32 {
     let mut events: HashSet<String> = HashSet::new();
 
     for i in 3..(lua::gettop(l)+1) {
-        let e = lua::tostring(l, i);
-        events.insert(String::from(e));
+        if let Some(e) = lua::tostring(l, i) {
+            events.insert(e);
+        } else {
+            luaerror!(l, "Event names must be a string.");
+        }
     }
 
     if events.len() == 0 {

@@ -145,7 +145,7 @@ unsafe extern "C" fn remove(l: &lua_State) -> i32 {
     lua::checkargstring!(l, 2);
 
     let s = unsafe { checksettings(l, 1) };
-    let key = lua::tostring(l, 2);
+    let key = lua::tostring(l, 2).unwrap();
 
     s.remove(&key);
 

@@ -20,7 +20,7 @@ Functions
 #[allow(unused_imports)]
 use crate::logging::{debug, info, warn, error};
 
-use crate::overlay::lua::luawarn;
+use crate::overlay::lua::{luawarn, luaerror};
 
 use std::sync::Arc;
 use std::mem::ManuallyDrop;
@@ -241,8 +241,11 @@ unsafe extern "C" fn add_event_handler(l: &lua_State) -> i32 {
     let mut events: HashSet<String> = HashSet::new();
 
     for i in 3..(lua::gettop(l)+1) {
-        let e = lua::tostring(l, i);
-        events.insert(String::from(e));
+        if let Some(e) = lua::tostring(l, i) {
+            events.insert(e);
+        } else {
+            luaerror!(l, "Event names must be a string.");
+        }
     }
 
     if events.len() == 0 {

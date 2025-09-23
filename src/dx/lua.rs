@@ -658,13 +658,18 @@ unsafe extern "C" fn spritelist_new(l: &lua_State) -> i32 {
     let mut is_map = false;
 
     if lua::gettop(l) >= 2 {
-        match lua::tostring(l, 2).as_str() {
-            "map" => is_map = true,
-            "world" => is_map = false,
-            _ => {
-                luaerror!(l, "location must be 'map' or 'world'");
-                return 0;
+        if let Some(loc) = lua::tostring(l, 2) {
+            match loc.as_str() {
+                "map" => is_map = true,
+                "world" => is_map = false,
+                _ => {
+                    luaerror!(l, "location must be 'map' or 'world'");
+                    return 0;
+                }
             }
+        } else {
+            luaerror!(l, "location must be 'map' or 'world'");
+            return 0;
         }
     }
 
@@ -731,13 +736,18 @@ unsafe extern "C" fn traillist_new(l: &lua_State) -> i32 {
     let mut is_map = false;
 
     if lua::gettop(l) >= 2 {
-        match lua::tostring(l, 2).as_str() {
-            "map" => is_map = true,
-            "world" => is_map = false,
-            _ => {
-                luaerror!(l, "location must be 'map' or 'world'");
-                return 0;
+        if let Some(loc) = lua::tostring(l, 2) {
+            match loc.as_str() {
+                "map" => is_map = true,
+                "world" => is_map = false,
+                _ => {
+                    luaerror!(l, "location must be 'map' or 'world'");
+                    return 0;
+                }
             }
+        } else {
+            luaerror!(l, "location must be 'map' or 'world'");
+            return 0;
         }
     }
 
@@ -1737,7 +1747,7 @@ fn tags_match(l: &lua_State, target_tags: i32, query_tags: i32) -> bool {
     lua::pushnil(l);
 
     while lua::next(l, query_tags) != 0 {
-        let tagkey = lua::tostring(l, -2);
+        let tagkey = lua::tostring(l, -2).unwrap_or(String::new());
 
         if lua::getfield(l, target_tags, &tagkey)==lua::LuaType::LUA_TNIL || !lua::compare(l, -1, -2, lua::LUA_OPEQ) {
             // not a match

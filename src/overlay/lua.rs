@@ -960,8 +960,8 @@ unsafe extern "C" fn web_request(l: &lua_State) -> i32 {
             return 0;
         }
 
-        let key = String::from(lua::tostring(l, -2));
-        let val = String::from(lua::tostring(l, -1));
+        let key = String::from(lua::tostring(l, -2).unwrap());
+        let val = String::from(lua::tostring(l, -1).unwrap());
         hdrs.push((key, val));
 
         lua::pop(l, 1);
@@ -977,8 +977,8 @@ unsafe extern "C" fn web_request(l: &lua_State) -> i32 {
             return 0;
         }
 
-        let key = String::from(lua::tostring(l, -2));
-        let val = String::from(lua::tostring(l, -1));
+        let key = String::from(lua::tostring(l, -2).unwrap());
+        let val = String::from(lua::tostring(l, -1).unwrap());
         params.push((key, val));
 
         lua::pop(l, 1);
@@ -1225,7 +1225,7 @@ unsafe extern "C" fn parse_xml(l: &lua_State) -> i32 {
                 }
 
                 if let Err(_err) = lua::pcall(l, 2, 0, 0) {
-                    let msg = lua::tostring(l, -1);
+                    let msg = lua::tostring(l, -1).unwrap_or(String::from("<invalid error message>"));
                     luaerror!(l, "Error while running xml event callback: {}", msg);
                     lua::pop(l, 1);
 
