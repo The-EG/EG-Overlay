@@ -348,7 +348,7 @@ impl Ui {
         };
 
 
-        crate::lua_manager::add_module_opener("eg-overlay-ui", Some(crate::ui::lua::open_module));
+        crate::lua_manager::add_module_opener("ui", Some(crate::ui::lua::open_module));
 
         return Arc::new(ui);
     }

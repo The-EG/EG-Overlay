@@ -6,7 +6,7 @@
 Box Layouts
 ===========
 
-.. lua:currentmodule:: eg-overlay-ui
+.. lua:currentmodule:: ui
 
 Box layouts display multiple child elements in either a row (``'horizontal'``)
 or a column (``'vertical'``).
@@ -14,7 +14,7 @@ or a column (``'vertical'``).
 Boxes will automatically resize to contain all child elements if possible.
 
 A new box can be created with the :lua:func:`box` function in the
-:lua:mod:`eg-overlay-ui` module.
+:lua:mod:`ui` module.
 
 Child Alignment
 ---------------

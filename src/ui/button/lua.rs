@@ -6,7 +6,7 @@
 Button Elements
 ===============
 
-.. lua:module:: eg-overlay-ui
+.. lua:module:: ui
 
 Buttons provide an input element that a user can click on to perform an action
 or click on to toggle state (on/off).
@@ -15,7 +15,7 @@ Button elements have a single child element, but layout elements, such as
 :doc:`boxes <../uibox/lua>` can be used to create complex content.
 
 New buttons can be created with the :lua:func:`button` function in the
-:lua:mod:`eg-overlay-ui` module.
+:lua:mod:`ui` module.
 
 Checkboxes
 ----------

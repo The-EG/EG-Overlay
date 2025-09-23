@@ -5,7 +5,7 @@ require 'mumble-link-events'
 
 local overlay = require 'overlay'
 local ml = require 'mumble-link'
-local ui = require 'eg-overlay-ui'
+local ui = require 'ui'
 local mp = require 'markers.package'
 local md = require 'markers.data'
 local ms = require 'markers.settings'

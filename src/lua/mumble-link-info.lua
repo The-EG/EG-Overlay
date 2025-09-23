@@ -13,7 +13,7 @@ shared memory.
 ]]--
 
 local overlay = require 'overlay'
-local ui = require 'eg-overlay-ui'
+local ui = require 'ui'
 local ml = require 'mumble-link'
 
 local M = {}

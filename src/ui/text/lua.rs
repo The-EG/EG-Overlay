@@ -6,13 +6,13 @@
 Text Elements
 =============
 
-.. lua:currentmodule:: eg-overlay-ui
+.. lua:currentmodule:: ui
 
 Text elements display text in a single font and color. Multiple text elements
 can be combined with layout elements to create content with multiple fonts/colors.
 
 A new text element can be created with the :lua:func:`text` function in the
-:lua:mod:`eg-overlay-ui` module.
+:lua:mod:`ui` module.
 
 .. seealso::
 

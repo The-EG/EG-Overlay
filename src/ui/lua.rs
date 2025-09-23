@@ -153,14 +153,14 @@ pub unsafe extern "C" fn open_module(l: &lua_State) -> i32 {
 }
 
 /*** RST
-eg-overlay-ui
-=============
+ui
+==
 
-.. lua:module:: eg-overlay-ui
+.. lua:module:: ui
 
 .. code-block:: lua
 
-    local ui = require 'eg-overlay-ui'
+    local ui = require 'ui'
 
 .. toctree::
     :caption: UI Elements
@@ -179,7 +179,7 @@ eg-overlay-ui
     menu/lua
 
 
-The `eg-overlay-ui` module is used to create all UI elements for EG-Overlay modules.
+The `ui` module is used to create UI elements for overlay modules.
 
 Nearly all modules that display a UI will have at least one :lua:func:`window`.
 :doc:`window/lua` use layout or scroll elements to display their child elements.

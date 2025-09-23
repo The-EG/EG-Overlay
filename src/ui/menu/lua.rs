@@ -6,7 +6,7 @@
 Menus
 =====
 
-.. lua:currentmodule:: eg-overlay-ui
+.. lua:currentmodule:: ui
 
 Menus are a top level element that display a list of items. They are
 typically used to provide contextual actions, ie. a context or 'right click' menu.
@@ -15,7 +15,7 @@ Menus function much like :doc:`boxes <../uibox/lua>`, except they can only have
 :lua:class:`uimenuitem` as children.
 
 New menus can be created with the :lua:func:`menu` function in the
-:lua:mod:`eg-overlay-ui` module.
+:lua:mod:`ui` module.
 
 New menu items can be created with the following functions:
 
@@ -136,9 +136,9 @@ unsafe extern "C" fn new_text_menu_item(l: &lua_State) -> i32 {
     unsafe { lua::L::checkinteger(l, 2); }
     unsafe { ui::font::lua::checkfont(l, 3); }
 
-    // local ui = require 'eg-overlay-ui'
+    // local ui = require 'ui'
     lua::getglobal(l, "require");
-    lua::pushstring(l, "eg-overlay-ui");
+    lua::pushstring(l, "ui");
     lua::call(l, 1, 1);
 
     let ui = lua::gettop(l);
@@ -187,9 +187,9 @@ unsafe extern "C" fn new_sep_menu_item(l: &lua_State) -> i32 {
     // as above, check args first
     unsafe { lua::L::checkstring(l, 1); }
 
-    // local ui = require 'eg-overlay-ui'
+    // local ui = require 'ui'
     lua::getglobal(l, "require");
-    lua::pushstring(l, "eg-overlay-ui");
+    lua::pushstring(l, "ui");
     lua::call(l, 1, 1);
 
     let ui = lua::gettop(l);
@@ -442,9 +442,9 @@ unsafe extern "C" fn show(l: &lua_State) -> i32 {
         x = unsafe { lua::L::checkinteger(l, 2) };
         y = unsafe { lua::L::checkinteger(l, 3) };
     } else if lua::gettop(l) == 1 {
-        // x,y = require('eg-overlay-ui').mouseposition()
+        // x,y = require('ui').mouseposition()
         lua::getglobal(l,"require");
-        lua::pushstring(l, "eg-overlay-ui");
+        lua::pushstring(l, "ui");
         lua::call(l, 1, 1);
 
         lua::getfield(l, -1, "mouseposition");

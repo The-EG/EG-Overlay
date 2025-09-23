@@ -6,7 +6,7 @@
 Grid Layouts
 ============
 
-.. lua:currentmodule:: eg-overlay-ui
+.. lua:currentmodule:: ui
 
 Grid layouts display multiple child elements in a table or grid.
 
@@ -14,7 +14,7 @@ Grids will automatically resize to contain all child elements if possible and
 each row and column will automatically resize to display the children as well.
 
 A new grid can be created with the :lua:func:`grid` function in the
-:lua:mod:`eg-overlay-ui` module.
+:lua:mod:`ui` module.
 
 .. seealso::
 
@@ -101,7 +101,7 @@ Classes
     .. code-block:: lua
         :caption: Example
 
-        local ui = require 'eg-overlay-ui'
+        local ui = require 'ui'
 
         local function txt(t)
             return ui.text(t, 0xFFFFFFFF, ui.fonts.regular)

@@ -6,13 +6,13 @@
 Text Entry Element
 ==================
 
-.. lua:currentmodule:: eg-overlay-ui
+.. lua:currentmodule:: ui
 
 An entry element provides allows users to enter a single line of text, optionally
 display a hint when no value has been provided.
 
 A new entry can be created with the :lua:func:`entry` function in the
-:lua:mod:`eg-overlay-ui`.
+:lua:mod:`ui`.
 
 Functions
 ---------

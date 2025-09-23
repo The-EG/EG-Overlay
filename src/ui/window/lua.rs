@@ -6,7 +6,7 @@
 Windows
 =======
 
-.. lua:currentmodule:: eg-overlay-ui
+.. lua:currentmodule:: ui
 
 A window is the top level UI element that contains all other elements. Most
 modules that display some sort of UI to the user will have at least one window.
@@ -15,7 +15,7 @@ Windows can only have a single child element. In most cases this child will be
 a :doc:`box <../uibox/lua>` or :doc:`grid <../grid/lua>`.
 
 New windows are created with the :lua:func:`window` function in the
-:lua:mod:`eg-overlay-ui` module (see below).
+:lua:mod:`ui` module (see below).
 
 Functions
 ---------
@@ -80,7 +80,7 @@ unsafe fn checkwindow<'a>(l: &lua_State, element: &'a ManuallyDrop<Arc<ui::Eleme
     .. code-block:: lua
         :caption: Example
 
-        local ui = require 'eg-overlay-ui'
+        local ui = require 'ui'
 
         local win = ui.window("My Module")
 
@@ -237,8 +237,8 @@ unsafe extern "C" fn hide(l: &lua_State) -> i32 {
         .. code-block:: lua
             :caption: Example
 
-            local overlay = require 'eg-overlay'
-            local ui = require 'eg-overlay-ui'
+            local overlay = require 'overlay'
+            local ui = require 'ui'
 
             local settings = overlay.settings('my-module.lua')
 

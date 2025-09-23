@@ -6,7 +6,7 @@
 Separator Elements
 ==================
 
-.. lua:currentmodule:: eg-overlay-ui
+.. lua:currentmodule:: ui
 
 Separators provide a visual break between elements by rendering a simple line
 either horizontally or vertically.
@@ -17,7 +17,7 @@ either horizontally or vertically.
     alignment when used with :doc:`boxes <../uibox/lua>` and :doc:`grids <../grid/lua>`.
 
 A new separator can be created with the :lua:func:`separator` function in the
-:lua:mod:`eg-overlay-ui` module.
+:lua:mod:`ui` module.
 
 Functions
 ---------

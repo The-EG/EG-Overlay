@@ -6,14 +6,14 @@
 Fonts
 =====
 
-.. lua:currentmodule:: eg-overlay-ui
+.. lua:currentmodule:: ui
 
 EG-Overlay uses FreeType2 to render font glyphs on screen. This means that any
 font that FreeType2 supports can be used, **however, module authors are
 encouraged to use the default fonts detailed below.**
 
 Fonts can be accessed using the :lua:func:`getfont` function in the
-:lua:mod:`eg-overlay-ui` module.
+:lua:mod:`ui` module.
 
 Default Fonts
 -------------
@@ -25,13 +25,13 @@ EG-Overlay comes with 4 default fonts:
 - Icon: `Google Material Design Icons <https://github.com/google/material-design-icons>`_
 
 Each of the above fonts are initialized with default values and can be accessed
-in a ``fonts`` table on the :lua:mod:`eg-overlay-ui` module as ``regular``,
+in a ``fonts`` table on the :lua:mod:`ui` module as ``regular``,
 ``monospace``, and ``icon``.
 
 .. code-block:: lua
     :caption: Example
 
-    local ui = require 'eg-overlay-ui'
+    local ui = require 'ui'
 
     local regfont = ui.fonts.regular
     local italfont = ui.fonts.italic
@@ -136,7 +136,7 @@ pub fn register_module_functions(l: &lua_State) {
     .. code-block:: lua
         :caption: Example
 
-        local ui = require 'eg-overlay-ui'
+        local ui = require 'ui'
 
         local bold = ui.getfont('path/to/font.tff', 14, {wght = 900})
 

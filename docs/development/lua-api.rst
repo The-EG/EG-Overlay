@@ -29,7 +29,7 @@ EG-Overlay Modules
     /src/lua/utils
 
 - :lua:mod:`overlay`
-- :lua:mod:`eg-overlay-ui`
+- :lua:mod:`ui`
 - :lua:mod:`dx`
 - :lua:mod:`mumble-link`
 - :lua:mod:`mumble-link-events`

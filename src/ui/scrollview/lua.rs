@@ -6,7 +6,7 @@
 Scroll Elements
 ===============
 
-.. lua:currentmodule:: eg-overlay-ui
+.. lua:currentmodule:: ui
 
 Scrollview elements allow large elements to be displayed in a smaller area by
 providing scroll bars. A scrollview only has a single child element, layout
@@ -14,7 +14,7 @@ elements like :doc:`boxes <../uibox/lua>` or :doc:`grids <../grid/lua>` should
 be used to create complex content.
 
 A new scrollview can be created with the :lua:func:`scrollview` function in the
-:lua:mod:`eg-overlay-ui` module.
+:lua:mod:`ui` module.
 
 Functions
 ---------

@@ -11,7 +11,7 @@ are displayed in the overlay.
 ]]--
 
 local overlay = require 'overlay'
-local ui = require 'eg-overlay-ui'
+local ui = require 'ui'
 local settings = require 'markers.settings'
 local manager = require 'markers.manager'
 local ml = require 'mumble-link'

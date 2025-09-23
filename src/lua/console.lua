@@ -100,7 +100,7 @@ The following settings for the Lua Console are stored in ``settings/console.lua.
     .. versionhistory::
         :0.3.0: Added
 ]]--
-local ui = require 'eg-overlay-ui'
+local ui = require 'ui'
 local overlay = require 'overlay'
 
 local overlay_menu = require 'overlay-menu'

@@ -20,7 +20,7 @@ Classes
 ]]--
 
 local shell = require 'shell'
-local ui = require 'eg-overlay-ui'
+local ui = require 'ui'
 
 local M = {}
 
