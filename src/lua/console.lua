@@ -261,7 +261,7 @@ function win:onreturn()
         if not ok then
             coroutine.close(func_thread)
             overlay.logerror(string.format('Error while running console input: %s', err))
-           
+
             return
         end
         coroutine.yield()
@@ -278,7 +278,7 @@ function print(...)
     for i,p in ipairs({...}) do
         table.insert(strs, tostring(p))
     end
-    console:addmessage(table.concat(strs, ' '), 0xFFFFFFFF) 
+    console:addmessage(table.concat(strs, ' '), 0xFFFFFFFF)
 end
 
 

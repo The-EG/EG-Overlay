@@ -51,7 +51,7 @@ include_patterns = [
     'src/lua/console.lua',
     'src/lua/dialogs.lua',
     'src/lua/mumble-link-info.lua',
-    
+
     'src/lua/gw2/init.lua',
     'src/lua/gw2/data.lua',
 

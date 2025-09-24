@@ -28,7 +28,7 @@ impl Rect {
 
         debug!("Loading pixel shader from {}...", PIXEL_CSO);
         let pixelcso = std::fs::read(PIXEL_CSO).expect(format!("Couldn't read {}",PIXEL_CSO).as_str());
-    
+
         let mut psodesc = Direct3D12::D3D12_GRAPHICS_PIPELINE_STATE_DESC::default();
         psodesc.VS.pShaderBytecode = vertcso.as_ptr() as *const _;
         psodesc.VS.BytecodeLength  = vertcso.len();

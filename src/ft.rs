@@ -4,7 +4,7 @@
 
 //! FreeType 2 binding
 //!
-//! This is a rather low level and primitive binding to FreeType2. 
+//! This is a rather low level and primitive binding to FreeType2.
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
 #![allow(dead_code)]
@@ -360,7 +360,7 @@ impl Face {
 
     unsafe fn get_mm_var(&self) -> Result<*const FT_MM_Var,()> {
         let mut mm_ptr: *const FT_MM_Var = 0 as *const _;
-        
+
         if unsafe { FT_Get_MM_Var(self.ft_face(), &mut mm_ptr) } != 0 {
             return Err(());
         }
@@ -385,7 +385,7 @@ impl Face {
             let num_axis = unsafe { (*mm_var).num_axis } as usize;
             let axes = unsafe { std::slice::from_raw_parts((*mm_var).axis, num_axis) };
             let mut coords = vec![0; num_axis];
-            
+
             if unsafe { FT_Get_Var_Design_Coordinates(self.ft_face(), num_axis as u32, coords.as_mut_ptr()) } != 0 {
                 error!("Can't get variable axes coordinates for {}.", self.path);
                 return;
@@ -411,7 +411,7 @@ impl Face {
 
                 return; // return out after setting the values
             }
-            
+
             // only get here if the tag was never found
             if unsafe { FT_Done_MM_Var(self.library, mm_var) } != 0 {
                 error!("FT_Done_MM_Var failed.");
@@ -442,7 +442,7 @@ impl Face {
             let num_axis = unsafe { (*mm_var).num_axis } as usize;
             let axes = unsafe { std::slice::from_raw_parts((*mm_var).axis, num_axis) };
             let mut coords = vec![0; num_axis];
-            
+
             if unsafe { FT_Get_Var_Design_Coordinates(self.ft_face(), num_axis as u32, coords.as_mut_ptr()) } != 0 {
                 error!("Can't get variable axes coordinates for {}.", self.path);
                 return;
@@ -478,7 +478,7 @@ impl Face {
 
                 return; // return out after setting the values, don't keep looking
             }
-            
+
             // only get here if the tag was never found
             if unsafe { FT_Done_MM_Var(self.library, mm_var) } != 0 {
                 error!("FT_Done_MM_Var failed.");

@@ -33,7 +33,7 @@ class OptionTableDirective(SphinxDirective):
         tgroup += thead
         throw = nodes.row()
         thead += throw
-        
+
         throw += make_entry(self.name_header)
         throw += make_entry(self.value_header)
 
@@ -57,7 +57,7 @@ class OptionTableDirective(SphinxDirective):
         n.append(tbl)
 
         return n
-    
+
 class VersionHistoryDirective(OptionTableDirective):
     name_header = 'Version'
     value_header = 'Notes'

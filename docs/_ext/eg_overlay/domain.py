@@ -47,7 +47,7 @@ class ModuleSettingDirective(ConfigurationValue):
             'module', self.env.ref_context.get('overlay:module'))
         signode['modname'] = modname
         return sig
-    
+
     def add_target_and_index(self, name, sig, signode):
         modname = signode.get('modname', 'none')
         anchor = f'overlay-modsetting-{modname}-{sig}'
@@ -58,10 +58,10 @@ class ModuleSettingDirective(ConfigurationValue):
 
     def _object_hierarchy_parts(self, sig_node):
         return (sig_node['modname'], sig_node['settingname'])
-    
+
     def _toc_entry_name(self, sig_node):
         return sig_node['settingname']
-    
+
 class ModuleSettingIndex(Index):
     name = 'modsettingindex'
     localname = 'Module Settings Index'
@@ -114,7 +114,7 @@ class DBTableDirective(ObjectDescription):
             'database', self.env.ref_context.get('overlay:database'))
         signode['dbname'] = dbname
         return sig
-    
+
     def add_target_and_index(self, name, sig, signode):
         dbname = signode.get('dbname', 'none')
         anchor = f'overlay-dbtable-{dbname}-{sig}'
@@ -125,7 +125,7 @@ class DBTableDirective(ObjectDescription):
 
     def _object_hierarchy_parts(self, sig_node):
         return (sig_node['dbname'], sig_node['tablename'])
-    
+
     def _toc_entry_name(self, sig_node):
         return sig_node['tablename']
 
@@ -158,7 +158,7 @@ class EventDirective(ObjectDescription):
         signode += addnodes.desc_name(text=sig)
         signode['eventname'] = sig
         return sig
-    
+
     def add_target_and_index(self, name, sig, signode):
         anchor = f'overlay-event-{sig}'
         signode['ids'].append(anchor)
@@ -168,7 +168,7 @@ class EventDirective(ObjectDescription):
 
     def _object_hierarchy_parts(self, sig_node):
         return tuple(sig_node['eventname'])
-    
+
     def _toc_entry_name(self, sig_node):
         return sig_node['eventname']
 
@@ -192,7 +192,6 @@ class EventIndex(Index):
             ))
         re = [(k,v) for k,v in sorted(content.items())]
         return (re, True)
-        
 
 class OverlayDomain(Domain):
     name = 'overlay'
@@ -231,7 +230,7 @@ class OverlayDomain(Domain):
 
     def get_full_qualified_name(self, node):
         return f'overlay.{type(node).__name__}.{node.arguments[0]}'
-    
+
     def get_objects(self):
         for obj in self.data['objects']: yield(obj)
 
@@ -245,10 +244,10 @@ class OverlayDomain(Domain):
                        for name, sig, otyp, docname, anchor, prio
                        in self.get_objects() if otyp==typ and name.split('.')[-2]==dbname and name.split('.')[-1]==targname]
         else:
-            matches = [(docname, anchor) 
+            matches = [(docname, anchor)
                         for name, sig, otyp, docname, anchor, prio
                         in self.get_objects() if sig == target and otyp == typ]
-        
+
         if len(matches) > 0:
             todocname = matches[0][0]
             targ = matches[0][1]

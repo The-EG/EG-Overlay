@@ -22,7 +22,7 @@ pub const UI_STATE_COMPASS_ROTATE   : u32 = 0x01 << 2;
 #[repr(C)]
 struct GW2MLContext {
     server_address: [u8; 28],
-    
+
     map_id  : u32,
     map_type: u32,
     shard_id: u32,
@@ -186,7 +186,7 @@ impl MumbleLink {
 
     fn parse_identity_json(&self) {
         let mut ident = self.identity.lock().unwrap();
-        
+
         if self.gw2_ml.tick != ident.tick {
             match serde_json::from_str::<serde_json::Value>(&self.identity()) {
                 Ok(v) => {
@@ -200,7 +200,7 @@ impl MumbleLink {
 
     fn identity_value(&self, key: &str) -> Result<serde_json::Value, ()> {
         self.parse_identity_json();
-        
+
         let ident = self.identity.lock().unwrap();
 
         if let serde_json::Value::Object(i) = &ident.json {
@@ -220,7 +220,7 @@ impl MumbleLink {
                 error!("Identity name isn't a string!");
             }
         }
-        
+
         None
     }
 
@@ -403,7 +403,7 @@ impl Drop for MumbleLink {
         let v = Memory::MEMORY_MAPPED_VIEW_ADDRESS {
             Value: self.gw2_ml as *const _ as *mut std::ffi::c_void,
         };
-        
+
         unsafe { Memory::UnmapViewOfFile(v).unwrap(); }
         unsafe { Foundation::CloseHandle(h).unwrap(); }
     }

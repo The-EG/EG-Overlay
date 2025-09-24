@@ -27,7 +27,7 @@ float4 main(PSInput input) : SV_Target {
             float a = ((adist / 36) * (1.0 - 0.05)) + 0.05;
             alpha = min(alpha, a);
         }
-        
+
         /*
         float adist = input.cam_player_dist - vertcamdist;
 

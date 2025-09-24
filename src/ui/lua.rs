@@ -46,7 +46,7 @@ pub unsafe fn checkelement_ptr(l: &lua_State, ind: i32) -> *mut *const ui::Eleme
         lua::pushstring(l, format!("Argument {} is not a UI Element. (not userdata)", ind).as_str());
         unsafe { lua::error(l); }
     }
-    
+
     if lua::getfield(l, ind, "__is_uielement")!=lua::LuaType::LUA_TBOOLEAN {
         lua::pushstring(l, format!("Argument {} is not a UI Element. (missing __is_uielement)", ind).as_str());
         unsafe { lua::error(l); }
@@ -249,7 +249,7 @@ unsafe extern "C" fn mouse_position(l: &lua_State) -> i32 {
 
 /*** RST
 .. lua:function:: iconcodepoint(name)
-    
+
     Return the utf-8 encoded codepoint for the given icon name.
 
     :rtype: string
@@ -261,7 +261,7 @@ unsafe extern "C" fn mouse_position(l: &lua_State) -> i32 {
 unsafe extern "C" fn icon_codepoint(l: &lua_State) -> i32 {
     let name = unsafe { lua::L::checkstring(l, 1) };
     let ui = get_ui_upvalue(l);
-    
+
     match ui.icon_codepoint(&name) {
         Ok(cp) => lua::pushstring(l, &cp),
         Err(err) => {

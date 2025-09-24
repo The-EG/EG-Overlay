@@ -100,7 +100,7 @@ impl Separator {
 
     pub fn get_preferred_width(&self) -> i64 {
         let inner = self.inner.lock().unwrap();
-        
+
         match inner.orientation {
             ui::ElementOrientation::Horizontal => 20,
             ui::ElementOrientation::Vertical   => inner.thickness + 2,

@@ -7,7 +7,7 @@ EG-Overlay Markerpack Format
 
 EG-Overlay's marker module houses data in SQLite databases. This is a departure
 from the set of XML files that have become standard with other overlays, however
-the change is intentional. 
+the change is intentional.
 
 Why SQLite?
 -----------
@@ -23,7 +23,7 @@ transparent to users as optimizing XML, it is the most straightforward way to
 achieve desirable performance while sticking to EG-Overlay's core vision:
 being light weight and out of the way.
 
-SQLite databases *will* take up more hard disk space than a zip compressed 
+SQLite databases *will* take up more hard disk space than a zip compressed
 'TaCO' pack, but they are still a single file and the additional disk usage is
 much less than the RAM usage it is being traded for.
 
@@ -81,7 +81,7 @@ Tables
     ``typeid`` will be ``'foo.bar'``.
 
     **Columns**
-    
+
     ====== ======= =============================================================
     Name   Type    Description
     ====== ======= =============================================================
@@ -134,10 +134,10 @@ Tables
 
     .. versionhistory::
         :0.1.0: Added
-   
+
 .. overlay:dbtable:: markerprops
 
-    Marker properties. Marker properties affect how a marker is shown and other 
+    Marker properties. Marker properties affect how a marker is shown and other
     behavior. If a marker does not define a property, the value defined on the
     |categorytbl| it belongs to or any parents will take effect instead.
 

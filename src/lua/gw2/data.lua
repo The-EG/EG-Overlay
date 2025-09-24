@@ -82,7 +82,7 @@ local function fetchallids(endpoint)
         prog = prog + #fetchids
 
         overlay.loginfo(string.format('  %d completed.', prog))
-    
+
         coroutine.yield()
     end
 
@@ -196,7 +196,7 @@ function M.refreshmaps()
     M.db:execute('BEGIN')
     M.db:execute('DELETE FROM maps')
 
-    for i, map in ipairs(maps) do           
+    for i, map in ipairs(maps) do
         ins:bind(':id', map.id)
         ins:bind(':name', map.name)
         ins:bind(':min_level', map.min_level)
@@ -248,7 +248,7 @@ end
     :rtype: table
 
     .. versionhistory::
-        :0.3.0: Added        
+        :0.3.0: Added
 ]]--
 function M.specialization(id)
     local sel = M.db:prepare([[SELECT * FROM specializations WHERE id = :id]])
@@ -305,7 +305,7 @@ function M.refreshspecializations()
     M.db:execute('BEGIN')
     M.db:execute('DELETE FROM specializations')
 
-    for i, spec in ipairs(specs) do           
+    for i, spec in ipairs(specs) do
         ins:bind(':id', spec.id)
         ins:bind(':name', spec.name)
         ins:bind(':profession', spec.profession)

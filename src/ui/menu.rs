@@ -121,7 +121,6 @@ impl Menu {
         todo!();
     }
 
-    
     pub fn get_x(&self) -> i64 {
         self.inner.lock().unwrap().x
     }
@@ -256,7 +255,7 @@ impl MenuInner {
 
         // This gets complicated due to child/sub menus.
         // When a menu is shown it captures mouse input so that it receives all
-        // events first. 
+        // events first.
         // If a menu returns false from this function during that captured event, the
         // event will be sent to everything else that would normally get it, IE the
         // menu items, etc.
@@ -319,7 +318,7 @@ impl MenuItem {
 
             bg_color: ui::Color::from(0x00000000u32),
             hover_color: ui::Color::from(settings.get_u64("overlay.ui.colors.menuItemHover").unwrap() as u32),
-            
+
             enabled: true,
             hover: false,
 
@@ -388,7 +387,6 @@ impl MenuItem {
         }
     }
 
-    
     pub fn get_x(&self) -> i64 {
         self.inner.lock().unwrap().x
     }

@@ -72,8 +72,8 @@ const FONT_FUNCS: &[luaL_Reg] = luaL_Reg_list!{
 pub fn pushfont(l: &lua_State, font: &Arc<Font>) {
     let font_ptr = Arc::into_raw(font.clone());
 
-    let lua_font_ptr: *mut *const Font = unsafe { 
-        std::mem::transmute(lua::newuserdatauv(l, std::mem::size_of::<*const Font>(), 0)) 
+    let lua_font_ptr: *mut *const Font = unsafe {
+        std::mem::transmute(lua::newuserdatauv(l, std::mem::size_of::<*const Font>(), 0))
     };
 
     unsafe { *lua_font_ptr = font_ptr; }
@@ -105,7 +105,7 @@ pub fn register_module_functions(l: &lua_State) {
     lua::setfield(l, -2, "getfont");
 
     let ui = crate::overlay::ui();
-    
+
     lua::newtable(l); // a table to hold default fonts: "fonts"
 
     crate::ui::font::lua::pushfont(l, &ui.regular_font);
@@ -141,7 +141,7 @@ pub fn register_module_functions(l: &lua_State) {
         local bold = ui.getfont('path/to/font.tff', 14, {wght = 900})
 
     .. note::
-        
+
         Variables supported will differ for each font. Some fonts will not
         support variables at all.
 
@@ -197,7 +197,7 @@ unsafe extern "C" fn get_font(l: &lua_State) -> i32 {
     let f = ui.font_manager.get_font(&path, size, &vars);
 
     pushfont(l, &f);
-    
+
     return 1;
 }
 
@@ -210,7 +210,7 @@ Classes
 
     A font with a unique combination of size and font variables.
 
-    A font is used to render text within the overlay and is most commonly used 
+    A font is used to render text within the overlay and is most commonly used
     with :lua:class:`uitext` elements.
 
 

@@ -100,7 +100,7 @@ impl Dx {
         if cfg!(debug_assertions) {
             enable_debug_layer();
         }
-        
+
         let adapter = find_adapter();
         let device  = create_device(&adapter);
 
@@ -151,7 +151,7 @@ impl Dx {
         if !swapchain.backbuffer_ready() { return None; }
 
         let clear_color: [f32;4] = [0.0, 0.0, 0.0, 0.0];
-            
+
         let alloc = &swapchain.cmd_allocs[swapchain.frameind as usize];
         let backbuffer = &swapchain.backbuffers[swapchain.frameind as usize];
 
@@ -164,7 +164,7 @@ impl Dx {
             rtv.ptr += (swapchain.frameind * swapchain.rtv_descriptorsize) as usize;
 
             let dsv = swapchain.ds_descriptorheap.GetCPUDescriptorHandleForHeapStart();
-            
+
             let mut barrier = Direct3D12::D3D12_RESOURCE_BARRIER::default();
             barrier.Type = Direct3D12::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
             barrier.Flags = Direct3D12::D3D12_RESOURCE_BARRIER_FLAG_NONE;
@@ -214,7 +214,7 @@ impl Dx {
         name: &str
     ) -> Result<Direct3D12::ID3D12PipelineState,()> {
         unsafe {
-            // convince rust to copy the rootsig pointer without incrementing the 
+            // convince rust to copy the rootsig pointer without incrementing the
             // counter or releasing it later
             let swapchain = self.swapchain.lock().unwrap();
             desc.pRootSignature = std::mem::transmute_copy(&swapchain.rootsig);
@@ -289,7 +289,7 @@ impl Dx {
         let tex = texptr.unwrap();
 
         let srvheap_loc = self.get_new_srv_descriptor_loc();
-        
+
         let mut gpu_desc_handle = unsafe { self.srv_descriptorheap.GetGPUDescriptorHandleForHeapStart() };
         gpu_desc_handle.ptr += srvheap_loc;
 
@@ -361,7 +361,7 @@ impl Dx {
         let tex = texptr.unwrap();
 
         let srvheap_loc = self.get_new_srv_descriptor_loc();
-        
+
         let mut gpu_desc_handle = unsafe { self.srv_descriptorheap.GetGPUDescriptorHandleForHeapStart() };
         gpu_desc_handle.ptr += srvheap_loc;
 
@@ -416,7 +416,7 @@ impl Dx {
 
         buffer.unwrap()
     }
-    
+
     pub fn new_upload_buffer(&self, size: u64) -> Direct3D12::ID3D12Resource {
         let mut props = Direct3D12::D3D12_HEAP_PROPERTIES::default();
         props.Type                 = Direct3D12::D3D12_HEAP_TYPE_UPLOAD;
@@ -480,7 +480,7 @@ impl CopyQueue {
     /// Waits for all commands within the copy command queue to complete.
     pub fn flush_commands(&mut self) {
         let curval = self.fence_value;
-        
+
         if unsafe { self.cmd_queue.Signal(&self.fence, curval) }.is_err() {
             panic!("Couldn't signal copy command queue.");
         }
@@ -631,13 +631,13 @@ impl SwapChain {
             self.device.CreateDepthStencilView(self.ds_buffer.as_ref().unwrap(), None, dsvhandle);
         }
     }
-    
+
     /// Returns [true] if a backbuffer is available for rendering, [false] otherwise.
     fn backbuffer_ready(&self) -> bool {
         use windows::Win32::System::Threading::WaitForSingleObjectEx;
 
         let hndl = Foundation::HANDLE(self.swapchain_frame_handle_ptr as *mut std::ffi::c_void);
-        
+
         if unsafe { WaitForSingleObjectEx(hndl, 0, false)==Foundation::WAIT_TIMEOUT } {
             return false;
         }
@@ -654,7 +654,7 @@ impl SwapChain {
         if !self.viewports.is_empty() {
             panic!("push_viewport/pop_viewport mismatch!");
         }
-        
+
         let backbuffer = &self.backbuffers[self.frameind as usize];
 
         let mut barrier = Direct3D12::D3D12_RESOURCE_BARRIER::default();
@@ -682,7 +682,7 @@ impl SwapChain {
             swapchain.Present(0, Dxgi::DXGI_PRESENT_ALLOW_TEARING).unwrap();
 
             let fenceval = self.fence_values[self.frameind as usize];
-        
+
             cmd_queue.Signal(fence, fenceval).unwrap();
             self.frameind = self.swapchain.GetCurrentBackBufferIndex();
 
@@ -741,7 +741,6 @@ impl SwapChain {
         self.base_viewport.MinDepth = 0.0;
         self.base_viewport.MaxDepth = 1.0;
 
-        
         self.backbuffers.clear();
 
         unsafe {
@@ -969,12 +968,12 @@ fn enable_debug_layer() {
         if Direct3D12::D3D12GetDebugInterface(&mut debug_ptr).is_err() {
             panic!("Couldn't get ID3D12Debug interface.");
         }
-        
+
         let debug = debug_ptr.unwrap();
 
         debug.EnableDebugLayer();
     }
-    
+
     warn!("D3D12 debug validation layer enabled. This WILL negatively impact performance.");
 }
 
@@ -1017,7 +1016,7 @@ fn find_adapter() -> Dxgi::IDXGIAdapter4 {
         ).is_ok() {
             panic!("Couldn't open HKLM\\Software\\Microsoft\\DirectX");
         }
-        
+
         let mut subkeystrlen = 0;
 
         if !Registry::RegQueryInfoKeyA(
@@ -1631,7 +1630,7 @@ impl Texture {
     /// Copies entire subresources (levels/layers) from another texture to this one.
     pub fn copy_subresources_from(&self, from: &Texture, subresources: u32) {
         let mut copy_queue = self.dx.copy_queue();
-        
+
         copy_queue.flush_commands();
         copy_queue.reset();
 

@@ -119,7 +119,7 @@ pub fn register_module_functions(l: &lua_State) {
 
 /*** RST
 .. lua:function:: box(orientation)
-    
+
     Create a new box layout container.
 
     Box layout containers arrange their child elements sequentially in either a
@@ -198,7 +198,7 @@ unsafe extern "C" fn push_back(l: &lua_State) -> i32 {
 
     bx.push_back(&item, ui::ElementAlignment::from(align.as_str()), expand);
 
-    return 0; 
+    return 0;
 }
 
 /*** RST
@@ -301,7 +301,7 @@ unsafe extern "C" fn pop_back(l: &lua_State) -> i32 {
 
 /*** RST
     .. lua:method:: clear()
-    
+
         Remove all elements from this box.
 
         .. versionhistory::
@@ -322,7 +322,7 @@ unsafe extern "C" fn clear(l: &lua_State) -> i32 {
         Remove the given element from this box.
 
         :param uielement element:
-        
+
         .. versionhistory::
             :0.3.0: Added
 */
@@ -342,9 +342,9 @@ unsafe extern "C" fn remove_item(l: &lua_State) -> i32 {
         Returns the number of items in this box.
 
         .. note::
-            
+
             This is also called when using the Lua length operator on the box (``#``).
-        
+
         :rtype: integer
 
         .. versionhistory::

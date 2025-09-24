@@ -56,7 +56,7 @@ struct WindowInner {
 
     bg_color: ui::Color,
     border_color: ui::Color,
-    border_highlight_color: ui::Color, 
+    border_highlight_color: ui::Color,
 
     child: Option<Arc<ui::Element>>,
 
@@ -98,7 +98,7 @@ impl Window {
             hover_titlebar: false,
             hover_right: false,
             hover_left: false,
-            hover_bottom: false,        
+            hover_bottom: false,
 
             moving: false,
             resizing: false,
@@ -158,7 +158,7 @@ impl Window {
     pub fn get_x(&self) -> i64 {
         self.win.lock().unwrap().x
     }
-    
+
     pub fn set_x(&self, x: i64) {
         self.win.lock().unwrap().x = x;
     }
@@ -174,7 +174,7 @@ impl Window {
     pub fn get_width(&self) -> i64 {
         self.win.lock().unwrap().width
     }
-    
+
     pub fn set_width(&self, width: i64) {
         self.win.lock().unwrap().width = width;
     }
@@ -237,7 +237,7 @@ impl WindowInner {
             let cap_y = win_y + 1;
             let cap_w = win_w - 6;
             let cap_h = self.titlebar_height;
-            
+
             if frame.push_scissor(cap_x, cap_y, cap_x + cap_w, cap_y + cap_h) {
                 let f = self.ui.upgrade().unwrap().regular_font.clone();
                 f.render_text(frame, cap_x, cap_y, &self.caption, ui::Color::from(0xFFFFFFFFu32));
@@ -256,7 +256,7 @@ impl WindowInner {
         let titlebar_bottom = winy + self.titlebar_height;
 
         if self.show_titlebar &&
-           event.x >= winx && event.y >= winy && 
+           event.x >= winx && event.y >= winy &&
            event.x <= winx + self.width &&
            event.y <= titlebar_bottom
         {
@@ -384,7 +384,7 @@ impl WindowInner {
             child_height = self.child.as_ref().unwrap().get_preferred_height();
 
             self.width = child_width + 4;
-            if self.show_titlebar { 
+            if self.show_titlebar {
                 self.height = child_height + self.titlebar_height + 3;
             } else {
                 self.height = child_height + 4;
@@ -450,7 +450,7 @@ impl WindowInner {
             input::MouseEvent::Button(btn) => return self.on_mouse_button(offset_x, offset_y, btn, element),
             _ => {},
         }
-        
+
         true
     }
 

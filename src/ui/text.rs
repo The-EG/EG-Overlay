@@ -20,7 +20,7 @@ struct TextInner {
     text: String,
     line_breaks: Vec<usize>,
     font: Arc<ui::font::Font>,
-    
+
     pref_width: i64,
     pref_height: i64,
 
@@ -144,7 +144,7 @@ impl TextInner {
             }
             cind += 1;
         }
-        
+
         self.line_breaks.push(self.text.len());
 
         self.pref_width = 0;
@@ -179,7 +179,7 @@ impl TextInner {
             let mut prev_end: usize = 0;
             for &end in &self.line_breaks {
                 let line = &self.text[prev_end..end];
-                
+
                 self.font.render_text(frame, x, y, line, self.fg_color);
                 y += line_height;
 

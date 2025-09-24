@@ -16,7 +16,7 @@ def setup(app: Sphinx) -> ExtensionMetadata:
     app.add_directive('versionhistory', VersionHistoryDirective)
     app.add_directive('luatablefields', LuaTableFieldsDirective)
     app.add_directive('settingsvalues', SettingsValuesDirective)
-    
+
     app.add_domain(OverlayDomain)
 
     app.add_domain(LuaDomain)

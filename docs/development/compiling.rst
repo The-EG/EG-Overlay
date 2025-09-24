@@ -37,7 +37,7 @@ Rust can be installed with rustup from `<https://www.rust-lang.org/tools/install
 
 Default options should be sufficient.
 
-CMake 
+CMake
 -----
 
 A few of the libraries that EG-Overlay depends on are built with CMake. It can
@@ -53,7 +53,7 @@ Click 'Close' and wait for any changes to complete, and then close the installer
 window.
 
 .. warning::
-    
+
     It is also possible to install CMake independently of Visual Studio, however
     the method detailed here ensures that CMake can find the MSVC compiler paths
     properly.

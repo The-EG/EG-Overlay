@@ -77,7 +77,7 @@ struct FontKey {
 impl std::fmt::Display for FontKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut axes: Vec<String> = Vec::new();
-        
+
         for (nm, val) in &self.axis_coords {
             axes.push(format!("{} = {}", nm, val));
         }
@@ -170,7 +170,7 @@ impl FontManager {
 
         return fm;
     }
-    
+
     /// Returns a font for the given path and axis_coords.
     ///
     /// If the font hasn't been loaded yet, it will be loaded first and then returned.
@@ -181,7 +181,7 @@ impl FontManager {
             size: size,
             axis_coords: axis_coords.clone(),
         };
-        
+
         if self.font_cache.lock().unwrap().contains_key(&key) {
             return self.font_cache.lock().unwrap().get(&key).unwrap().clone();
         }
@@ -259,7 +259,7 @@ impl FontManager {
             glyph_width: glyph_width,
             page_max_glyphs: page_max_glyphs,
             page_glyph_x: page_glyph_x,
-            
+
             data: Mutex::new( FontMutData {
                 glyph_count: 0,
                 glyphs: HashMap::new(),
@@ -292,7 +292,7 @@ pub struct Font {
     key: FontKey,
     face: ft::Face,
     has_kerning: bool,
-    
+
     glyph_width: u32,
     // the number of glyphs that can fit on a single layer of the texture array
     page_max_glyphs: u64,
@@ -337,7 +337,7 @@ impl Font {
 
         let glyph_metrics = unsafe { &(*self.face.glyph()).metrics };
         let bitmap = unsafe { &(*self.face.glyph()).bitmap };
-        
+
         // cache glyph metrics for performance
         let metrics = GlyphMetrics {
             bearing_x: glyph_metrics.horiBearingX as f64 / 64.0,
@@ -351,12 +351,12 @@ impl Font {
         let mut font_data = self.data.lock().unwrap();
 
         let glyph_index = font_data.glyph_count;
-        
+
         font_data.glyph_count += 1;
 
         if font_data.glyph_count > self.page_max_glyphs * (font_data.texture_levels as u64) {
             // this glyph will spill over onto a new layer in the texture
-            
+
             let new_texture = crate::overlay::dx().new_texture_2d_array(
                 Dxgi::Common::DXGI_FORMAT_R8_UNORM,
                 GLYPH_TEX_SIZE as u32,
@@ -370,7 +370,7 @@ impl Font {
             font_data.texture_levels += 1;
             font_data.texture = new_texture;
         }
-        
+
         let texture_num = font_data.texture_levels - 1;
 
         let glyph_info = FontGlyphInfo {
@@ -447,7 +447,7 @@ impl Font {
 
         for c in text.chars() {
             let codepoint = c as u32;
-            
+
             let mut g = data.glyphs.get(&codepoint);
 
             if g.is_none() {
@@ -456,7 +456,7 @@ impl Font {
                 data = self.data.lock().unwrap(); // lock is again
                 g = data.glyphs.get(&codepoint);
             }
-            
+
             glyph = g.unwrap().metrics.char_index;
 
             /*
@@ -500,7 +500,7 @@ impl Font {
             let left   = penx + (glyph_info.metrics.bearing_x as f32);
             let right  = left + (glyph_info.metrics.bitmap_width as f32);
             let top    = kern_y + (y as f32) + (font_size.metrics.ascender as f32 / 64.0f32) - (glyph_info.metrics.bearing_y as f32);
-            let bottom = top + (glyph_info.metrics.bitmap_height as f32); 
+            let bottom = top + (glyph_info.metrics.bitmap_height as f32);
 
             let tex_left   = glyph_info.texture_x as f32;
             let tex_right  = tex_left + glyph_info.metrics.bitmap_width as f32;

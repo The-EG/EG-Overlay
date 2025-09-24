@@ -163,7 +163,7 @@ end
 
     :param markers.package.category category:
     :param boolean active:
-    
+
     .. versionhistory::
         :0.3.0: Added
 ]]--
@@ -193,7 +193,7 @@ function M.guidactive(guid, period, activateid)
     if period~='day' and period~='week' and period~='permanent' then
         error("period must be 'day', 'week', or 'permanent'", 2)
     end
-    
+
     local s
 
     if period=='week' then

@@ -75,7 +75,7 @@ impl InputManager {
             KeyboardAndMouse::GetKeyboardLayoutNameA(&mut keyboard_layout)
                 .expect("Couldn't get keyboard layout nam");
         }
-        
+
         let kl_str = String::from_utf8_lossy(&keyboard_layout[0..8]);
 
         if kl_str != "00000409" {
@@ -93,7 +93,7 @@ impl InputManager {
     /// Install keyboard and mouse hooks
     pub fn install_hooks(&self) {
         debug!("Installing input hooks...");
-    
+
         let mouse = unsafe { WindowsAndMessaging::SetWindowsHookExA(
             WindowsAndMessaging::WH_MOUSE_LL,
             Some(mouse_hook_proc),
@@ -288,7 +288,7 @@ impl MouseEvent {
         let hwnd = crate::overlay::hwnd();
 
         unsafe { let _ = Gdi::ScreenToClient(hwnd, &mut p); };
-        
+
         match msg {
             WindowsAndMessaging::WM_LBUTTONDOWN | WindowsAndMessaging::WM_LBUTTONUP |
             WindowsAndMessaging::WM_RBUTTONDOWN | WindowsAndMessaging::WM_RBUTTONUP |
@@ -384,7 +384,7 @@ unsafe extern "system" fn mouse_hook_proc(
         }
     }
 
-    
+
     if state.mouse_ldrag_target || state.mouse_rdrag_target {
         drop(state);
         return unsafe { WindowsAndMessaging::CallNextHookEx(None, ncode, wparam, lparam) };

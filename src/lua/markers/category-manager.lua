@@ -37,14 +37,14 @@ local childrenicon = ui.iconcodepoint('subdirectory_arrow_right')
 
 local function childrenbutton()
     local btn = ui.button()
-    
+
     local txt = ui.text(childrenicon, ui.color('text'), ui.fonts.icon)
-    
+
     local box = ui.box('horizontal')
     box:paddingleft(5)
     box:paddingright(5)
     box:alignment('middle')
-    
+
     box:pushback(txt, 'start', false)
 
     btn:child(box)
@@ -101,7 +101,7 @@ BreadCrumbBox.__index = BreadCrumbBox
 function BreadCrumbBox.new()
     local b = {}
     b.box = ui.box('vertical')
-    
+
     b.home =  {
         box = ui.box('horizontal'),
         check = checkbox(),
@@ -303,7 +303,7 @@ function CategoryManager:setupwin()
     self.buttonbox:spacing(2)
     self.buttonbox:alignment('end')
     self.outerbox:pushback(self.buttonbox, 'fill', false)
-    
+
     self.reloadbtn = textbutton('Reload')
     self.buttonbox:pushback(self.reloadbtn, 'fill', false)
 
@@ -437,7 +437,7 @@ function CategoryManager:update()
     local catgrid = ui.grid(#cats, 3)
     catgrid:colspacing(5)
     catgrid:rowspacing(3)
-    
+
     for i, category in ipairs(cats) do
         local cat = Category.new(category)
 
@@ -457,7 +457,7 @@ end
 
 function CategoryManager:onmapchanged()
     local onlyinmap = settings:get('categoryManager.onlyShowCategoriesInMap')
-    
+
     if onlyinmap then
         self:update()
     end

@@ -7,7 +7,7 @@ Lua API
 
 EG-Overlay does not define any global variables, unlike many other programs that
 interface via Lua. Instead certain functionality is exposed via embedded Lua
-Rust modules, and others through bundled Lua files. 
+Rust modules, and others through bundled Lua files.
 
 EG-Overlay Modules
 ------------------
@@ -65,7 +65,7 @@ types below:
         appropriate.
 
     .. warning::
-        
+
         Supplying a real (floating-point) value in place of an integer may result
         in a Lua error.
 

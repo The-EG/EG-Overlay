@@ -188,7 +188,7 @@ impl GridInner {
                                 if cs > 0 && (c + cs -1) < self.cols -1 {
                                     totalwidth += self.colspacing[(c + cs - 1) as usize];
                                 }
-                            }                           
+                            }
 
                             extra_x += totalwidth - itemw;
                         },
@@ -200,7 +200,7 @@ impl GridInner {
                                     totalwidth += self.colspacing[(c + cs - 1) as usize];
                                 }
                             }
-    
+
                             itemw = totalwidth;
                         },
                     }
@@ -265,14 +265,14 @@ impl GridInner {
             }
         }
     }
-    
+
     pub fn get_preferred_width(&mut self) -> i64 {
         let mut w: i64 = 0;
 
         for c in 0..(self.cols as usize) {
             self.colwidths[c] = 0;
         }
-        
+
         for r in 0..self.rows {
             for c in 0..self.cols {
                 let cell = self.get_item(r,c);

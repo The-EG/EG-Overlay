@@ -70,7 +70,7 @@ struct LoggingState {
 
 /// Initializes the global logging state and sets the default logging level to
 /// the given value.
-pub fn init(default_level: LoggingLevel) {   
+pub fn init(default_level: LoggingLevel) {
     let state = LoggingState {
         default_level: default_level,
         target_levels: HashMap::new(),

@@ -229,7 +229,7 @@ impl ScrollViewInner {
 
                 child.set_width(self.child_width);
                 child.set_height(self.child_height);
-                
+
                 if self.disp_x < 0 { self.disp_x = 0; }
 
                 if self.child_width > self.width - 10 {
@@ -258,7 +258,7 @@ impl ScrollViewInner {
                 frame.pop_scissor();
             }
             // scroll bars
-            
+
             let r = &self.ui.upgrade().unwrap().rect;
 
             // scroll bar gutters/background
@@ -286,7 +286,7 @@ impl ScrollViewInner {
 
                 let vert_color = if self.vert_hover { self.scroll_thumb_hover_color }
                                  else               { self.scroll_thumb_color       };
-   
+
                 r.draw(frame, sx + self.width - 10, sy + self.vert_thumb_pos, 10, self.vert_thumb_size, vert_color);
             }
 

@@ -76,7 +76,7 @@ function M.activatewin:show()
     local y = math.floor(h / 2.0 - (h / 10))
 
     self.win:position(x, y)
-    
+
     if not self.visible then
         self.win:show()
         self.visible = true
@@ -84,7 +84,7 @@ function M.activatewin:show()
 end
 
 function M.activatewin:hide()
-    if self.visible then 
+    if self.visible then
         self.win:hide()
         self.visible = false
     end
@@ -99,7 +99,7 @@ M.behaviormgr = {
     markercache = {},
 
     -- a spatial index to make locating markers near the player efficient
-    spatialindex = {}, 
+    spatialindex = {},
 
     -- makers that have been activated in this map
     -- and should be shown again on map change
@@ -140,7 +140,7 @@ end
 
 function M.behaviormgr:removecategory(typeid)
     local rmguids = {}
-    
+
     for guid, m in pairs(self.markercache) do
         if m.typeid==typeid then
             table.insert(rmguids, guid)
@@ -159,7 +159,7 @@ function M.behaviormgr:update()
     M.activatewin:hide()
 
     local px, py, pz = ml.avatarposition()
-    
+
     local px_ind = math.tointeger(math.floor(px / 10))
     local py_ind = math.tointeger(math.floor(py / 10))
     local pz_ind = math.tointeger(math.floor(pz / 10))
@@ -187,11 +187,11 @@ function M.behaviormgr:update()
 
     local closestguid = nil
     local closestdsqr = nil
-    
+
     -- now go through all the markers we found above and find the closest
     for i,guid in ipairs(guids) do
         local m = self.markercache[guid]
-        
+
         if not m then goto skipguid end
 
         local dsqr = (m.x - px)^2 + (m.y - py)^2 + (m.z - pz)^2
@@ -226,7 +226,7 @@ end
 function M.behaviormgr:activatemarker()
     if not self.closestguid then return end
     if not self.doactivate then return end
-    
+
     local m = self.markercache[self.closestguid]
 
     if not m or m.behavior==0 then return end
@@ -234,7 +234,7 @@ function M.behaviormgr:activatemarker()
     if m.behavior == 1 then
         table.insert(self.mapguids, m.guid)
         self.markercache[m.guid] = nil
-        
+
         M.worldsprites:remove({guid = m.guid})
         M.mapsprites:remove({guid = m.guid})
         overlay.logdebug(string.format('%s activated (behavior = 1)', m.guid))
@@ -243,7 +243,7 @@ function M.behaviormgr:activatemarker()
         md.activateguid(m.guid, ml.identity.name())
         overlay.logdebug(string.format('%s activated (behavior = %d)', m.guid, m.behavior))
         self.markercache[m.guid] = nil
-        
+
         M.worldsprites:remove({guid = m.guid})
         M.mapsprites:remove({guid = m.guid})
         self.closestguid = nil
@@ -252,7 +252,7 @@ function M.behaviormgr:activatemarker()
         md.activateguid(m.guid, instid)
         overlay.logdebug(string.format('%s activated (behavior = %d)', m.guid, m.behavior))
         self.markercache[m.guid] = nil
-        
+
         M.worldsprites:remove({guid = m.guid})
         M.mapsprites:remove({guid = m.guid})
         self.closestguid = nil
@@ -292,7 +292,7 @@ function M.tooltipwin:createwin()
     self.fieldgrid = ui.grid(#M.tooltipwin.fields, 2)
     self.fieldgrid:colspacing(5)
     self.fieldgrid:rowspacing(2)
-    
+
     self.box:pushback(self.fieldgrid, 'fill', false)
 
     self.fieldtxt = {}
@@ -343,7 +343,7 @@ function M.tooltipwin:setmarker(markerpack, typeid, markerid)
         if not M.tooltipwin.cache[markerpack][typeid] then M.tooltipwin.cache[markerpack][typeid] = {} end
 
         local mcache = {}
-        
+
         for i, field in ipairs(self.fields) do
             local f = field[1]
             local val = marker[f] or '(none)'
@@ -588,7 +588,7 @@ function M.addcategorytrails(category)
 
         trailcount = trailcount + 1
     end
-    
+
     overlay.logdebug(string.format('Loaded %d trails from %s.', trailcount, category.typeid))
 end
 

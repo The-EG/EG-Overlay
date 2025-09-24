@@ -78,7 +78,7 @@ unsafe fn checkmenu<'a>(l: &lua_State, element: &'a ManuallyDrop<Arc<ui::Element
 
 /*** RST
 .. lua:function:: menu()
-    
+
     Create a new :lua:class:`uimenu`.
 
     :rtype: uimenu
@@ -96,7 +96,7 @@ unsafe extern "C" fn new_menu(l: &lua_State) -> i32 {
 
 /*** RST
 .. lua:function:: menuitem()
-    
+
     Create a new :lua:class:`uimenuitem`.
 
     :rtype: uimenuitem
@@ -148,7 +148,7 @@ unsafe extern "C" fn new_text_menu_item(l: &lua_State) -> i32 {
     // copy the text values directly
     lua::pushvalue(l, 1);
     lua::pushvalue(l, 2);
-    lua::pushvalue(l, 3); 
+    lua::pushvalue(l, 3);
     lua::call(l, 3, 1);
 
     let text = lua::gettop(l);
@@ -177,7 +177,7 @@ unsafe extern "C" fn new_text_menu_item(l: &lua_State) -> i32 {
     :rtype: uimenuitem
 
     .. seealso::
-    
+
         ``orientation`` is passed directly to :lua:func:`separator`.
 
     .. versionhistory::
@@ -250,7 +250,7 @@ unsafe extern "C" fn push_front(l: &lua_State) -> i32 {
     inner.itembox.as_box().unwrap().push_front(&item_e, ui::ElementAlignment::Fill, false);
 
     menu_item.inner.lock().unwrap().parent_menu = Arc::downgrade(&menu_e);
-    
+
     return 0;
 }
 
@@ -295,7 +295,7 @@ unsafe extern "C" fn pop_front(l: &lua_State) -> i32 {
     let inner = menu.inner.lock().unwrap();
 
     inner.itembox.as_box().unwrap().pop_front();
-    
+
     return 0;
 }
 
@@ -310,16 +310,16 @@ unsafe extern "C" fn pop_front(l: &lua_State) -> i32 {
 unsafe extern "C" fn pop_back(l: &lua_State) -> i32 {
     let menu_e = unsafe { ui::lua::checkelement(l, 1) };
     let menu = unsafe { checkmenu(l, &menu_e) };
-    
+
     let inner = menu.inner.lock().unwrap();
     inner.itembox.as_box().unwrap().pop_back();
-    
+
     return 0;
 }
 
 /*** RST
     .. lua:method:: insertbefore(before, item)
-    
+
         Insert ``item`` before item ``before``.
 
         If ``before`` is not in this menu, ``item`` is not added and this
@@ -358,7 +358,7 @@ unsafe extern "C" fn insert_before(l: &lua_State) -> i32 {
 
 /*** RST
     .. lua:method:: insertafter(after, item)
-    
+
         Insert ``item`` after item ``after``.
 
         If ``after`` is not in this menu, ``item`` is not added and this
@@ -475,9 +475,9 @@ unsafe extern "C" fn show(l: &lua_State) -> i32 {
 unsafe extern "C" fn hide(l: &lua_State) -> i32 {
     let menu_e = unsafe { ui::lua::checkelement(l, 1) };
     let menu = unsafe { checkmenu(l, &menu_e) };
-    
+
     menu.hide(&menu_e);
-    
+
     return 0;
 }
 
@@ -530,7 +530,7 @@ unsafe extern "C" fn menuitem_element(l: &lua_State) -> i32 {
     Menu items are made up of 3 pieces:
 
     .. code-block:: text
-    
+
         +--------+---------+------------+
         | (icon) | (child) | (sub-menu) |
         +--------+---------+------------+

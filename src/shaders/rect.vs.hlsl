@@ -16,7 +16,7 @@ PSInput main(uint vertid : SV_VertexID) {
     PSInput r;
 
     switch (vertid) {
-    case 0: 
+    case 0:
         //r.position = mul(proj, float4(left, top, 0.0, 1.0));
         r.position = mul(float4(left, top, 0.0, 1.0), proj);
         break;
@@ -24,7 +24,7 @@ PSInput main(uint vertid : SV_VertexID) {
         //r.position = mul(proj, float4(right, top, 0.0, 1.0));
         r.position = mul(float4(right, top, 0.0, 1.0), proj);
         break;
-    case 2: 
+    case 2:
         //r.position = mul(proj, float4(left, bottom, 0.0, 1.0));
         r.position = mul(float4(left, bottom, 0.0, 1.0), proj);
         break;

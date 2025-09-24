@@ -71,7 +71,7 @@ PSInput main(VSInput input, uint vert : SV_VertexID) {
     output.color = input.color;
 
     output.fade_dist = distance(player_pos, input.pos);
-    
+
     if (ismap==0) {
         output.fade_alpha = distance_fade_alpha(input.fade_near, input.fade_far, output.fade_dist);
     } else {

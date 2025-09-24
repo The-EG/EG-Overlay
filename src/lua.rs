@@ -369,7 +369,7 @@ pub fn pcall(state: &lua_State, nargs: i32, nresults: i32, errfunc: i32) -> Resu
 /// [resume].
 ///
 /// The parameter `from` represents the coroutine that is resuming `state`. If
-/// there is no such coroutine, this parameter can be [None]. 
+/// there is no such coroutine, this parameter can be [None].
 pub fn resume(state: &lua_State, from: Option<&lua_State>, nargs: i32, nresults: &mut i32) -> i32 {
     return unsafe {
         api::lua_resume(state, from, nargs, nresults)
@@ -385,7 +385,7 @@ pub fn resume(state: &lua_State, from: Option<&lua_State>, nargs: i32, nresults:
 /// top of the stack.
 ///
 /// The parameter `from` represents the coroutine that is resetting `state`. If
-/// there is no such coroutine, this parameter can be [None]. 
+/// there is no such coroutine, this parameter can be [None].
 pub fn closethread(state: &lua_State, from: Option<&lua_State>) -> i32 {
     unsafe { api::lua_closethread(state, from) }
 }
@@ -419,7 +419,7 @@ pub fn closethread(state: &lua_State, from: Option<&lua_State>) -> i32 {
 /// ```
 ///
 /// Here it is in rust:
-/// 
+///
 /// ```rust
 /// use lua;
 ///
@@ -434,7 +434,7 @@ pub fn closethread(state: &lua_State, from: Option<&lua_State>) -> i32 {
 /// ```
 ///
 /// Note that the code above is balanced: at its end, the stack is back to its
-/// original configuration. This is considered good programming practice. 
+/// original configuration. This is considered good programming practice.
 pub fn call(state: &lua_State, nargs: i32, nresults: i32) {
     unsafe { api::lua_callk(state, nargs, nresults, 0 as *mut usize, None) };
 }
@@ -456,7 +456,7 @@ pub unsafe fn error(state: &lua_State) -> i32 {
 /// The function returns the address of the block of memory. Lua ensures that
 /// this address is valid as long as the corresponding userdata is alive.
 /// Moreover, if the userdata is marked for finalization, its address is valid
-/// at least until the call to its finalizer. 
+/// at least until the call to its finalizer.
 pub unsafe fn newuserdatauv(state: &lua_State, size: usize, nuvalue: i32) -> *mut std::ffi::c_void {
     unsafe { api::lua_newuserdatauv(state, size, nuvalue) }
 }
@@ -473,7 +473,7 @@ pub fn setmetatable(state: &lua_State, index: i32) {
 ///
 /// If the value at the given `index` has a metatable, the function pushes that
 /// metatable onto the stack and returns [true]. Otherwise, the function returns
-/// [false] and pushes nothing on the stack. 
+/// [false] and pushes nothing on the stack.
 pub fn getmetatable(state: &lua_State, index: i32) -> bool {
     unsafe { api::lua_getmetatable(state, index) == 1 }
 }
@@ -499,7 +499,7 @@ pub fn luatype(state: &lua_State, index: i32) -> LuaType {
 /// Returns the index of the top element in the stack.
 ///
 /// Because indices start at 1, this result is equal to the number of elements
-/// in the stack; in particular, 0 means an empty stack. 
+/// in the stack; in particular, 0 means an empty stack.
 pub fn gettop(state: &lua_State) -> i32 {
     unsafe { api::lua_gettop(state) }
 }
@@ -554,7 +554,7 @@ pub unsafe fn touserdata(state: &lua_State, index: i32) -> *mut std::ffi::c_void
 ///
 /// Like all tests in Lua, [toboolean] returns [true] for any Lua value different
 /// from `false` and `nil`; otherwise it returns [false]. (If you want to accept
-/// only actual boolean values, use isboolean to test the value's type.) 
+/// only actual boolean values, use isboolean to test the value's type.)
 pub fn toboolean(state: &lua_State, index: i32) -> bool {
     unsafe { api::lua_toboolean(state, index) == 1 }
 }
@@ -563,7 +563,7 @@ pub fn toboolean(state: &lua_State, index: i32) -> bool {
 /// index.
 ///
 /// The access is raw, that is, it does not use the __index metavalue. Returns
-/// the type of the pushed value. 
+/// the type of the pushed value.
 pub fn rawgeti(state: &lua_State, index: i32, n: i64) -> LuaType {
     unsafe { api::lua_rawgeti(state, index, n) }
 }
@@ -775,7 +775,7 @@ pub mod L {
     /// functions and then sets a warning function and a panic function that
     /// print messages to the standard error output.
     ///
-    /// Returns [Ok] with new state, or [Err] if there is a memory allocation error. 
+    /// Returns [Ok] with new state, or [Err] if there is a memory allocation error.
     pub fn newstate() -> Result<&'static lua_State, ()> {
         let l = unsafe { api::luaL_newstate() };
 
@@ -792,9 +792,9 @@ pub mod L {
     }
 
     /// Checks whether the function argument `arg` is a string and returns this string.
-    /// 
+    ///
     /// This function uses lua_tolstring to get its result, so all conversions and
-    /// caveats of that function apply here. 
+    /// caveats of that function apply here.
     pub unsafe fn checkstring(state: &lua_State, ind: i32) -> String {
         let cstr = unsafe { api::luaL_checklstring(state, ind, 0 as *mut usize) };
 
@@ -815,7 +815,7 @@ pub mod L {
     ///
     /// This is equivalent to the '#' operator in Lua. Raises an error if the
     /// result of the operation is not an integer. (This case can only happen
-    /// through metamethods.) 
+    /// through metamethods.)
     pub fn len(state: &lua_State, ind: i32) -> usize {
         unsafe {
             return api::luaL_len(state, ind);
@@ -825,7 +825,7 @@ pub mod L {
     /// Grows the stack size to top + `sz` elements.
     ///
     /// This raises an error if the stack cannot grow to that size. `msg` is an
-    /// additional text to go into the error message. 
+    /// additional text to go into the error message.
     pub unsafe fn checkstack(state: &lua_State, sz: i32, msg: &str) {
         let cmsg = CString::new(msg).unwrap();
         unsafe {
@@ -833,7 +833,7 @@ pub mod L {
         }
     }
 
-    /// Equivalent to [loadfilex] with `mode` equal to [None]. 
+    /// Equivalent to [loadfilex] with `mode` equal to [None].
     pub fn loadfile(state: &lua_State, filename: &str) -> Result<i32, i32> {
         return loadfilex(state, filename, None);
     }
@@ -842,13 +842,13 @@ pub mod L {
     ///
     /// This function uses lua_load to load the chunk in the file named `filename`.
     /// The first line in the file is ignored if it starts with a #.
-    /// 
+    ///
     /// The string mode works as in the function lua_load.
     ///
     /// This function returns the same results as lua_load or LUA_ERRFILE for
     /// file-related errors.
     ///
-    /// As lua_load, this function only loads the chunk; it does not run it. 
+    /// As lua_load, this function only loads the chunk; it does not run it.
     pub fn loadfilex(state: &lua_State, filename: &str, mode: Option<&str>) -> Result<i32, i32> {
         let cfile = CString::new(filename).unwrap();
         let cmode: CString;
@@ -860,7 +860,7 @@ pub mod L {
         };
 
         let r = unsafe {
-            api::luaL_loadfilex(state, cfile.as_ptr(), modeptr)  
+            api::luaL_loadfilex(state, cfile.as_ptr(), modeptr)
         };
 
         if r==0 {
@@ -873,7 +873,7 @@ pub mod L {
     /// Creates and pushes a traceback of the stack `stack1`.
     ///
     /// If `msg` is not [None], it is appended at the beginning of the traceback.
-    /// The level parameter tells at which level to start the traceback. 
+    /// The level parameter tells at which level to start the traceback.
     pub fn traceback(state: &lua_State, state1: &lua_State, msg: Option<&str>, level: i32) {
         if let Some(msgstr) = msg {
             let cmsg = CString::new(msgstr).unwrap();
@@ -892,7 +892,7 @@ pub mod L {
     /// the registration.
     ///
     /// A function with a [None] value represents a placeholder, which is filled
-    /// with false. 
+    /// with false.
     pub fn setfuncs(state: &lua_State, l: &[crate::lua::luaL_Reg], nup: i32) {
         unsafe { api::luaL_setfuncs(state, l.as_ptr(), nup) }
     }
@@ -905,7 +905,7 @@ pub mod L {
     /// = new table, and returns 1.
     ///
     /// In both cases, the function pushes onto the stack the final value
-    /// associated with tname in the registry. 
+    /// associated with tname in the registry.
     pub fn newmetatable(state: &lua_State, tname: &str) -> bool {
         let ctname = CString::new(tname).unwrap();
         unsafe { api::luaL_newmetatable(state, ctname.as_ptr()) == 1 }
@@ -913,7 +913,7 @@ pub mod L {
 
     /// Checks whether the function argument `arg` is a userdata of the type
     /// `tname` (see [newmetatable]) and returns the userdata's memory-block
-    /// address (see [crate::lua::touserdata]). 
+    /// address (see [crate::lua::touserdata]).
     pub unsafe fn checkudata(state: &lua_State, ind: i32, tname: &str) -> *const std::ffi::c_void {
         let ctname = CString::new(tname).unwrap();
         unsafe { api::luaL_checkudata(state, ind, ctname.as_ptr()) }
@@ -930,7 +930,7 @@ pub mod L {
     ///
     /// If the object on the top of the stack is nil, luaL_ref returns the
     /// constant LUA_REFNIL. The constant LUA_NOREF is guaranteed to be
-    /// different from any reference returned by luaL_ref. 
+    /// different from any reference returned by luaL_ref.
     pub fn ref_(state: &lua_State, t: i32) -> i64 {
         unsafe { api::luaL_ref(state, t) }
     }
@@ -940,7 +940,7 @@ pub mod L {
     /// The entry is removed from the table, so that the referred object can be
     /// collected. The reference ref is also freed to be used again.
     ///
-    /// If ref is LUA_NOREF or LUA_REFNIL, luaL_unref does nothing. 
+    /// If ref is LUA_NOREF or LUA_REFNIL, luaL_unref does nothing.
     pub fn unref(state: &lua_State, t: i32, n: i64) {
         unsafe { api::luaL_unref(state, t, n) }
     }

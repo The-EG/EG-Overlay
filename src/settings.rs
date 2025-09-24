@@ -245,7 +245,7 @@ impl SettingsStore {
 
         None
     }
-  
+
     /// Returns the value for `key` as a [f64].
     ///
     /// If the value can not be represented as a float [None] is returned
@@ -258,7 +258,7 @@ impl SettingsStore {
                 return Some(f);
             }
         }
-        
+
         if let Some(val) = self.defaults.lock().unwrap().get(key) {
             if let Some(f) = val.as_f64() {
                 return Some(f);
@@ -282,7 +282,7 @@ impl SettingsStore {
                 return Some(u);
             }
         }
-        
+
         if let Some(val) = self.defaults.lock().unwrap().get(key) {
             if let Some(u) = val.as_u64() {
                 return Some(u);
@@ -306,7 +306,7 @@ impl SettingsStore {
                 return Some(i);
             }
         }
-        
+
         if let Some(val) = self.defaults.lock().unwrap().get(key) {
             if let Some(i) = val.as_i64() {
                 return Some(i);

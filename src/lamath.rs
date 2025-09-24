@@ -73,7 +73,7 @@ impl Mat4F {
             i4j4: 1.0,
         }
     }
-    
+
     pub fn perspective_lh(fovy: f32, aspect: f32, near: f32, far: f32) -> Mat4F {
         let mut m = Mat4F::default();
 
@@ -344,7 +344,7 @@ impl Mat4F {
             i3j2: adjugate.i3j2 * oneoverd,
             i3j3: adjugate.i3j3 * oneoverd,
             i3j4: adjugate.i3j4 * oneoverd,
-            
+
             i4j1: adjugate.i4j1 * oneoverd,
             i4j2: adjugate.i4j2 * oneoverd,
             i4j3: adjugate.i4j3 * oneoverd,

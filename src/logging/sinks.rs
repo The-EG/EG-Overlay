@@ -59,7 +59,7 @@ impl crate::logging::Sink for ConsoleSink {
         let mut w = self.lock_writer();
         w.write_all(message.as_bytes()).unwrap();
         w.write("\n".as_bytes()).unwrap();
-        
+
     }
 
     fn flush(&mut self) {

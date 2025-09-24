@@ -133,7 +133,7 @@ unsafe extern "C" fn sqlite3_close(l: &lua_State) -> i32 {
         .. note::
             If the supplied ``sql`` statement can not be prepared, an error is
             logged and ``nil`` is returned instead.
-        
+
         :param string sql:
         :rtype: sqlite3stmt
 
@@ -182,7 +182,7 @@ unsafe extern "C" fn sqlite3_prepare(l: &lua_State) -> i32 {
         data is returned but the statement is executed successfully, ``true`` is
         returned. If any error occurs, it will be logged and nothing (``nil``)
         is returned.
-        
+
         .. versionhistory::
             :0.3.0: Added
 */
@@ -291,7 +291,7 @@ unsafe extern "C" fn stmt_finalize(l: &lua_State) -> i32 {
     }
 
     let stmt = unsafe { &(**ptr) };
-    
+
     unsafe { api::sqlite3_finalize(stmt) };
 
     unsafe { *ptr = std::ptr::null(); }
@@ -484,7 +484,7 @@ unsafe extern "C" fn stmt_step(l: &lua_State) -> i32 {
 */
 unsafe extern "C" fn stmt_reset(l: &lua_State) -> i32 {
     let stmt = unsafe { checkstmt(l, 1) };
-    
+
     lua::pushstring(l, err_to_str(unsafe { api::sqlite3_reset(stmt) }));
 
     return 1;

@@ -14,7 +14,7 @@ shell
 
 The :lua:mod:`shell` module contains utilities for navigating the virtual and
 physical file systems on the host computer. This includes hard drives, removable
-media, library folders such as 'Documents' and 'Desktop', and network locations. 
+media, library folders such as 'Documents' and 'Desktop', and network locations.
 
 Functions
 ---------
@@ -149,7 +149,7 @@ impl ShellItem {
             }
 
             let targetpathw = unsafe { linktarget.GetDisplayName(Shell::SIGDN_FILESYSPATH).unwrap() };
-            
+
             let targetpath = String::from_utf16_lossy(unsafe { targetpathw.as_wide() });
 
             unsafe { Com::CoTaskMemFree(Some(targetpathw.as_ptr() as _)); }
@@ -234,7 +234,7 @@ unsafe extern "C" fn open_module(l: &lua_State) -> i32 {
 
 /*** RST
 .. lua:function:: getshellitem(location[, path])
-    
+
     Return a :lua:class:`ShellItem` for the ``location``.
 
     :param string location:
@@ -493,7 +493,7 @@ unsafe extern "C" fn shell_item_path(l: &lua_State) -> i32 {
     .. lua:method:: filetype()
 
         :rtype: string
-        
+
         .. versionhistory::
             :0.3.0: Added
 */

@@ -22,7 +22,7 @@ Classes
 
 .. lua:class:: markerpack
 
-    A markerpack is a collection of categories, markers, trails and associated 
+    A markerpack is a collection of categories, markers, trails and associated
     data.
 
     .. lua:attribute:: path: string
@@ -91,7 +91,7 @@ function M.markerpack:new(path)
     local mp = {}
 
     db = overlay.sqlite3open(path)
-    
+
     if not db then
         error(string.format("Couldn't open markerpack: %s", db), 2)
     end
@@ -166,7 +166,7 @@ function M.markerpack:new(path)
             FROM markers
             WHERE (markers.type LIKE :typeidlike OR markers.type = :typeid)
               AND markers.mapid = :mapid
-        ) 
+        )
         SELECT SUM(count) AS count
         FROM trailsmarkers
     ]])
@@ -190,7 +190,7 @@ function M.markerpack:new(path)
         SELECT markers.id FROM markers
         WHERE markers.type = :category
           AND markers.mapid = :mapid
-    ]]) 
+    ]])
     mp.statements.category.getprop = db:prepare([[
         WITH RECURSIVE allcats AS (
             SELECT typeid, parent FROM categories WHERE typeid = :typeid
@@ -279,7 +279,7 @@ end
 
 --[[ RST
     .. lua:method:: category(typeid[, create])
-        
+
         Retrieve a category from this markerpack. If ``create`` is true, it will
         be created if it does not exist. If ``create`` is false and the category
         does not already exist, ``nil`` is returned instead.
@@ -293,7 +293,7 @@ end
 ]]--
 function M.markerpack:category(typeid, create)
     local cat = {db = self.db, typeid = typeid, markerpack = self}
-    
+
     if create then
         local parent, child = string.match(typeid, '([%w._%-]*)%.([%w%-_]+)')
 
@@ -417,7 +417,7 @@ end
         been returned, at which point ``nil`` is returned.
 
         :rtype: function
-        
+
         .. versionhistory::
             :0.1.0: Added
 ]]--
@@ -425,7 +425,7 @@ end
 function M.markerpack:activecategoriesiter()
     -- this is a recursive query that starts at the top level categories,
     -- returns those that are active and then goes one by one returning just
-    -- the active children of the active parents, and so on. 
+    -- the active children of the active parents, and so on.
     -- This way, only the categories who are both active and have active
     -- ancestors are retrieved in an efficient way.
     local s =  self.statements.markerpack.activecats
@@ -609,7 +609,7 @@ end
         local isactive = cat:active()
 
     .. lua:attribute:: typeid: string
-        
+
         This category's typeid, its unique ID.
 
         .. versionhistory::
@@ -649,7 +649,7 @@ end
 
 --[[ RST
     .. lua:method:: active([value])
-        
+
         Get or set if this category is active (shown).
 
         :param boolean value: (Optional)
@@ -725,7 +725,7 @@ function M.category:childcount()
     local s = self.markerpack.statements.category.childcount
     s:reset()
     s:bind(':parent', self.typeid)
-    
+
     local r = s:step()
     s:reset()
     if not r then
@@ -771,7 +771,7 @@ function M.category:childreniter()
     local s = self.markerpack.statements.category.children
     s:reset()
     s:bind(':parent', self.typeid)
-    
+
     local iter = function()
         local r = s:step()
         if type(r)=='table' then
@@ -1003,7 +1003,7 @@ end
 
 --[[ RST
 .. lua:class:: marker
-    
+
     A marker is a point at which an icon is displayed in the GW2 scene to mark
     the location of something. Markers belong to a :lua:class:`category` and
     have properties. Any properties that a marker does not define will be
@@ -1055,7 +1055,7 @@ end
         Delete this POI and all associated properties.
 
         .. danger::
-            
+
             This object will no longer be valid after calling this method.
 
         .. versionhistory::
@@ -1080,7 +1080,7 @@ function M.marker:getproperty(key)
     s:reset()
     s:bind(':id', self.id)
     s:bind(':property', string.lower(key))
-    
+
     local r = s:step()
     s:reset()
     if r and type(r)=='table' then return r.value end
@@ -1090,7 +1090,7 @@ end
 
 function M.marker:__index(key)
     if M.marker[key] and type(M.marker[key])=='function' then return M.marker[key] end
-    
+
     return M.marker.getproperty(self, key)
 end
 
@@ -1224,7 +1224,7 @@ end
         Delete this trail and all associated properties/coordinates.
 
         .. danger::
-            
+
             This object will no longer be valid after calling this method.
 
         .. versionhistory::
@@ -1348,7 +1348,7 @@ end
         Delete this data file.
 
         .. danger
-            
+
             This will remove the data file from the markerpack. Any elements
             that reference this datafile will not behave properly.
 

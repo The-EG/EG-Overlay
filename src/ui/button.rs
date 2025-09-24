@@ -59,7 +59,7 @@ struct ButtonInner {
 impl Button {
     pub fn new() -> Arc<ui::Element> {
         let settings = crate::overlay::settings();
-        
+
         let bg           = settings.get_color("overlay.ui.colors.buttonBG"         ).unwrap();
         let bg_hover     = settings.get_color("overlay.ui.colors.buttonBGHover"    ).unwrap();
         let bg_highlight = settings.get_color("overlay.ui.colors.buttonBGHighlight").unwrap();
@@ -221,8 +221,8 @@ impl ButtonInner {
         }
 
         let bg: ui::Color;
-        
-        if self.highlight { 
+
+        if self.highlight {
             bg = self.bg_highlight;
         } else if self.hover {
             bg = self.bg_hover;
@@ -277,7 +277,7 @@ impl ButtonInner {
                     self.ui.upgrade().unwrap().clear_mouse_capture();
 
                     if btn.x >= btn_x && btn.x <= btn_x + btn_w &&
-                       btn.y >= btn_y && btn.y <= btn_y + btn_h 
+                       btn.y >= btn_y && btn.y <= btn_y + btn_h
                     {
                         let btnnm: &str = match btn.button {
                             input::MouseButtonEventButton::Left    => "left",

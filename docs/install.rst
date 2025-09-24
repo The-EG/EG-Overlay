@@ -9,14 +9,14 @@ EG-Overlay does not need to be installed, instead it can be run from any
 convenient location.
 
 .. warning::
-    
+
     While it is possible to do so, users should not place EG-Overlay into the
     same folder as GW2.
 
 Release Binaries
 ----------------
 
-The latest release can always be found at the 
+The latest release can always be found at the
 `project release page <https://github.com/The-EG/EG-Overlay/releases>`_. Users
 can download the pre-built binary from any release by downloading ``EG-Overlay.zip``
 from the release assets.

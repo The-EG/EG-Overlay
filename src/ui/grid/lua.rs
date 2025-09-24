@@ -109,7 +109,7 @@ Classes
 
         -- a 3x3 grid
         local grid = ui.grid(3, 3)
-        
+
         local a = txt('Top Left', )
         local b = txt('Top Middle & Right')
         local c = txt('Middle')
@@ -332,7 +332,7 @@ unsafe extern "C" fn colspacing(l: &lua_State) -> i32 {
 }
 
 /*** RST
-    
+
     .. note::
 
         The following methods are inherited from :lua:class:`uielement`

@@ -229,7 +229,7 @@ function M:newagent(name, locations, chatlinks)
     local lbl = ui.text(string.format('%s:', name), ui.color('text'), ui.fonts.regular)
     local btn = ui.button()
     local btnbox = ui.box('horizontal')
-    
+
     btnbox:paddingleft(5)
     btnbox:paddingright(5)
     btnbox:paddingtop(5)
@@ -287,7 +287,7 @@ function M:onupdate()
         end
         self.weekday = weekday
     end
-    
+
     self.timetomovetext:text(timetomove)
 end
 

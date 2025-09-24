@@ -116,7 +116,7 @@ fn get_ml_upvalue(l: &lua_State) -> Arc<crate::ml::MumbleLink> {
     let ml_ptr: *const crate::ml::MumbleLink = unsafe {
         std::mem::transmute(lua::touserdata(l, lua::LUA_REGISTRYINDEX - 1)) // up value 1
     };
-    
+
     let ml_weak = ManuallyDrop::new(unsafe { Weak::from_raw(ml_ptr) } );
 
     ml_weak.upgrade().unwrap()
@@ -162,7 +162,7 @@ unsafe extern "C" fn tick(l: &lua_State) -> i32 {
     The player's current position in the game world in GW2.
 
     .. note::
-        
+
         This is the position in map units using meters and is represented in a
         rendering fashion. X is east/west, Y is elevation (up/down), and Z is
         north/south.
@@ -185,7 +185,7 @@ unsafe extern "C" fn avatar_position(l: &lua_State) -> i32 {
     lua::pushnumber(l, ap.x as f64);
     lua::pushnumber(l, ap.y as f64);
     lua::pushnumber(l, ap.z as f64);
-    
+
     return 3;
 }
 
@@ -262,7 +262,7 @@ unsafe extern "C" fn name(l: &lua_State) -> i32 {
     The current camera position in the game world in GW2.
 
     .. note::
-        
+
         This is the position in map units using meters and is represented in a
         rendering fashion. X is east/west, Y is elevation (up/down), and Z is
         north/south.
@@ -342,7 +342,7 @@ The functions below are located on a table named ``identity`` within this module
 For example:
 
 .. code-block:: lua
-    
+
     local ml = require 'mumble-link'
 
     local charname = ml.identity.name()
@@ -382,7 +382,7 @@ unsafe extern "C" fn identity_name(l: &lua_State) -> i32 {
 
 /*** RST
 .. lua:function:: profession()
-  
+
     Returns the GW2 character profession ID.
 
     +-------+--------------+
@@ -480,7 +480,7 @@ unsafe extern "C" fn identity_profession_name(l: &lua_State) -> i32 {
 
 /*** RST
 .. lua:function:: spec()
-    
+
     Returns the GW2 character's third specialization ID, or 0 if none.
 
     :rtype: integer
@@ -504,7 +504,7 @@ unsafe extern "C" fn identity_spec(l: &lua_State) -> i32 {
 
 /*** RST
 .. lua:function:: race()
-    
+
     Returns the GW2 character's race ID.
 
     +-------+-------------+
@@ -675,7 +675,7 @@ unsafe extern "C" fn identity_commander(l: &lua_State) -> i32 {
 
 /*** RST
 .. lua:function:: fov()
-    
+
     Returns the vertical field-of-view.
 
     :rtype: number
@@ -735,7 +735,7 @@ unsafe extern "C" fn identity_uisz(l: &lua_State) -> i32 {
 
 /*** RST
 .. lua:function:: uiszname()
-    
+
     Returns the GW2 UI Size:
 
     * small
@@ -781,7 +781,7 @@ The functions below are located on a table named ``context`` within this module.
 For example:
 
 .. code-block:: lua
-    
+
     local ml = require 'mumble-link'
 
     local buildid = ml.context.buildid()
@@ -897,7 +897,7 @@ unsafe extern "C" fn context_map_type(l: &lua_State) -> i32 {
 unsafe extern "C" fn context_map_type_name(l: &lua_State) -> i32 {
     let ml = get_ml_upvalue(l);
 
-    lua::pushstring(l, 
+    lua::pushstring(l,
         match ml.gw2_ml.context.map_type {
             0 => "redirect",
             1 => "character-creation",
@@ -959,7 +959,7 @@ unsafe extern "C" fn context_instance(l: &lua_State) -> i32 {
 
 /*** RST
 .. lua:function:: buildid()
-    
+
     The GW2 Build ID.
 
     :rtype: integer
@@ -1149,7 +1149,7 @@ unsafe extern "C" fn context_process_id(l: &lua_State) -> i32 {
 
 /*** RST
 .. lua:function:: mount()
-    
+
     Returns the mount ID:
 
     +-------+------------------------+

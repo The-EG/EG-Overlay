@@ -33,7 +33,7 @@ shaders += custom_target(
 hlsl_srcs = [
     {'source': 'rect.vs.hlsl', 'profile': 'vs_6_1', 'includes': ['rect.hlsl']},
     {'source': 'rect.ps.hlsl', 'profile': 'ps_6_1', 'includes': ['rect.hlsl']},
-    
+
     {'source': 'font-quad.vs.hlsl', 'profile': 'vs_6_1', 'includes': ['font-quad.hlsl']},
     {'source': 'font-quad.ps.hlsl', 'profile': 'ps_6_1', 'includes': ['font-quad.hlsl']},
 
@@ -55,7 +55,7 @@ foreach hlsl : hlsl_srcs
         src,
         build_by_default: true,
         input: src,
-        output: [src.replace('.hlsl', '.cso')], 
+        output: [src.replace('.hlsl', '.cso')],
         depend_files: hlsl['includes'],
         command: [dxc, '-T', profile, '-Fo', '@OUTDIR@/@BASENAME@.cso', '@INPUT@'] + extra_dxc_opts,
     )

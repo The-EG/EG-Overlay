@@ -76,7 +76,7 @@ unsafe extern "C" fn new_text(l: &lua_State) -> i32 {
     let t = ui::text::Text::new(&text, color, &font);
 
     ui::lua::pushelement(l, &t, TEXT_METATABLE_NAME, Some(TEXT_FUNCS));
-    
+
     return 1;
 }
 
@@ -105,7 +105,7 @@ unsafe extern "C" fn text(l: &lua_State) -> i32 {
 
     if lua::gettop(l) >= 2 {
         let newtext = unsafe { lua::L::checkstring(l, 2) };
-        
+
         let mut t = text.text.lock().unwrap();
         t.text = newtext.clone();
         t.update_text_size();
@@ -124,7 +124,7 @@ unsafe extern "C" fn text(l: &lua_State) -> i32 {
     .. note::
 
         The following methods are inherited from :lua:class:`uielement`
-    
+
     .. include:: /docs/_include/uielement.rst
 */
 

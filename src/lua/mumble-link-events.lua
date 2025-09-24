@@ -9,7 +9,7 @@ mumble-link-events
 .. lua:module:: mumble-link-events
 
 .. code:: lua
-    
+
     require 'mumble-link-events'
 
 The :lua:mod:`mumble-link-events` module does not have any public functions or
@@ -38,7 +38,7 @@ Events
     Sent anytime :lua:func:`mumble-link.tick` is not updated for at least 400
     milliseconds, indicating that the game is no longer updating the MumbleLink
     data.
-    
+
     Once this event has been sent additional MumbleLink related events will not
     be sent until :overlay:event:`mumble-link-available` is sent again.
 

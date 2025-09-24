@@ -71,7 +71,7 @@ pub fn register_module_functions(l: &lua_State) {
 
 /*** RST
 .. lua:function:: button()
-    
+
     Creates a new :lua:class:`uibutton`.
 
     :rtype: uibutton
@@ -89,7 +89,7 @@ unsafe extern "C" fn new_button(l: &lua_State) -> i32 {
 
 /*** RST
 .. lua:function:: checkbox(size)
-    
+
     Creates a new :lua:class:`uibutton` that is specialized as a checkbox.
 
     :param integer size: The width/height of the checkbox.
@@ -325,7 +325,7 @@ unsafe extern "C" fn check_state(l: &lua_State) -> i32 {
 
         return 0;
     }
-    
+
     if lua::gettop(l) >= 2 {
         let value = lua::toboolean(l, 2);
 
@@ -343,7 +343,7 @@ unsafe extern "C" fn check_state(l: &lua_State) -> i32 {
     .. note::
 
         The following methods are inherited from :lua:class:`uielement`
-    
+
 
     .. include:: /docs/_include/uielement.rst
 */

@@ -23,7 +23,7 @@ cbuffer constants : register(b0) {
     float right;
     float bottom;
 
-   
+
     float4 color;
 
     float4x4 proj;

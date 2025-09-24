@@ -42,7 +42,7 @@ end
 
 --[[ RST
 .. lua:function:: durationtostring(miliseconds)
-    
+
     :param number miliseconds:
     :rtype: string
 

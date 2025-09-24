@@ -20,7 +20,7 @@ float distance_fade_alpha(float near, float far, float dist) {
 // Discard this fragment if it's within the area where the minimap is
 // We don't need the map width because it's always against the right edge of
 // the screen
-void discard_if_in_map(float4 pixelcoord, float mapleft, float maptop, float mapheight) { 
+void discard_if_in_map(float4 pixelcoord, float mapleft, float maptop, float mapheight) {
     if (pixelcoord.x >= mapleft &&
         pixelcoord.y >= maptop && pixelcoord.y <= (maptop + mapheight)
     ) {

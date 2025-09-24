@@ -240,7 +240,7 @@ function M.taco2db:createtrail(cat, props)
     local trail_file = self.taco:content(props.traildata)
 
     local trail_file_len = #trail_file
-    
+
     local trailver, map_id = string.unpack('<I4I4', trail_file)
 
     -- todo: check trailver == 0
@@ -296,13 +296,13 @@ function M.taco2db:run()
     local typeids = {}
     for k,v in pairs(self.categories) do table.insert(typeids, k) end
     table.sort(typeids)
-    
+
     overlay.loginfo(string.format("Loaded %d categories, %d POIs, %d trails.", #typeids, #self.pois, #self.trails))
     overlay.loginfo(string.format('Creating %s:', self.dbpath))
-    
+
     self.mp = markerspackage.markerpack:new(self.dbpath)
     self.mp.db:execute('BEGIN')
-    
+
     overlay.loginfo('Creating categories...')
 
     for i,cats in ipairs(self.categories_ins) do
@@ -355,7 +355,7 @@ function M.taco2db:run()
     self.mp.db:execute('PRAGMA optimize')
     coroutine.yield()
     self.mp.db:execute('VACUUM')
-    
+
     local finish = overlay.time()
 
     coroutine.yield()
@@ -404,7 +404,7 @@ function M.taco2db:processcategory(data)
     for i,att in ipairs(data.attributes) do
         local attrname = string.lower(att.name.local_name)
         local val = att.value
-        
+
         if fromxml[attrname] then val = fromxml[attrname](val) end
 
         attrs[attrname] = val
@@ -420,7 +420,7 @@ function M.taco2db:processcategory(data)
     table.insert(self.category_stack, attrs.name)
 
     local fullname = table.concat(self.category_stack, '.')
-    if not self.categories[fullname] then 
+    if not self.categories[fullname] then
         self.categories[fullname] = true
         table.insert(self.categories_ins, {typeid=fullname, props=attrs})
     end
@@ -431,7 +431,7 @@ function M.taco2db:processpoi(data)
     for i,att in ipairs(data.attributes) do
         local attrname = string.lower(att.name.local_name)
         local val = att.value
-        
+
         if fromxml[attrname] then val = fromxml[attrname](val) end
 
         poi[attrname] = val
@@ -445,7 +445,7 @@ function M.taco2db:processtrail(data)
     for i,att in ipairs(data.attributes) do
         local attrname = string.lower(att.name.local_name)
         local val = att.value
-        
+
         if fromxml[attrname] then val = fromxml[attrname](val) end
 
         trail[attrname] = val

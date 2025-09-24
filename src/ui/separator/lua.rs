@@ -12,7 +12,7 @@ Separators provide a visual break between elements by rendering a simple line
 either horizontally or vertically.
 
 .. important::
-    
+
     Separators do not request a large size, so they should be used with ``fill``
     alignment when used with :doc:`boxes <../uibox/lua>` and :doc:`grids <../grid/lua>`.
 
@@ -98,7 +98,7 @@ unsafe extern "C" fn thickness(l: &lua_State) -> i32 {
     .. note::
 
         The following methods are inherited from :lua:class:`uielement`
-    
+
     .. include:: /docs/_include/uielement.rst
 */
 

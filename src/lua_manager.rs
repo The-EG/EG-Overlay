@@ -117,7 +117,7 @@ pub fn cleanup() {
     let l = state.unwrap();
     debug!("Closing main Lua thread...");
     lua::close(l);
-    
+
     *LUA_MANAGER.lock().unwrap() = None;
     *state = None;
 }
@@ -154,7 +154,7 @@ pub fn run_file(path: &str) {
         r=lua::resume(thread, None, 0, &mut nres);
 
         if r!=lua::LUA_YIELD { break; }
-        
+
         while resume_coroutines() { }
         run_event_queue();
     }
@@ -300,7 +300,7 @@ pub fn process_keybinds(keyevent: &crate::input::KeyboardEvent) -> bool {
             }
         }
     }
-    
+
     false
 }
 
@@ -338,7 +338,7 @@ pub fn run_event_queue() {
             lua::rawgeti(cothread, lua::LUA_REGISTRYINDEX, *cbi);
             // the event name, first parameter
             lua::pushstring(cothread, &event.name);
-            
+
             // the event data, second parameter
             if let Some(data) = &event.data {
                 data.push_to_lua(cothread);
@@ -385,7 +385,7 @@ pub fn run_event_queue() {
     let luaman = lock.as_mut().unwrap();
 
     let targeted_events = luaman.targeted_events.drain(..).collect::<VecDeque<_>>();
-    
+
     // same as above, don't keep LuaManager locked, events might add event handlers, etc.
     drop(lock);
 
@@ -399,7 +399,7 @@ pub fn run_event_queue() {
             error!("Lua target is not a function.");
 
         }
-        
+
         // the event data, first parameter
         if let Some(data) = &event.data {
             data.push_to_lua(cothread);

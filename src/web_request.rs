@@ -71,7 +71,7 @@ fn web_request_thread() {
     while WR_RUNNING.load(Ordering::Relaxed) {
         if let Some(req) = WR_REQUESTS.lock().unwrap().pop_front() {
             perform(&req);
-        }        
+        }
 
         std::thread::sleep(std::time::Duration::from_millis(25));
     }
@@ -176,7 +176,7 @@ fn escape_url(url: &str) -> Result<String, windows::core::Error> {
     unsafe { Shell::UrlEscapeA(url_pcstr, escaped_url, &mut escaped_len, 0) }?;
 
     let escaped_url_cstr = CStr::from_bytes_until_nul(&escaped_url_bytes).unwrap();
-    
+
     Ok(String::from(escaped_url_cstr.to_string_lossy()))
 }
 
@@ -230,7 +230,7 @@ fn get_resp_headers(hreq: *const std::ffi::c_void) -> HashMap<String, String> {
         } else {
             if c == b'\0' {
                 in_name = true;
-                
+
                 if let Some(h) = hdrs.get_mut(&cur_name) {
                     h.push_str(format!(",{}", cur_val.trim()).as_str());
                 } else {
@@ -248,7 +248,7 @@ fn get_resp_headers(hreq: *const std::ffi::c_void) -> HashMap<String, String> {
     hdrs
 }
 
-fn perform(request: &Request) {    
+fn perform(request: &Request) {
     // the entire URL with query parameters
     let mut url = request.url.clone();
 

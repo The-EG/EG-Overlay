@@ -20,7 +20,7 @@ image to use for a texture and coordinates for display, either in the 3D scene
 (the 'world') or on the map/minimap.
 
 .. note::
-    
+
     This module will render objects regardless of the UI state or MumbleLink
     data.
 
@@ -139,7 +139,7 @@ pub fn render(frame: &mut dx::SwapChainLock) {
     let mut avatar_pos = dx_lua.ml.avatar_position().clone();
     let mut camera_pos = dx_lua.ml.camera_position().clone();
     let camera_front = dx_lua.ml.camera_front().clone();
-    
+
     // meters to inches
     avatar_pos.x *= 39.3701;
     avatar_pos.y *= 39.3701;
@@ -155,7 +155,7 @@ pub fn render(frame: &mut dx::SwapChainLock) {
     };
 
     // world
-    let world_proj = lamath::Mat4F::perspective_lh(fov as f32, rtv_width as f32 / rtv_height as f32, 1.0, 25000.0);    
+    let world_proj = lamath::Mat4F::perspective_lh(fov as f32, rtv_width as f32 / rtv_height as f32, 1.0, 25000.0);
     let world_view = lamath::Mat4F::camera_facing(&camera_pos, &camera_front, &camera_up);
 
     // data for map view/projection matrices
@@ -273,7 +273,7 @@ pub fn render(frame: &mut dx::SwapChainLock) {
             frame.set_root_constant_bool(tl_inner.is_map, 0, 39);
 
             frame.set_vertex_buffers(0, Some(&[tl_inner.vert_buffer_view]));
-            
+
             let mut first = 0;
             for i in 0..tl_inner.texture_names.len() {
                 if tl_inner.trails[i].len() == 0 { continue; }
@@ -296,17 +296,17 @@ pub fn render(frame: &mut dx::SwapChainLock) {
 
                 for trail in trails {
                     if trail.coord_count == 0 { continue; }
-                    
+
                     frame.set_root_constant_float(trail.fade_near, 0, 43);
                     frame.set_root_constant_float(trail.fade_far , 0, 44);
                     frame.set_root_constant_color(trail.color    , 0, 32);
-                    
+
                     frame.draw_instanced(trail.coord_count, 1, first, 0);
 
                     first += trail.coord_count;
                 }
             }
-            
+
             if tl_inner.is_map && !mapfullscreen { frame.pop_viewport(); }
         }
     }
@@ -322,7 +322,7 @@ pub fn render(frame: &mut dx::SwapChainLock) {
         frame.set_root_constant_float(minimapleft as f32, 0, 39);
         frame.set_root_constant_float(minimaptop  as f32, 0, 40);
         frame.set_root_constant_float(maph        as f32, 0, 41);
-        
+
         for sprite_list in &*sprite_lists {
             let mut sl_inner = sprite_list.inner.lock().unwrap();
 
@@ -369,7 +369,7 @@ fn calc_mouse_ray(
         z: 1.0,
         w: 1.0,
     };
-    
+
     let proj_inv = proj.inverse();
 
     let mut ray_eye = proj_inv * ray_clip;
@@ -423,7 +423,7 @@ fn ray_points_at(x: f32, y: f32, z: f32, radius: f32, origin: &lamath::Vec3F, ra
             return true;
         }
     }
-    
+
     // a miss
     false
 }
@@ -594,7 +594,7 @@ const DX_LUA_FUNCS: &[luaL_Reg] = luaL_Reg_list!{
 
 /*** RST
 .. lua:function:: texturemap()
-    
+
     Create a new :lua:class:`dxtexturemap` object.
 
     :rtype: dxtexturemap
@@ -630,7 +630,7 @@ unsafe extern "C" fn texturemap_new(l: &lua_State) -> i32 {
 
 /*** RST
 .. lua:function:: spritelist(texturemap[, location])
-    
+
     Create a new :lua:class:`dxspritelist` object.
 
     :param dxtexturemap texturemap:
@@ -679,7 +679,7 @@ unsafe extern "C" fn spritelist_new(l: &lua_State) -> i32 {
 
         vert_buffer_size: 0,
         update_vert_buffer: false,
-        
+
         texture_names: Vec::new(),
         sprite_data  : Vec::new(),
         sprite_tags  : Vec::new(),
@@ -688,7 +688,7 @@ unsafe extern "C" fn spritelist_new(l: &lua_State) -> i32 {
         texture_map: (*tm).clone(),
 
         mouse_hover_tags: Vec::new(),
-        
+
         is_map: is_map,
 
         draw: true,
@@ -875,11 +875,11 @@ unsafe extern "C" fn texturemap_gc(l: &lua_State) -> i32 {
 
 /*** RST
     .. lua:method:: clear()
-        
+
         Remove all textures from this map.
 
         .. danger::
-            
+
             If objects are still referencing textures within this map after this
             method is called, their draws will not function properly.
 
@@ -940,7 +940,7 @@ unsafe extern "C" fn texturemap_add(l: &lua_State) -> i32 {
     }
 
     let dx_lua = get_dx_lua_upvalue(l).unwrap();
-    
+
     // We'll use Windows Imaging Component to load the image data in. It's already
     // present in Windows and can handle any of the formats we should be concerned
     // with already. It'll also help with creating the mipmaps.
@@ -971,7 +971,7 @@ unsafe extern "C" fn texturemap_add(l: &lua_State) -> i32 {
 
     let mut width: u32 = 0;
     let mut height: u32 = 0;
-    
+
     // Create a stream to hold the image data that we are feeding in
     match unsafe { wicfactory.CreateStream() } {
         Ok(strm) => memstream = strm,
@@ -1152,7 +1152,7 @@ unsafe extern "C" fn texturemap_add(l: &lua_State) -> i32 {
         // raw pixel data, same as above
         let mut mippixels_len: u32 = 0;
         let mut mippixels    : *mut u8 = std::ptr::null_mut();
-        
+
         if let Err(err) = unsafe { scaledlock.GetDataPointer(&mut mippixels_len, &mut mippixels) } {
             luaerror!(l, "Couldn't get mipmap pixels pointer: {}", err);
             return 0;
@@ -1210,7 +1210,7 @@ struct SpriteListInner {
 
     vert_buffer_size: usize,
     update_vert_buffer: bool,
-    
+
     // Sprites are grouped by texture name because we can render each set that
     // shares the same texture in a single command.
     // This is not a HashMap because the order of the textures and data needs
@@ -1223,7 +1223,7 @@ struct SpriteListInner {
     texture_map: Arc<TextureMap>,
 
     mouse_hover_tags: Vec<i64>,
-    
+
     is_map: bool,
 
     draw: bool,
@@ -1268,7 +1268,7 @@ impl SpriteListInner {
             frame.set_root_constant_mat4f(map_proj, 0, 16);
 
             if !mapfullscreen {
-                frame.push_viewport(minimapleft as f32, minimaptop as f32, mapw as f32, maph as f32);  
+                frame.push_viewport(minimapleft as f32, minimaptop as f32, mapw as f32, maph as f32);
             }
         } else {
             frame.set_root_constant_mat4f(world_view, 0,  0);
@@ -1361,7 +1361,7 @@ impl SpriteListInner {
 
         let mut data: *mut std::ffi::c_void = std::ptr::null_mut();
         let rr = Direct3D12::D3D12_RANGE::default();
-        
+
         if unsafe { upload.Map(0, Some(&rr), Some(&mut data)) }.is_err() {
             panic!("Couldn't map sprite list upload data.");
         }
@@ -1377,7 +1377,7 @@ impl SpriteListInner {
         }
 
         unsafe { upload.Unmap(0, None); }
-        
+
         let mut copy = dx.copy_queue();
         copy.copy_resource(&upload, self.vert_buffer.as_ref().unwrap());
 
@@ -1565,7 +1565,7 @@ unsafe extern "C" fn spritelist_gc(l: &lua_State) -> i32 {
         let mut sprite_lists = dx_lua.sprite_lists.lock().unwrap();
 
         let mut i = 0;
-        
+
         while i < sprite_lists.len() {
             if Arc::ptr_eq(&*sl, &sprite_lists[i]) {
                 sprite_lists.remove(i);
@@ -1643,7 +1643,7 @@ unsafe extern "C" fn spritelist_add(l: &lua_State) -> i32 {
         lua::pushstring(l, "spritelist::add argument #2 must be a Lua table.");
         unsafe { lua::error(l); }
     }
-    
+
     let mut inner = sl.inner.lock().unwrap();
 
     let texture: Arc<Texture>;
@@ -1654,7 +1654,7 @@ unsafe extern "C" fn spritelist_add(l: &lua_State) -> i32 {
             luaerror!(l, "Texture {} not found in texture map.", texname);
             return 0;
         }
-    } 
+    }
 
     let mut ti: Option<usize> = None;
     for t in 0..inner.texture_names.len() {
@@ -1677,7 +1677,7 @@ unsafe extern "C" fn spritelist_add(l: &lua_State) -> i32 {
 
         fade_near: -1.0,
         fade_far: -1.0,
-        
+
         r: 1.0,
         g: 1.0,
         b: 1.0,
@@ -1690,7 +1690,7 @@ unsafe extern "C" fn spritelist_add(l: &lua_State) -> i32 {
 
     let mouse_test: bool;
     if lua::getfield(l, 3, "mousetest") != lua::LuaType::LUA_TNIL {
-        mouse_test = lua::toboolean(l, -1);   
+        mouse_test = lua::toboolean(l, -1);
     } else {
         mouse_test = false;
     }
@@ -1817,7 +1817,6 @@ unsafe extern "C" fn spritelist_remove(l: &lua_State) -> i32 {
 
         .. versionhistory::
             :0.3.0: Added
-        
 */
 unsafe extern "C" fn spritelist_clear(l: &lua_State) -> i32 {
     let sl = unsafe { checkspritelist(l, 1) };
@@ -2041,13 +2040,13 @@ impl TrailListTrail {
             lamath::Vec3F { x: 0.0, y: 1.0, z: 0.0 }
         };
 
-        
+
         for i in 0..(self.points.len()-1) {
             // each segment of the trail is made up of 2 points: p1 and p2
             let p1 = &self.points[i];
             let p2 = &self.points[i+1];
 
-            /* 
+            /*
                 In order to display a flat 'ribbon' trail, we need 4 points,
                 arranged around p1 and p2.
 
@@ -2094,7 +2093,7 @@ impl TrailListTrail {
                     u: 1.0,
                     v: 0.0,
                 });
-    
+
                 // a
                 coords.push(TrailCoordinate {
                     x: p1.x - toside.x,
@@ -2108,7 +2107,7 @@ impl TrailListTrail {
                 // and the current one
                 let prior_forward = (self.points[i] - self.points[i-1]).normalize();
                 let prior_side = up.crossproduct(&prior_forward).normalize();
-                
+
                 side = lamath::Vec3F {
                     x: (prior_side.x + side.x) / 2.0,
                     y: (prior_side.y + side.y) / 2.0,
@@ -2117,7 +2116,7 @@ impl TrailListTrail {
 
                 toside = side.mulf(self.size / 2.0);
 
-                let l = coords.len();                
+                let l = coords.len();
 
                 let m1 = &mut coords[l-1];
                 m1.x = p1.x - toside.x;
@@ -2296,7 +2295,7 @@ unsafe extern "C" fn traillist_gc(l: &lua_State) -> i32 {
         let mut trail_lists = dx_lua.trail_lists.lock().unwrap();
 
         let mut i = 0;
-        
+
         while i < trail_lists.len() {
             if Arc::ptr_eq(&*tl, &trail_lists[i]) {
                 trail_lists.remove(i);
@@ -2346,7 +2345,7 @@ unsafe extern "C" fn traillist_draw(l: &lua_State) -> i32 {
 
 /*** RST
     .. lua:method:: add(texturename, attributes)
-    
+
         Create a new trail.
 
         ``attributes`` must be a table with the following fields:
@@ -2395,7 +2394,7 @@ unsafe extern "C" fn traillist_add(l: &lua_State) -> i32 {
             luaerror!(l, "Texture {} not found in texture map.", texname);
             return 0;
         }
-    } 
+    }
 
     let mut ti: Option<usize> = None;
     for t in 0..inner.texture_names.len() {
@@ -2437,7 +2436,7 @@ unsafe extern "C" fn traillist_add(l: &lua_State) -> i32 {
     }
 
     inner.update_vert_buffer = true;
-    
+
     return 0;
 }
 

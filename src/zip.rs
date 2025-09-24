@@ -65,7 +65,7 @@ pub fn open_zip(path: &str) -> std::io::Result<Rc<ZipFile>> {
 
         central_directory: HashMap::new(),
     };
-    
+
     zip.find_central_directory()?;
     zip.load_central_directory()?;
 
@@ -222,7 +222,7 @@ impl ZipFile {
         strm.next_in = compressed_data.as_ptr();
 
         let r = unsafe { zlib::inflate(&mut strm, zlib::Z_FINISH) };
-            
+
         unsafe { zlib::inflateEnd(&mut strm) };
 
         if r != zlib::Z_STREAM_END {
@@ -230,7 +230,7 @@ impl ZipFile {
         }
 
         let mut data_crc = unsafe { zlib::crc32(0, std::ptr::null(), 0) };
-        
+
         data_crc = unsafe { zlib::crc32(data_crc, uncompressed_data.as_ptr(), uncompressed_data.len() as u32) };
 
         if data_crc != crc32 {
@@ -315,7 +315,7 @@ mod zlib {
         zalloc: *mut c_void,
         zfree: *mut c_void,
         voidpf: *mut c_void,
-        
+
         data_type: c_int,
 
         pub adler: c_ulong,

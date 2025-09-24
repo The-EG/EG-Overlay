@@ -50,7 +50,7 @@ pub fn pushsettings(l: &lua_State, settings: Arc<SettingsStore>) {
     if lua::L::newmetatable(l, SETTINGS_METATABLE_NAME) {
         lua::pushvalue(l, -1);
         lua::setfield(l, -2, "__index");
-        
+
         lua::L::setfuncs(l, SETTINGS_FUNCS, 0);
     }
     lua::setmetatable(l, -2);

@@ -65,7 +65,7 @@ unsafe extern "C" fn __gc(l: &lua_State) -> i32 {
 
 /*** RST
     .. lua:method:: entries()
-        
+
         Returns a list of all entries (files and directories) of this zip file.
 
         The returned Lua table is a sequence of tables, one for each entry,

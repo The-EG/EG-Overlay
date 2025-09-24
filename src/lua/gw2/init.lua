@@ -34,7 +34,7 @@ Functions
     This uses MumbleLink to determine what specialization is in the player's
     third build slot.
 
-    See :lua:func:`gw2.data.specialization` and 
+    See :lua:func:`gw2.data.specialization` and
     `GW2 API: v2/specializations <https://wiki.guildwars2.com/wiki/API:2/specializations>`_
 
     .. note::
@@ -169,7 +169,7 @@ end
         By default no key is used. If ``nil`` is specified, no key will be used.
 
         :param string key: A valid GW2 API Key or ``nil``.
-        
+
         .. versionhistory::
             :0.3.0: Added
 ]]--
@@ -222,7 +222,7 @@ end
         Convert map x, z to continent continent x, y coordinates.
 
         .. note::
-            
+
             This needs the X and Z coordinates from the map coordinates, NOT
             X and Y.
 

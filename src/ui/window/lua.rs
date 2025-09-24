@@ -93,7 +93,7 @@ unsafe extern "C" fn new_window(l: &lua_State) -> i32 {
     let caption = unsafe { lua::L::checkstring(l,1) };
 
     let win = Window::new(&caption);
-    
+
     ui::lua::pushelement(l, &win, WIN_METATABLE_NAME, Some(WIN_FUNCS));
 
     return 1;
@@ -109,7 +109,7 @@ classes
     should be a layout container such as a :lua:class:`uibox`.
 
     .. lua:method:: caption([newcaption])
-        
+
         Set or return the window title.
 
         :param string newcaption: (Optional) The new window title.
@@ -126,7 +126,7 @@ unsafe extern "C" fn caption(l: &lua_State) -> i32 {
     if lua::gettop(l) >= 2 {
         let newcaption = unsafe { lua::L::checkstring(l, 2) };
 
-        win.win.lock().unwrap().caption = String::from(newcaption);            
+        win.win.lock().unwrap().caption = String::from(newcaption);
     }
 
     lua::pushstring(l, &*win.win.lock().unwrap().caption);
@@ -141,7 +141,7 @@ unsafe extern "C" fn caption(l: &lua_State) -> i32 {
         this will be a layout container such as a box.
 
         .. note::
-            
+
             To clear the child, pass ``nil``.
 
         :param uielement newchild:
@@ -251,7 +251,7 @@ unsafe extern "C" fn hide(l: &lua_State) -> i32 {
             win:settings(settings, 'window')
 
             win:show()
-       
+
         .. versionhistory::
             :0.3.0: Added
 */
@@ -349,10 +349,10 @@ unsafe extern "C" fn titlebar(l: &lua_State) -> i32 {
 
 
 /*** RST
-    
+
     .. note::
 
         The following methods are inherited from :lua:class:`uielement`
-    
+
     .. include:: /docs/_include/uielement.rst
 */

@@ -10,7 +10,7 @@
     :rtype: integer
 
     .. important::
-        
+
         It is normally not necessary to manually position an element.
 
     .. versionhistory::
@@ -24,7 +24,7 @@
     :rtype: integer
 
     .. important::
-        
+
         It is normally not necessary to manually position an element.
 
     .. versionhistory::
@@ -38,7 +38,7 @@
     :rtype: integer
 
     .. important::
-        
+
         It is normally not necessary to manually set an element's size.
 
     .. versionhistory::
@@ -52,7 +52,7 @@
     :rtype: integer
 
     .. important::
-        
+
         It is normally not necessary to manually set an element's size.
 
     .. versionhistory::

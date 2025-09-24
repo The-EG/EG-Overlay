@@ -31,9 +31,9 @@ local M = {}
     select a file or folder for opening or saving.
 
     .. seealso::
-        
+
         See the :lua:meth:`new` method for creating a new :lua:class:`FileDialog`.
-    
+
     .. code-block:: lua
         :caption: Example
 
@@ -52,7 +52,7 @@ local M = {}
         of:show()
 
     .. lua:attribute:: confirmcallback: function
-        
+
         A function that will be called whenever the confirmation button ('Open'
         or 'Save') is pressed by the user.
 
@@ -67,7 +67,7 @@ local M = {}
         A list of file extensions to display within the dialog.
 
         .. note::
-            
+
             The extension should include the leading ``.``.
 
         .. important::
@@ -78,7 +78,7 @@ local M = {}
         .. versionhistory::
             :0.3.0: Added
 
-    
+
 ]]--
 M.FileDialog = {}
 M.FileDialog.__index = M.FileDialog
@@ -256,7 +256,7 @@ function M.FileDialog.new(mode)
     of.thispcbtn:addeventhandler(function() of:gotothispc() end, 'click-left')
     of.previousbtn:addeventhandler(function() of:gotoparent() end, 'click-left')
     of:gotothispc()
-        
+
     return of
 end
 
@@ -335,7 +335,7 @@ end
 
 function M.FileDialog:gotoitem(newitem)
     self.shellitem = newitem
-    
+
     local itype = newitem:type()
 
     local itempath = newitem:path()
@@ -349,7 +349,7 @@ function M.FileDialog:gotoitem(newitem)
     self._selected = nil
     self.itembox:clear()
     self.itemscroll:scrolly(0.0)
-    
+
     coroutine.yield()
 
     self.itembtns = {}
@@ -385,7 +385,7 @@ function M.FileDialog:gotoitem(newitem)
     table.sort(children, function(a, b)
         local atype = a:type()
         local btype = b:type()
-        
+
         local aisfolder = atype == 'folder' or atype == 'other' or atype:find('drive-')==1
         local bisfolder = btype == 'folder' or btype == 'other' or btype:find('drive-')==1
 
@@ -427,7 +427,7 @@ function M.FileDialog:selectitem(item)
 
     self._selected = item:path()
     self.selectedtxt:text(item:displayname())
-    
+
     self.itembtns[item:displayname()]:bgcolor(ui.color('buttonBG'))
 end
 
@@ -466,7 +466,7 @@ function M.FileDialog:onconfirm()
 
         if self.mode == 'save-file' then
             local folder = self.shellitem:path()
-            
+
             if self.shellitem:type() == 'folder' then folder = folder .. '\\' end
 
             self.confirmcallback(folder .. self.selectedtxt:text())
