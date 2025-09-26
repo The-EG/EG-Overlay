@@ -71,6 +71,7 @@ const OVERLAY_FUNCS: &[luaL_Reg] = luaL_Reg_list!{
     c"settings"            , settings,
     c"memusage"            , memusage,
     c"videomemusage"       , videomemusage,
+    c"framecount"          , frame_count,
     c"processtime"         , process_time,
     c"queueevent"          , queue_event,
     c"datafolder"          , data_folder,
@@ -564,6 +565,22 @@ unsafe extern "C" fn memusage(l: &lua_State) -> i32 {
 */
 unsafe extern "C" fn videomemusage(l: &lua_State) -> i32 {
     lua::pushinteger(l, crate::overlay::dx().get_video_mem_used() as i64);
+
+    return 1;
+}
+
+/*** RST
+.. lua:function:: framecount()
+
+    Returns the total number of frames rendered by the overlay.
+
+    :rtype: integer
+
+    .. versionhistory::
+        :0.3.0: Added
+*/
+unsafe extern "C" fn frame_count(l: &lua_State) -> i32 {
+    lua::pushinteger(l, crate::overlay::frame_count() as i64);
 
     return 1;
 }

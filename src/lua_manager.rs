@@ -281,13 +281,14 @@ pub fn queue_targeted_event(target: i64, data: Option<Box<dyn ToLua + Sync + Sen
 pub fn process_keybinds(keyevent: &crate::input::KeyboardEvent) -> bool {
     if !keyevent.down { return false; }
 
-    let state_lock = LUA_STATE.lock().unwrap();
-    let l = state_lock.unwrap();
     let keybinds = LUA_MANAGER.lock().unwrap().as_ref().unwrap().keybind_handlers.clone();
 
     let keyname = keyevent.full_name();
 
     if !keybinds.contains_key(&keyname) { return false; }
+
+    let state_lock = LUA_STATE.lock().unwrap();
+    let l = state_lock.unwrap();
 
     for cb in keybinds.get(&keyname).unwrap() {
         lua::rawgeti(l, lua::LUA_REGISTRYINDEX, *cb);
