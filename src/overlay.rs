@@ -727,7 +727,8 @@ fn render_thread(overlay: Arc<EgOverlay>) {
     while overlay.running.load(atomic::Ordering::Relaxed) {
         let frame_begin = uptime().as_secs_f64();
 
-        let _ = lua_manager::resume_coroutines();
+        lua_manager::cleanup_refs();
+        lua_manager::resume_coroutines();
         lua_manager::queue_event("update", None);
         lua_manager::run_event_queue();
 

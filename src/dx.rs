@@ -196,12 +196,6 @@ impl Dx {
         self.swapchain.lock().unwrap().resize(hwnd);
     }
 
-    pub fn get_rtv_size(&self) -> (u32, u32) {
-        let sc = self.swapchain.lock().unwrap();
-
-        (sc.rtv_width, sc.rtv_height)
-    }
-
     /// Creates a new pipeline state.
     ///
     /// `desc` must be a valid pipeline state description; this function will

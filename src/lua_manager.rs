@@ -33,6 +33,8 @@ struct LuaManager {
     keybind_handlers: HashMap<String, Vec<i64>>,
 
     coroutines: VecDeque<LuaCoRoutineThread>,
+
+    unrefs: VecDeque<i64>,
 }
 
 struct LuaCoRoutineThread {
@@ -104,6 +106,8 @@ pub fn init() {
         event_handlers: HashMap::new(),
         keybind_handlers: HashMap::new(),
         coroutines: VecDeque::new(),
+
+        unrefs: VecDeque::new(),
     };
 
     *LUA_MANAGER.lock().unwrap() = Some(luaman);
@@ -138,7 +142,8 @@ pub fn add_module_opener(name: &str, opener: lua::lua_CFunction) {
 ///
 /// This is typically used for running an initial 'autoload.lua' script.
 pub fn run_file(path: &str) {
-    let l = LUA_STATE.lock().unwrap().unwrap();
+    let state_lock = LUA_STATE.lock().unwrap();
+    let l = state_lock.unwrap();
 
     let thread = lua::newthread(l).expect("Couldn't create Lua thread.");
 
@@ -167,9 +172,12 @@ pub fn run_file(path: &str) {
 
         lua::pop(l, 1);
         lua::pop(thread, 1);
-
-        let _ = lua::closethread(thread, None);
     }
+
+    lua::closethread(thread, None);
+
+    // pop the thread
+    lua::pop(l, 1);
 }
 
 /// Something that can be pushed to Lua.
@@ -273,7 +281,8 @@ pub fn queue_targeted_event(target: i64, data: Option<Box<dyn ToLua + Sync + Sen
 pub fn process_keybinds(keyevent: &crate::input::KeyboardEvent) -> bool {
     if !keyevent.down { return false; }
 
-    let l = LUA_STATE.lock().unwrap().unwrap();
+    let state_lock = LUA_STATE.lock().unwrap();
+    let l = state_lock.unwrap();
     let keybinds = LUA_MANAGER.lock().unwrap().as_ref().unwrap().keybind_handlers.clone();
 
     let keyname = keyevent.full_name();
@@ -290,18 +299,32 @@ pub fn process_keybinds(keyevent: &crate::input::KeyboardEvent) -> bool {
                 lua::pop(l, 1);
                 if r { return true; }
             },
-            Err(err) => {
-                error!("{:?} error during keybind callack for {}.", err, keyname);
-                if lua::gettop(l) >= 1 {
-                    let errmsg = lua::tostring(l, -1).unwrap_or(String::from("<invalid error msg>"));
-                    error!("Error during keybind callback for {}: {}", keyname, errmsg);
-                    lua::pop(l, 1);
-                }
+            Err(_) => {
+                let errmsg = lua::tostring(l, -1).unwrap();
+                error!("Error during keybind callback for {}: {}", keyname, errmsg);
+                lua::pop(l, 1);
             }
         }
     }
 
     false
+}
+
+// Some code paths, most notably when event data that is queued from Lua is dropped,
+// do not have access to the Lua state in order to unreference data that has been
+// referenced in the global registry.
+//
+// When that happens, it's stored in the queue and then unref'd later when this
+// function is called.
+pub fn cleanup_refs() {
+    let unrefs = LUA_MANAGER.lock().unwrap().as_mut().unwrap().unrefs.drain(..).collect::<VecDeque<_>>();
+
+    let state_lock = LUA_STATE.lock().unwrap();
+    let lua = state_lock.unwrap();
+
+    for r in unrefs {
+        lua::L::unref(lua, lua::LUA_REGISTRYINDEX, r);
+    }
 }
 
 pub fn run_event_queue() {
@@ -327,7 +350,8 @@ pub fn run_event_queue() {
     drop(lock);
 
     // but now we lock the lua thread
-    let lua = LUA_STATE.lock().unwrap().unwrap();
+    let state_lock = LUA_STATE.lock().unwrap();
+    let lua = state_lock.unwrap();
     while let Some(event) = events.pop_front() {
         if !handlers.contains_key(&event.name) { continue; }
 
@@ -353,6 +377,7 @@ pub fn run_event_queue() {
                 // the event handler yielded, save the thread and resume it later
                 if nres > 0 { lua::pop(cothread, nres); }
 
+                // this pops the thread from the stack and saves it
                 let threadi = lua::L::ref_(lua, lua::LUA_REGISTRYINDEX);
                 LUA_MANAGER.lock().unwrap().as_mut().unwrap().coroutines.push_back(LuaCoRoutineThread {
                     state: cothread,
@@ -449,7 +474,8 @@ pub fn resume_coroutines() -> bool {
 
     drop(lock);
 
-    let lua = LUA_STATE.lock().unwrap().unwrap();
+    let state_lock = LUA_STATE.lock().unwrap();
+    let lua = state_lock.unwrap();
 
     while let Some(co) = coroutines.pop_front() {
         let mut nres = 0;
@@ -481,9 +507,10 @@ pub fn resume_coroutines() -> bool {
 }
 
 pub fn unref(ind: i64) {
-    let l = LUA_STATE.lock().unwrap().unwrap();
+    let mut lock = LUA_MANAGER.lock().unwrap();
+    let luaman = lock.as_mut().unwrap();
 
-    lua::L::unref(l, lua::LUA_REGISTRYINDEX, ind);
+    luaman.unrefs.push_back(ind);
 }
 
 impl ToLua for String {

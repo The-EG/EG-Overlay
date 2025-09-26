@@ -172,7 +172,7 @@ impl Menu {
         let ui = inner.ui.upgrade().unwrap();
         ui.add_top_level_element(element);
 
-        let (width, height) = overlay::dx().get_rtv_size();
+        let (width, height) = ui.get_last_ui_size();
         let r = windows::Win32::Foundation::RECT {
             left: 0,
             right: width as i32,

@@ -453,9 +453,9 @@ impl Ui {
             ielf.push_back(ie);
         }
 
-        let top_level = self.top_level_elements.lock().unwrap();
+        let top_level = self.top_level_elements.lock().unwrap().clone();
 
-        for e in &*top_level {
+        for e in &top_level {
             e.draw(0, 0, frame);
         }
     }
@@ -621,6 +621,10 @@ impl Ui {
         }
 
         Err("Couldn't find codepoint.")
+    }
+
+    pub fn get_last_ui_size(&self) -> (u32, u32) {
+        *self.last_ui_size.lock().unwrap()
     }
 
     pub fn get_last_mouse_x(&self) -> i64 {
