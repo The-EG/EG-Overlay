@@ -58,6 +58,7 @@ pub fn cleanup() {
 
     WR_RUNNING.store(false, Ordering::Relaxed);
 
+    t.thread().unpark();
     t.join().unwrap();
 
     let hint = WR_STATE.lock().unwrap().internet as *const std::ffi::c_void;
@@ -73,7 +74,7 @@ fn web_request_thread() {
             perform(&req);
         }
 
-        std::thread::sleep(std::time::Duration::from_millis(25));
+        std::thread::park();
     }
 
     debug!("Request thread ending...");
@@ -111,6 +112,7 @@ pub fn queue_request(
     };
 
     WR_REQUESTS.lock().unwrap().push_back(req);
+    WR_STATE.lock().unwrap().thread.as_ref().unwrap().thread().unpark();
 }
 
 struct Response {
