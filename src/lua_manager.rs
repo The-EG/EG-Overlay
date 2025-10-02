@@ -8,10 +8,11 @@
 use crate::logging::{debug, info, warn, error};
 
 use crate::lua;
+use crate::utils;
 
 use std::collections::VecDeque;
 
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex, atomic};
 
 use std::collections::{HashMap};
 
@@ -35,6 +36,9 @@ struct LuaManager {
     coroutines: VecDeque<LuaCoRoutineThread>,
 
     unrefs: VecDeque<i64>,
+
+    run_thread: Arc<atomic::AtomicBool>,
+    thread: Option<std::thread::JoinHandle<()>>,
 }
 
 struct LuaCoRoutineThread {
@@ -108,6 +112,9 @@ pub fn init() {
         coroutines: VecDeque::new(),
 
         unrefs: VecDeque::new(),
+
+        run_thread: Arc::new(atomic::AtomicBool::new(false)),
+        thread: None,
     };
 
     *LUA_MANAGER.lock().unwrap() = Some(luaman);
@@ -518,6 +525,88 @@ impl ToLua for String {
     fn push_to_lua(&self, l: &lua::lua_State) {
         lua::pushstring(l, &self);
     }
+}
+
+pub fn start_thread() {
+    debug!("Starting Lua Thread...");
+
+    let mut lock = LUA_MANAGER.lock().unwrap();
+    let luaman = lock.as_mut().unwrap();
+
+    luaman.run_thread.store(true, atomic::Ordering::Relaxed);
+
+    let run_thread = luaman.run_thread.clone();
+    let lua = std::thread::Builder::new().name("EG-Overlay Lua Thread".to_string()).spawn(move || {
+        lua_thread(run_thread);
+    }).expect("Couldn't spawn Lua thread.");
+
+    luaman.thread = Some(lua);
+}
+
+pub fn stop_thread() {
+    let mut lock = LUA_MANAGER.lock().unwrap();
+    let luaman = lock.as_mut().unwrap();
+
+    luaman.run_thread.store(false, atomic::Ordering::Relaxed);
+    luaman.thread.take().unwrap().join().expect("Lua thread panicked.");
+}
+
+fn lua_thread(run_thread: Arc<atomic::AtomicBool>) {
+    debug!("Begin Lua thread.");
+
+    let overlay = crate::overlay::overlay();
+
+    utils::init_com_for_thread();
+
+    info!("Running lua/autoload.lua...");
+    run_file("lua/autoload.lua");
+
+    queue_event("startup", None);
+    run_event_queue();
+
+    let update_target = overlay.settings().get_f64("overlay.luaUpdateTarget").unwrap();
+
+    debug!("Lua update target time: {}ms or ~{:.0} times per second.", update_target, 1000.0 / update_target);
+
+    while run_thread.load(atomic::Ordering::Relaxed) {
+        let lua_begin = overlay.uptime().as_secs_f64();
+
+        cleanup_refs();
+        resume_coroutines();
+        queue_event("update", None);
+        run_event_queue();
+
+        let mut lua_end = overlay.uptime().as_secs_f64();
+
+        let mut lua_time = (lua_end - lua_begin) * 1000.0;
+        let mut sleep_time = update_target - lua_time;
+
+        // We only want to send 'update' events at a certain interval, by default
+        // around 30 times per second.
+        loop {
+            // we are out of time, star the loop again to send another 'update'
+            if sleep_time <= 0.0 { break; }
+
+            // if not, resume any coroutines that haven't finished
+            let more_coroutines = resume_coroutines();
+
+            // recalculate how much time is left before the next update
+            lua_end = overlay.uptime().as_secs_f64();
+            lua_time = (lua_end - lua_begin) * 1000.0;
+            sleep_time = update_target - lua_time;
+
+            // if there are no pending coroutines then just sleep until the next
+            // 'update' needs to go out, if there is time
+            if !more_coroutines { break; }
+        }
+
+        if sleep_time > 0.0 {
+            std::thread::sleep(std::time::Duration::from_secs_f64(sleep_time / 1000.0));
+        }
+    }
+
+    utils::uninit_com_for_thread();
+    debug!("End Lua thread.");
 }
 
 pub struct LuaLogSink {

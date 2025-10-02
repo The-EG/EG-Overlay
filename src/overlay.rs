@@ -345,11 +345,7 @@ pub fn run() {
         render_thread(overlay_render);
     }).expect("Couldn't spawn render thread.");
 
-    debug!("Starting Lua thread...");
-    let overlay_lua = overlay.clone();
-    let lua = std::thread::Builder::new().name("EG-Overlay Lua Thread".to_string()).spawn(move || {
-        lua_thread(overlay_lua);
-    }).expect("Couldn't spawn Lua thread.");
+    lua_manager::start_thread();
 
     let mut last_fg_check = 0.0f64;
 
@@ -503,7 +499,7 @@ pub fn run() {
     overlay.running.store(false, atomic::Ordering::Relaxed);
 
     debug!("Waiting for threads to end...");
-    lua.join().expect("Lua thread panicked.");
+    lua_manager::stop_thread();
     render.join().expect("Render thread panicked.");
 }
 
@@ -761,63 +757,6 @@ fn render_thread(overlay: Arc<EgOverlay>) {
     dx::lua::cleanup();
 
     debug!("End render thread.");
-}
-
-fn lua_thread(overlay: Arc<EgOverlay>) {
-    debug!("Begin Lua thread.");
-
-    utils::init_com_for_thread();
-
-    info!("Running lua/autoload.lua...");
-    lua_manager::run_file("lua/autoload.lua");
-
-    lua_manager::queue_event("startup", None);
-    lua_manager::run_event_queue();
-
-    let update_target = overlay.settings.get_f64("overlay.luaUpdateTarget").unwrap();
-
-    debug!("Lua update target time: {}ms or ~{:.0} times per second.", update_target, 1000.0 / update_target);
-
-    while overlay.running.load(atomic::Ordering::Relaxed) {
-        let lua_begin = overlay.uptime().as_secs_f64();
-
-        lua_manager::cleanup_refs();
-        lua_manager::resume_coroutines();
-        lua_manager::queue_event("update", None);
-        lua_manager::run_event_queue();
-
-        let mut lua_end = overlay.uptime().as_secs_f64();
-
-        let mut lua_time = (lua_end - lua_begin) * 1000.0;
-        let mut sleep_time = update_target - lua_time;
-
-        // We only want to send 'update' events at a certain interval, by default
-        // around 30 times per second.
-        loop {
-            // we are out of time, star the loop again to send another 'update'
-            if sleep_time <= 0.0 { break; }
-
-            // if not, resume any coroutines that haven't finished
-            let more_coroutines = lua_manager::resume_coroutines();
-
-            // recalculate how much time is left before the next update
-            lua_end = overlay.uptime().as_secs_f64();
-            lua_time = (lua_end - lua_begin) * 1000.0;
-            sleep_time = update_target - lua_time;
-
-            // if there are no pending coroutines then just sleep until the next
-            // 'update' needs to go out, if there is time
-            if !more_coroutines { break; }
-        }
-
-        if sleep_time > 0.0 {
-            std::thread::sleep(std::time::Duration::from_secs_f64(sleep_time / 1000.0));
-        }
-    }
-
-    utils::uninit_com_for_thread();
-
-    debug!("End Lua thread.");
 }
 
 pub fn dx() -> Arc<dx::Dx> {
