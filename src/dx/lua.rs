@@ -1287,6 +1287,8 @@ impl SpriteListInner {
             let sprite_data = &self.sprite_data[i];
             let sprite_count = sprite_data.len() as u32;
 
+            if sprite_count == 0 { continue; }
+
             let textures = self.texture_map.textures.lock().unwrap();
             match textures.get(tex_name.as_str()) {
                 Some(t) => tex = &t.texture,
