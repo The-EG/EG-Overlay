@@ -1333,7 +1333,7 @@ impl SpriteListInner {
         if self.is_map && !mapfullscreen { frame.pop_viewport(); }
     }
 
-    fn update_vertex_buffer(&mut self, frame: &dx::SwapChainLock, dx: &Arc<dx::Dx>) {
+    fn update_vertex_buffer(&mut self, frame: &mut dx::SwapChainLock, dx: &Arc<dx::Dx>) {
         let mut new_size = 0;
         for s in &self.sprite_data {
             new_size += SPRITE_MEM_SIZE * s.len();
@@ -1894,7 +1894,7 @@ struct TrailListInner {
 }
 
 impl TrailListInner {
-    fn update_vertex_buffer(&mut self, frame: &dx::SwapChainLock, dx: &Arc<dx::Dx>) {
+    fn update_vertex_buffer(&mut self, frame: &mut dx::SwapChainLock, dx: &Arc<dx::Dx>) {
         let mut coords: Vec<Vec<Vec<TrailCoordinate>>> = Vec::new();
 
         let mut new_size: usize = 0;

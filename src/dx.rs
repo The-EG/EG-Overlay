@@ -146,9 +146,11 @@ impl Dx {
     /// ready for rendering this will return [None] and the overlay can do other
     /// processing instead.
     pub fn start_frame(&self) -> Option<SwapChainLock<'_>> {
-        let swapchain = self.swapchain.lock().unwrap();
+        let mut swapchain = self.swapchain.lock().unwrap();
 
         if !swapchain.backbuffer_ready() { return None; }
+
+        swapchain.frameind = unsafe { swapchain.swapchain.GetCurrentBackBufferIndex() };
 
         let clear_color: [f32;4] = [0.0, 0.0, 0.0, 0.0];
 
@@ -475,15 +477,15 @@ impl CopyQueue {
     pub fn flush_commands(&mut self) {
         let curval = self.fence_value;
 
-        if unsafe { self.cmd_queue.Signal(&self.fence, curval) }.is_err() {
-            panic!("Couldn't signal copy command queue.");
+        unsafe {
+            self.cmd_queue.Signal(&self.fence, curval).expect("Couldn't signal command queue.");
+            if self.fence.GetCompletedValue() < curval {
+                self.fence.SetEventOnCompletion(curval, Foundation::HANDLE::default())
+                    .expect("SetEventOnCompletion failed.");
+            }
         }
 
         self.fence_value += 1;
-
-        if unsafe { self.fence.SetEventOnCompletion(curval, Foundation::HANDLE(std::ptr::null_mut())) }.is_err() {
-            panic!("SetEventOnCompletion failed.");
-        }
     }
 
     /// Resets the copy command queue to an initial state, ready for new commands.
@@ -664,7 +666,6 @@ impl SwapChain {
         let cmd_queue = &self.cmd_queue;
         let cmd_list = &self.cmd_list;
         let swapchain = &self.swapchain;
-        let fence = &self.fence;
 
         unsafe {
             cmd_list.ResourceBarrier(&[barrier]);
@@ -674,30 +675,24 @@ impl SwapChain {
             cmd_queue.ExecuteCommandLists(&[Some(cmd_list.clone().into())]);
 
             swapchain.Present(0, Dxgi::DXGI_PRESENT_ALLOW_TEARING).unwrap();
-
-            let fenceval = self.fence_values[self.frameind as usize];
-
-            cmd_queue.Signal(fence, fenceval).unwrap();
-            self.frameind = self.swapchain.GetCurrentBackBufferIndex();
-
-            if fence.GetCompletedValue() < self.fence_values[self.frameind as usize] {
-                fence.SetEventOnCompletion(fenceval, Foundation::HANDLE(std::ptr::null_mut()))
-                    .expect("SetEventOnCompletion failed.");
-            }
-
-            self.fence_values[self.frameind as usize] = fenceval + 1;
         }
+
+        self.flush_commands();
     }
 
     /// Waits for all commands in the command queue to finish.
-    pub fn flush_commands(&self) {
+    pub fn flush_commands(&mut self) {
         let cur_val: u64 = self.fence_values[self.frameind as usize];
 
         unsafe {
             self.cmd_queue.Signal(&self.fence, cur_val).expect("Couldn't signal command queue.");
-            self.fence.SetEventOnCompletion(cur_val, Foundation::HANDLE(std::ptr::null_mut()))
-                .expect("SetEventOnCompletion failed.");
+            if self.fence.GetCompletedValue() < cur_val {
+                self.fence.SetEventOnCompletion(cur_val, Foundation::HANDLE::default())
+                    .expect("SetEventOnCompletion failed.");
+            }
         }
+
+        self.fence_values[self.frameind as usize] += 1;
     }
 
     /// Resizes the swapchain resources for the given window.
