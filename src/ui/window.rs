@@ -39,6 +39,8 @@ struct WindowInner {
     resizable: bool,
     show_titlebar: bool,
 
+    titlebar_box: Arc<ui::Element>,
+
     // highlight the toolbar when the mouse hovers over it
     hover_titlebar: bool,
 
@@ -94,6 +96,8 @@ impl Window {
 
             resizable: false,
             show_titlebar: true,
+
+            titlebar_box: ui::uibox::Box::new(ui::ElementOrientation::Horizontal),
 
             hover_titlebar: false,
             hover_right: false,
@@ -199,7 +203,7 @@ impl Window {
 }
 
 impl WindowInner {
-    fn draw_decorations(&self, offset_x: i64, offset_y: i64, frame: &mut crate::dx::SwapChainLock) {
+    fn draw_decorations(&mut self, offset_x: i64, offset_y: i64, frame: &mut crate::dx::SwapChainLock) {
         let win_x = offset_x + self.x;
         let win_y = offset_y + self.y;
 
@@ -229,6 +233,16 @@ impl WindowInner {
         r.draw(frame, win_x + win_w - right_width, win_y, right_width, win_h, right_color);  // right
 
         if self.show_titlebar {
+            let mut box_w = self.titlebar_box.get_preferred_width();
+            let box_h = self.titlebar_box.get_preferred_height();
+
+            self.titlebar_height = self.ui.upgrade().unwrap().regular_font.get_line_spacing() as i64 + 2;
+
+            // adjust titlebar height if the box has items
+            if box_w > 0 && box_h + 2 > self.titlebar_height {
+                self.titlebar_height = box_h + 2;
+            }
+
             // titlebar
             r.draw(frame, win_x, win_y, win_w, self.titlebar_height, title_color);
 
@@ -241,6 +255,19 @@ impl WindowInner {
             if frame.push_scissor(cap_x, cap_y, cap_x + cap_w, cap_y + cap_h) {
                 let f = self.ui.upgrade().unwrap().regular_font.clone();
                 f.render_text(frame, cap_x, cap_y, &self.caption, ui::Color::from(0xFFFFFFFFu32));
+
+                if box_w > 0 {
+                    if box_w > cap_w { box_w = cap_w; }
+
+                    self.titlebar_box.set_width(box_w);
+                    self.titlebar_box.set_height(box_h);
+
+                    let box_x = cap_x + cap_w - box_w - 1;
+                    let box_y = cap_y;
+
+                    self.titlebar_box.draw(box_x, box_y, frame);
+                }
+
                 frame.pop_scissor();
             }
         } else {
@@ -417,10 +444,11 @@ impl WindowInner {
 
         }
 
-        self.draw_decorations(offset_x, offset_y, frame);
 
         self.last_scissor = frame.current_scissor();
         self.ui.upgrade().unwrap().add_input_element(element, offset_x, offset_y, self.last_scissor.clone());
+
+        self.draw_decorations(offset_x, offset_y, frame);
 
         if let Some(child) = &self.child {
             let coffx = offset_x + self.x + 2;

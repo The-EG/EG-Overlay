@@ -46,14 +46,15 @@ pub fn register_module_functions(l: &lua_State) {
 }
 
 const WIN_FUNCS: &[luaL_Reg] = luaL_Reg_list!{
-    c"caption"  , caption,
-    c"child"    , child,
-    c"show"     , show,
-    c"hide"     , hide,
-    c"resizable", resizable,
-    c"settings" , settings,
-    c"position" , position,
-    c"titlebar" , titlebar,
+    c"caption"    , caption,
+    c"child"      , child,
+    c"show"       , show,
+    c"hide"       , hide,
+    c"resizable"  , resizable,
+    c"settings"   , settings,
+    c"position"   , position,
+    c"titlebar"   , titlebar,
+    c"titlebarbox", titlebar_box,
 };
 
 unsafe fn checkwindow<'a>(l: &lua_State, element: &'a ManuallyDrop<Arc<ui::Element>>) -> &'a Window {
@@ -347,6 +348,27 @@ unsafe extern "C" fn titlebar(l: &lua_State) -> i32 {
     return 0;
 }
 
+/*** RST
+    .. lua:method:: titlebarbox()
+
+        Returns a :lua:class:`uibox` that can be used place additional elements,
+        such as buttons, onto the title bar.
+
+        :rtype: uibox
+
+        .. versionhistory::
+            :0.3.0: Added
+*/
+unsafe extern "C" fn titlebar_box(l: &lua_State) -> i32 {
+    let e = unsafe { ui::lua::checkelement(l, 1) };
+    let win = unsafe { checkwindow(l, &e) };
+
+    let inner = win.win.lock().unwrap();
+
+    ui::uibox::lua::push_box(l, &inner.titlebar_box);
+
+    return 1;
+}
 
 /*** RST
 

@@ -117,6 +117,10 @@ pub fn register_module_functions(l: &lua_State) {
     lua::L::setfuncs(l, UI_MOD_FUNCS, 0);
 }
 
+pub fn push_box(l: &lua_State, uibox: &Arc<ui::Element>) {
+    ui::lua::pushelement(l, &uibox, BOX_METATABLE_NAME, Some(BOX_FUNCS));
+}
+
 /*** RST
 .. lua:function:: box(orientation)
 
@@ -136,7 +140,7 @@ unsafe extern "C" fn new_box(l: &lua_State) -> i32 {
 
     let b = Box::new(orientation);
 
-    ui::lua::pushelement(l, &b, BOX_METATABLE_NAME, Some(BOX_FUNCS));
+    push_box(l, &b);
 
     return 1;
 }
