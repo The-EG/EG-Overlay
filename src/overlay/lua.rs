@@ -384,13 +384,15 @@ unsafe extern "C" fn remove_event_handler(l: &lua_State) -> i32 {
     If the handler function returns ``true``, the key event will be consumed,
     it will not be sent to other handlers or to GW2.
 
-    .. danger::
+    .. important::
 
-        The handler will be run on the event thread. Any blocking or long running
-        tasks in the handler will adversely affect input in the entire system.
+        Since the handler function must return a value, ``coroutine.yield`` can't
+        be used and will result in an error.
 
-        Since this function must return a value, and due to the above,
-        ``coroutine.yield`` is not allowed and will result in an error.
+        Additionally, due to how EG-Overlay handles input, any blocking or long
+        running handlers would adversely affect the entire system.
+        **If a handler does not return within a timeout period, the binding will
+        be ignored.**
 
     :param string keyname:
     :param function handler: A function with the following signature ``function handler(keyname) end``.

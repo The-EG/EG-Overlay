@@ -436,6 +436,7 @@ unsafe extern "system" fn mouse_hook_proc(
     ) };
 }
 
+#[derive(Clone)]
 pub struct KeyboardEvent {
     pub vkey: KeyboardAndMouse::VIRTUAL_KEY,
     pub down: bool,
@@ -522,7 +523,9 @@ unsafe extern "system" fn keyboard_hook_proc(
 
     let event = KeyboardEvent::from(unsafe { &*(lparam.0 as *const WindowsAndMessaging::KBDLLHOOKSTRUCT) });
 
-    if KEYBOARD_STATE.lock().unwrap().ui.upgrade().unwrap().process_keyboard_event(&event) {
+    if KEYBOARD_STATE.lock().unwrap().ui.upgrade().unwrap().process_keyboard_event(&event) ||
+       crate::lua_manager::process_keyboard_event(&event)
+    {
         // don't consume certain keystrokes, the system won't process them if we do
         if event.vkey != KeyboardAndMouse::VK_LMENU    &&
            event.vkey != KeyboardAndMouse::VK_RMENU    &&
@@ -537,8 +540,6 @@ unsafe extern "system" fn keyboard_hook_proc(
             return Foundation::LRESULT(1);
         }
     }
-
-    crate::lua_manager::queue_event(&event.to_string(), None);
 
     return unsafe { WindowsAndMessaging::CallNextHookEx(
         None,

@@ -24,6 +24,8 @@ static LOG_MESSAGES: Mutex<VecDeque<String>> = Mutex::new(VecDeque::new());
 
 static LUA_STATE: Mutex<Option<&lua::lua_State>> = Mutex::new(None);
 
+static LUA_KEYBIND_STATE: Mutex<Option<KeybindState>> = Mutex::new(None);
+
 /// The global Lua state.
 struct LuaManager {
     module_openers: HashMap<String, lua::lua_CFunction>,
@@ -39,6 +41,12 @@ struct LuaManager {
 
     run_thread: Arc<atomic::AtomicBool>,
     thread: Option<std::thread::JoinHandle<()>>,
+}
+
+// keybind event channels
+struct KeybindState {
+    event_send: std::sync::mpsc::Sender<crate::input::KeyboardEvent>,
+    return_recv: std::sync::mpsc::Receiver<bool>,
 }
 
 struct LuaCoRoutineThread {
@@ -115,6 +123,7 @@ pub fn init() {
 
         run_thread: Arc::new(atomic::AtomicBool::new(false)),
         thread: None,
+
     };
 
     *LUA_MANAGER.lock().unwrap() = Some(luaman);
@@ -285,7 +294,45 @@ pub fn queue_targeted_event(target: i64, data: Option<Box<dyn ToLua + Sync + Sen
     });
 }
 
-pub fn process_keybinds(keyevent: &crate::input::KeyboardEvent) -> bool {
+pub fn process_keyboard_event(keyevent: &crate::input::KeyboardEvent) -> bool {
+    queue_event(&keyevent.to_string(), None); // non-blocking key events
+
+    if !keyevent.down { return false; }
+
+    let lock = LUA_MANAGER.lock().unwrap();
+    let luaman = lock.as_ref().unwrap();
+
+    if !luaman.keybind_handlers.contains_key(&keyevent.full_name()) { return false; }
+
+    drop(lock);
+
+    let lock = LUA_KEYBIND_STATE.lock().unwrap();
+
+    if lock.is_none() { return false; }
+
+    let state = lock.as_ref().unwrap();
+
+    while let Ok(_) = state.return_recv.try_recv() { }
+
+    if let Err(_) = state.event_send.send(keyevent.clone()) {
+        error!("Couldn't send keyboard event for Lua keybind: {}", keyevent);
+        return false;
+    }
+
+    match state.return_recv.recv_timeout(std::time::Duration::from_millis(25)) {
+        Ok(r) => return r,
+        Err(er) => match er {
+            std::sync::mpsc::RecvTimeoutError::Timeout => {
+                error!("Timeout while processing keybind for {}", keyevent);
+            },
+            _ => {},
+        },
+    }
+
+    false
+}
+
+fn process_keybinds(keyevent: &crate::input::KeyboardEvent) -> bool {
     if !keyevent.down { return false; }
 
     let keybinds = LUA_MANAGER.lock().unwrap().as_ref().unwrap().keybind_handlers.clone();
@@ -309,7 +356,7 @@ pub fn process_keybinds(keyevent: &crate::input::KeyboardEvent) -> bool {
             },
             Err(_) => {
                 let errmsg = lua::tostring(l, -1).unwrap();
-                error!("Error during keybind callback for {}: {}", keyname, errmsg);
+                error!("Error during keybind callback for {}: {}", keyevent, errmsg);
                 lua::pop(l, 1);
             }
         }
@@ -535,9 +582,19 @@ pub fn start_thread() {
 
     luaman.run_thread.store(true, atomic::Ordering::Relaxed);
 
+    let (event_send, event_recv) = std::sync::mpsc::channel::<crate::input::KeyboardEvent>();
+    let (ret_send, ret_recv) = std::sync::mpsc::channel::<bool>();
+
+    let state = KeybindState {
+        event_send: event_send,
+        return_recv: ret_recv,
+    };
+
+    *LUA_KEYBIND_STATE.lock().unwrap() = Some(state);
+
     let run_thread = luaman.run_thread.clone();
     let lua = std::thread::Builder::new().name("EG-Overlay Lua Thread".to_string()).spawn(move || {
-        lua_thread(run_thread);
+        lua_thread(run_thread, event_recv, ret_send);
     }).expect("Couldn't spawn Lua thread.");
 
     luaman.thread = Some(lua);
@@ -549,9 +606,15 @@ pub fn stop_thread() {
 
     luaman.run_thread.store(false, atomic::Ordering::Relaxed);
     luaman.thread.take().unwrap().join().expect("Lua thread panicked.");
+
+    *LUA_KEYBIND_STATE.lock().unwrap() = None;
 }
 
-fn lua_thread(run_thread: Arc<atomic::AtomicBool>) {
+fn lua_thread(
+    run_thread: Arc<atomic::AtomicBool>,
+    keyboard_event_recv: std::sync::mpsc::Receiver<crate::input::KeyboardEvent>,
+    keybind_return_send: std::sync::mpsc::Sender<bool>
+) {
     debug!("Begin Lua thread.");
 
     let overlay = crate::overlay::overlay();
@@ -570,6 +633,10 @@ fn lua_thread(run_thread: Arc<atomic::AtomicBool>) {
 
     while run_thread.load(atomic::Ordering::Relaxed) {
         let lua_begin = overlay.uptime().as_secs_f64();
+
+        if let Ok(keyevent) = keyboard_event_recv.try_recv() {
+            keybind_return_send.send(process_keybinds(&keyevent)).unwrap();
+        }
 
         cleanup_refs();
         resume_coroutines();
@@ -601,7 +668,10 @@ fn lua_thread(run_thread: Arc<atomic::AtomicBool>) {
         }
 
         if sleep_time > 0.0 {
-            std::thread::sleep(std::time::Duration::from_secs_f64(sleep_time / 1000.0));
+            // sleep the rest of the time, except if a keybound keyboard event comes in
+            if let Ok(keyevent) = keyboard_event_recv.recv_timeout(std::time::Duration::from_secs_f64(sleep_time / 1000.0)) {
+                keybind_return_send.send(process_keybinds(&keyevent)).unwrap();
+            }
         }
     }
 

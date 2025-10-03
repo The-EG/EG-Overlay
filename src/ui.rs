@@ -550,12 +550,10 @@ impl Ui {
         if let Some(e) = self.focus_element.lock().unwrap().as_ref() {
             if e.process_keyboard_event(event) {
                 return true
-            } else {
-                return crate::lua_manager::process_keybinds(event);
             }
         }
 
-        return crate::lua_manager::process_keybinds(event);
+        false
     }
 
     pub fn set_focus_element(&self, element: Option<Arc<Element>>) {
