@@ -605,7 +605,11 @@ pub fn stop_thread() {
     let luaman = lock.as_mut().unwrap();
 
     luaman.run_thread.store(false, atomic::Ordering::Relaxed);
-    luaman.thread.take().unwrap().join().expect("Lua thread panicked.");
+
+    let thread = luaman.thread.take().unwrap();
+
+    drop(lock);
+    thread.join().expect("Lua thread panicked.");
 
     *LUA_KEYBIND_STATE.lock().unwrap() = None;
 }
