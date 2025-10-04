@@ -4,8 +4,12 @@
 
 require 'mumble-link-events'
 require 'markers.manager'
-require 'markers.category-manager'
+local cm = require 'markers.category-manager'
 
 require 'markers.settings-win'
+
+local overlay_menu = require 'overlay-menu'
+
+overlay_menu.additem('Markers', 'explore', function() cm._cm:oncatmanagerbtnclick() end)
 
 return {}

@@ -81,8 +81,6 @@ function statswin.new()
 
         uptime_lbl = lbl('Uptime:'),
         uptime_val = val('?? seconds'),
-
-        overlay_menu_mi = ui.textmenuitem('Overlay Stats', 0xFFFFFFFF, overlay_menu.font),
     }
 
     w.settings:setdefault('window.x'      , 10)
@@ -142,16 +140,11 @@ function statswin.new()
 
     setmetatable(w, statswin)
 
-    w.overlay_menu_mi:addeventhandler(function() w:onmenuclick() end, 'click-left')
-
     w.vislble = false
 
     if w.settings:get('window.visible') then
         w.win:show()
         w.visible = true
-        w.overlay_menu_mi:icon(overlay_menu.visible_icon)
-    else
-        w.overlay_menu_mi:icon(overlay_menu.hidden_icon)
     end
 
     return w
@@ -162,12 +155,10 @@ function statswin:onmenuclick()
         self.win:hide()
         self.visible = false
         self.settings:set('window.visible', false)
-        self.overlay_menu_mi:icon(overlay_menu.hidden_icon)
     else
         self.win:show()
         self.settings:set('window.visible', true)
         self.visible = true
-        self.overlay_menu_mi:icon(overlay_menu.visible_icon)
     end
 end
 
@@ -231,13 +222,10 @@ function statswin:update()
     self:updateproctime()
 end
 
-function statswin:setup()
-    overlay_menu.additem(self.overlay_menu_mi)
-end
-
 local stats = statswin.new()
 
-overlay.addeventhandler('startup', function() stats:setup() end)
 overlay.addeventhandler('update', function() stats:update() end )
+
+overlay_menu.additem('Overlay Stats', 'speed', function() stats:onmenuclick() end)
 
 return {}

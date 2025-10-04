@@ -13,8 +13,8 @@ local ui = require 'ui'
 
 local M = {}
 
-M.menu = ui.menu()
-M.itemsbefore = ui.separatormenuitem('horizontal')
+local menu = ui.menu()
+local itemsbefore = ui.separatormenuitem('horizontal')
 
 local function setupmenu()
     local c = ui.color('accentText')
@@ -26,15 +26,15 @@ local function setupmenu()
     local settings = ui.textmenuitem('Settings', ui.color('text'), ui.fonts.regular)
     local restart = ui.textmenuitem('Restart', ui.color('text'), ui.fonts.regular)
 
-    M.menu:pushback(title)
-    M.menu:pushback(ui.separatormenuitem('horizontal'))
-    M.menu:pushback(M.itemsbefore)
-    M.menu:pushback(settings)
-    M.menu:pushback(restart)
+    menu:pushback(title)
+    menu:pushback(ui.separatormenuitem('horizontal'))
+    menu:pushback(itemsbefore)
+    menu:pushback(settings)
+    menu:pushback(restart)
 
     settings:addeventhandler(function()
         overlay.logerror("Overlay settings not implemented yet.")
-        M.menu:hide()
+        menu:hide()
     end, 'click-left')
 
     restart:addeventhandler(function()
@@ -42,31 +42,26 @@ local function setupmenu()
     end, 'click-left')
 end
 
-local function onhotkey()
-    M.show()
+function M.additem(label, icon, actionhandler)
+    local mi = ui.textmenuitem(label, ui.color('text'), ui.fonts.regular)
 
-    return true
+    if icon then
+        mi:icon(ui.iconcodepoint(icon))
+    end
+
+    if actionhandler then
+        mi:addeventhandler(actionhandler, 'click-left')
+    end
+
+    menu:insertbefore(itemsbefore, mi)
 end
-
-function M.show()
-    M.menu:show()
-end
-
-function M.hide()
-    M.menu:hide()
-end
-
-function M.additem(menuitem)
-    --M.menu:pushback(menuitem)
-    M.menu:insertbefore(M.itemsbefore, menuitem)
-end
-
-M.font = ui.fonts.regular
-M.visible_icon = ui.iconcodepoint('visibility')
-M.hidden_icon = ui.iconcodepoint('visibility_off')
 
 setupmenu()
 
-overlay.addkeybindhandler('ctrl-shift-e', onhotkey)
+overlay.addkeybindhandler('ctrl-shift-e', function()
+    menu:show()
+
+    return true
+end)
 
 return M

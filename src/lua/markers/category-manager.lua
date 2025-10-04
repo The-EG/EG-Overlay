@@ -16,7 +16,6 @@ local settings = require 'markers.settings'
 local manager = require 'markers.manager'
 local ml = require 'mumble-link'
 local data = require 'markers.data'
-local overlay_menu = require 'overlay-menu'
 
 local M = {}
 
@@ -250,7 +249,6 @@ function CategoryManager.new()
     setmetatable(cm, CategoryManager)
 
     cm:setupwin()
-    cm:setupmenu()
 
     if settings:get('categoryManager.window.visible') then
         cm:show()
@@ -332,47 +330,17 @@ function CategoryManager:hide()
     settings:set('categoryManager.window.visible', false)
 end
 
-function CategoryManager:setupmenu()
-    self.overlaymenu = {
-        rootitem = ui.textmenuitem('Markers', ui.color('text'), overlay_menu.font),
-        menu = ui.menu(),
-        catmanager = ui.textmenuitem('Manage', ui.color('text'), overlay_menu.font),
-        settings = ui.textmenuitem('Settings', ui.color('text'), overlay_menu.font),
-    }
-
-    self.overlaymenu.rootitem:submenu(self.overlaymenu.menu)
-    self.overlaymenu.menu:pushback(self.overlaymenu.catmanager)
-    self.overlaymenu.menu:pushback(self.overlaymenu.settings)
-
-    overlay_menu.additem(self.overlaymenu.rootitem)
-
-    self.overlaymenu.catmanager:addeventhandler(function() self:oncatmanagerbtnclick() end, 'click-left')
-
-    self:setmenuicons()
-end
-
 function CategoryManager:oncatmanagerbtnclick()
     if settings:get('categoryManager.window.visible') then
         self:hide()
     else
         self:show()
     end
-    self:setmenuicons()
-end
-
-function CategoryManager:setmenuicons()
-    if settings:get('categoryManager.window.visible') then
-        self.overlaymenu.catmanager:icon(overlay_menu.visible_icon)
-    else
-        self.overlaymenu.catmanager:icon(overlay_menu.hidden_icon)
-    end
 end
 
 function CategoryManager:oncloseclick()
     settings:set('categoryManager.window.visible', false)
     self.win:hide()
-
-    self:setmenuicons()
 end
 
 function CategoryManager:getcategoriesforpath(path)

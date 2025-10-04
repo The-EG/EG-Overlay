@@ -105,6 +105,17 @@ local overlay = require 'overlay'
 
 local overlay_menu = require 'overlay-menu'
 
+local function winclosebutton()
+    local btn = ui.button()
+    local icon = ui.text(ui.iconcodepoint('close'), ui.color('text'), ui.fonts.icon)
+
+    btn:child(icon)
+    btn:bgcolor(0x00000000)
+
+
+    return btn
+end
+
 local win = {}
 win.__index = win
 
@@ -113,6 +124,7 @@ function win.new()
         settings = overlay.settings('console.lua'),
 
         win = ui.window('Lua Console'),
+        close_btn = winclosebutton(),
         sv = ui.scrollview(),
         outerbox = ui.box('vertical'),
         msgbox = ui.box('vertical'),
@@ -126,8 +138,6 @@ function win.new()
             menu = ui.menu(),
             paste = ui.textmenuitem('Paste', 0xFFFFFFFF, ui.fonts.regular),
         },
-
-        overlay_menu_mi = ui.textmenuitem('Lua Console', 0xFFFFFFFF, overlay_menu.font),
     }
 
     w.settings:setdefault('window.x', 50)
@@ -173,11 +183,11 @@ function win.new()
     w.win:resizable(true)
     w.win:settings(w.settings, 'window')
 
+    w.win:titlebarbox():pushback(w.close_btn, 'middle', false)
+
     w.sv:child(w.msgbox)
 
     setmetatable(w, win)
-
-    w.overlay_menu_mi:addeventhandler(function() w:onmenuclick() end, 'click-left')
 
     w.entry:addeventhandler(function(event) w:onreturn() end, 'return-down')
     w.entry:addeventhandler(function(event) w.entrymenu.menu:show() end, 'click-right')
@@ -186,34 +196,27 @@ function win.new()
 
     if w.settings:get('window.visible') then
         w.win:show()
-        w.overlay_menu_mi:icon(overlay_menu.visible_icon)
-    else
-        w.overlay_menu_mi:icon(overlay_menu.hidden_icon)
     end
+
+    w.close_btn:addeventhandler(function(event) w:hide() end, 'click-left')
 
     return w
 end
 
-function win:onmenuclick()
-    if self.settings:get('window.visible') then
-        self.win:hide()
-        self.settings:set('window.visible', false)
-        self.overlay_menu_mi:icon(overlay_menu.hidden_icon)
-    else
-        self.win:show()
-        self.settings:set('window.visible', true)
-        self.overlay_menu_mi:icon(overlay_menu.visible_icon)
-    end
+function win:show()
+    self.win:show()
+    self.settings:set('window.visible', true)
+end
+
+function win:hide()
+    self.win:hide()
+    self.settings:set('window.visible', false)
 end
 
 function win:clipboardpaste()
     local t = overlay.clipboardtext()
     self.entry:text(t)
     self.entrymenu.menu:hide()
-end
-
-function win:show()
-    self.win:show()
 end
 
 function win:addmessage(msg, color)
@@ -283,7 +286,13 @@ end
 
 
 overlay.addeventhandler('log-message', function(event, message) console:onlogmessage(message) end)
-overlay.addeventhandler('startup', function()
-    overlay_menu.additem(console.overlay_menu_mi)
+
+overlay_menu.additem('Lua Console', 'terminal', function()
+    if console.settings:get('window.visible') then
+        console:hide()
+    else
+        console:show()
+    end
 end)
+
 return {}

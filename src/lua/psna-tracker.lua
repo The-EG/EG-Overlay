@@ -59,10 +59,6 @@ function M:init()
     self.weekday = 0
     self.lastupdate = os.time()
 
-    self.overlaymenuitem = ui.textmenuitem('PSNA Tracker', 0xFFFFFFFF, overlay_menu.font)
-    self.overlaymenuitem:icon(overlay_menu.hidden_icon)
-    self.overlaymenuitem:addeventhandler(function() self:onmenuclick() end, 'click-left')
-
     self.agents = {
         mehem = self:newagent(
             'Mehem the Traveled',
@@ -202,7 +198,6 @@ function M:show()
         self.win:show()
         self.settings:set('window.show', true)
         self.visible = true
-        self.overlaymenuitem:icon(overlay_menu.visible_icon)
     end
 end
 
@@ -211,7 +206,6 @@ function M:hide()
         self.win:hide()
         self.settings:set('window.show', false)
         self.visible = false
-        self.overlaymenuitem:icon(overlay_menu.hidden_icon)
     end
 end
 
@@ -297,7 +291,8 @@ if M.settings:get('window.show') then
     M:show()
 end
 
-overlay.addeventhandler('startup', function() overlay_menu.additem(M.overlaymenuitem) end)
 overlay.addeventhandler('update', function() M:onupdate() end)
+
+overlay_menu.additem('PSNA Tracker', 'travel_explore', function() M:onmenuclick() end)
 
 return M
