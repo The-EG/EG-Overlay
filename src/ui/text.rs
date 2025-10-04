@@ -18,7 +18,6 @@ pub struct Text {
 
 struct TextInner {
     text: String,
-    line_breaks: Vec<usize>,
     font: Arc<ui::font::Font>,
 
     pref_width: i64,
@@ -37,7 +36,6 @@ impl Text {
     pub fn new(text: &str, color: ui::Color, font: &Arc<ui::font::Font>) -> Arc<ui::Element> {
         let mut t = TextInner {
             text: String::from(text.replace("\t","    ")),
-            line_breaks: Vec::new(),
             font: font.clone(),
 
             pref_width: 0,
@@ -134,33 +132,18 @@ impl Text {
 
 impl TextInner {
     pub fn update_text_size(&mut self) {
-        let mut cind = 0;
-
-        self.line_breaks.clear();
-
-        for c in self.text.chars() {
-            if c == '\n' {
-                self.line_breaks.push(cind);
-            }
-            cind += 1;
-        }
-
-        self.line_breaks.push(self.text.len());
+        let mut lines = 0;
 
         self.pref_width = 0;
-        let mut prev_end: usize = 0;
-        for &end in &self.line_breaks {
-            let line = &self.text[prev_end..end];
+
+        for line in self.text.lines() {
+            lines += 1;
+
             let w = self.font.get_text_width(line) as i64;
             if w > self.pref_width { self.pref_width = w; }
-            prev_end = end + 1;
         }
 
-        if self.line_breaks.len() > 0 {
-            self.pref_height = self.font.get_line_spacing() as i64 * self.line_breaks.len() as i64;
-        } else {
-            self.pref_height = self.font.get_line_spacing() as i64;
-        }
+        self.pref_height = self.font.get_line_spacing() as i64 * lines;
     }
 
     pub fn draw(
@@ -176,14 +159,9 @@ impl TextInner {
         let line_height = self.font.get_line_spacing() as i64;
 
         if frame.push_scissor(x, y, x + self.width + 1, y + self.height + 1) {
-            let mut prev_end: usize = 0;
-            for &end in &self.line_breaks {
-                let line = &self.text[prev_end..end];
-
+            for line in self.text.lines() {
                 self.font.render_text(frame, x, y, line, self.fg_color);
                 y += line_height;
-
-                prev_end = end + 1;
             }
             frame.pop_scissor();
         }
