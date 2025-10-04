@@ -38,7 +38,7 @@ local childrenicon = ui.iconcodepoint('subdirectory_arrow_right')
 local function childrenbutton()
     local btn = ui.button()
 
-    local txt = ui.text(childrenicon, ui.color('text'), ui.fonts.icon)
+    local txt = ui.text(childrenicon, ui.color('text'), ui.fonts.icon:tosizeperc(0.85))
 
     local box = ui.box('horizontal')
     box:paddingleft(5)

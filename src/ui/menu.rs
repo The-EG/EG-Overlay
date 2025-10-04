@@ -322,7 +322,7 @@ impl MenuItem {
             enabled: true,
             hover: false,
 
-            icon_size: 20,
+            icon_size: overlay::ui().icon_font.get_line_spacing() as i64,
             post_size: 20,
 
             icon_text: String::new(),
@@ -381,9 +381,14 @@ impl MenuItem {
         let inner = self.inner.lock().unwrap();
 
         if let Some(ele) = inner.element.as_ref() {
-            ele.get_preferred_height() + 4
+            let eh = ele.get_preferred_height() + 4;
+            if eh > inner.icon_size || inner.icon_text.len() == 0 {
+                return eh;
+            } else {
+                return inner.icon_size + 4;
+            }
         } else {
-            4
+            return inner.icon_size + 4;
         }
     }
 
@@ -474,7 +479,9 @@ impl MenuItemInner {
                 );
             }
 
-            ele.draw(offset_x + self.x + 5 + self.icon_size, offset_y + self.y + 2, frame);
+            let ele_y = offset_y + self.y + ((self.height as f64 / 2.0) as i64 - (eleh as f64 / 2.0) as i64);
+
+            ele.draw(offset_x + self.x + 5 + self.icon_size, ele_y, frame);
 
             if self.child_menu.is_some() {
                 let post_x = self.x + offset_x + self.width - self.post_size;

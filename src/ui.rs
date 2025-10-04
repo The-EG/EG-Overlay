@@ -307,7 +307,7 @@ impl Ui {
         }));
 
         o_settings.set_default_value("overlay.ui.font.icon.path"  , "fonts/MaterialSymbolsOutlined.ttf");
-        o_settings.set_default_value("overlay.ui.font.icon.size"  , 12);
+        o_settings.set_default_value("overlay.ui.font.icon.size"  , 16);
         o_settings.set_default_value("overlay.ui.font.icon.vars", serde_json::json!({
             "wght": 500,
         }));
