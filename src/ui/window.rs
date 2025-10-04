@@ -254,7 +254,9 @@ impl WindowInner {
 
             if frame.push_scissor(cap_x, cap_y, cap_x + cap_w, cap_y + cap_h) {
                 let f = self.ui.upgrade().unwrap().regular_font.clone();
-                f.render_text(frame, cap_x, cap_y, &self.caption, ui::Color::from(0xFFFFFFFFu32));
+
+                let text_y = cap_y + (cap_h as f64 / 2.0) as i64 - (f.get_line_spacing() as f64 / 2.0) as i64;
+                f.render_text(frame, cap_x, text_y, &self.caption, ui::Color::from(0xFFFFFFFFu32));
 
                 if box_w > 0 {
                     if box_w > cap_w { box_w = cap_w; }
