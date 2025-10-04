@@ -5,8 +5,8 @@
 pathing_lua_srcs = [
     'init.lua',
     'package.lua',
-    'menu.lua',
     'settings.lua',
+    'settings-win.lua',
     'manager.lua',
     'category-manager.lua',
     'data.lua',
