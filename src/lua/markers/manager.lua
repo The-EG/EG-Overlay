@@ -12,6 +12,13 @@ local ms = require 'markers.settings'
 local gw2 = require 'gw2'
 local dx = require 'dx'
 
+ms:setdefault('defaultMarkerColor', 0xFFFFFF)
+ms:setdefault('defaultMarkerAlpha', 1.0)
+ms:setdefault('defaultHeightOffset', 1.5)
+ms:setdefault('defaultIconSize', 1.0)
+ms:setdefault('markerBaseSize', 80)
+ms:setdefault('defaultMarkerMapDisplaySize', 20)
+
 local M = {}
 
 M.textures = dx.texturemap()
@@ -415,6 +422,13 @@ function M.addcategorymarkers(category)
     local markercount = 0
     local b6id = string.format('%d|%d', ml.context.mapid(), ml.context.shardid())
 
+    local defaultcolor = ms:get('defaultMarkerColor')
+    local defaultalpha = ms:get('defaultMarkerAlpha')
+    local defaultheightoffset = ms:get('defaultHeightOffset')
+    local defaulticonsize = ms:get('defaultIconSize')
+    local markerbasesize = ms:get('markerBaseSize')
+    local defaultmapsize = ms:get('defaultMarkerMapDisplaySize')
+
     for m in category:markersinmapiter(ml.context.mapid()) do
         if m.guid ~= nil then
             if m.behavior == 1 and M.behaviormgr.mapguids[m.guid] then
@@ -432,16 +446,16 @@ function M.addcategorymarkers(category)
             end
         end
 
-        local color = ((m.color or 0xFFFFFF) << 8) | 0xFF
-        local alpha_f = m.alpha or 1.0
-        local alpha = math.tointeger(alpha_f * 255)
+        local color = ((m.color or defaultcolor) << 8) | 0xFF
+        local alpha_f = m.alpha or defaultalpha
+        local alpha = math.tointeger(math.floor(alpha_f * 255))
         color = (color & 0xFFFFFF00) | alpha
 
         local worldmarkerattrs = {
             x = m2in(m.xpos),
-            y = m2in(m.ypos + (m.heightoffset or 1.5)),
+            y = m2in(m.ypos + (m.heightoffset or defaultheightoffset)),
             z = m2in(m.zpos),
-            size = (m.iconsize or 1.0) * 80,
+            size = (m.iconsize or defaulticonsize) * markerbasesize,
             fadefar = m.fadefar or -1,
             fadenear = m.fadenear or -1,
             color = color,
@@ -460,7 +474,7 @@ function M.addcategorymarkers(category)
             x = cx,
             y = cy,
             z = 0.0,
-            size = m.mapdisplaysize or 20,
+            size = m.mapdisplaysize or defaultmapsize,
             tags = worldmarkerattrs.tags,
             mousetest = true,
         }
