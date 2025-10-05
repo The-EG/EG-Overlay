@@ -1160,6 +1160,8 @@ fn create_device(adapter: &Dxgi::IDXGIAdapter4) -> Direct3D12::ID3D12Device9 {
     Direct3D12::D3D_SHADER_MODEL_6_5 => hlslmodel = "6.5",
     Direct3D12::D3D_SHADER_MODEL_6_6 => hlslmodel = "6.6",
     Direct3D12::D3D_SHADER_MODEL_6_7 => hlslmodel = "6.7",
+    Direct3D12::D3D_SHADER_MODEL_6_8 => hlslmodel = "6.8",
+    Direct3D12::D3D_SHADER_MODEL_6_9 => hlslmodel = "6.9",
     _                                => hlslmodel = "Unknown",
     }
 
