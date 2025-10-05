@@ -31,9 +31,3 @@ require 'psna-tracker'
 
 require 'markers'
 
---require 'mumble-link-info'
--- local t2d = require 'markers.taco2db'
--- 
--- local c = t2d.taco2db.new("D:\\Documents\\dev\\eg-overlay-rust-branch\\data\\tw_ALL_IN_ONE-3.7.4.taco","D:\\Documents\\dev\\eg-overlay-rust-branch\\data\\tw_ALL_IN_ONE-3.7.4.db")
--- c:run()
--- 
