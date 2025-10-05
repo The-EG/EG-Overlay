@@ -55,6 +55,7 @@ const WIN_FUNCS: &[luaL_Reg] = luaL_Reg_list!{
     c"position"   , position,
     c"titlebar"   , titlebar,
     c"titlebarbox", titlebar_box,
+    c"updatesize" , update_size,
 };
 
 unsafe fn checkwindow<'a>(l: &lua_State, element: &'a ManuallyDrop<Arc<ui::Element>>) -> &'a Window {
@@ -368,6 +369,30 @@ unsafe extern "C" fn titlebar_box(l: &lua_State) -> i32 {
     ui::uibox::lua::push_box(l, &inner.titlebar_box);
 
     return 1;
+}
+
+/*** RST
+    .. lua:method:: updatesize()
+
+        Explicitly update the window's size.
+
+        This causes the window to evaluate its child and its children, etc. to
+        recalculate its final size.
+
+        This can be used to get a window's size before it is shown to reposition it.
+
+        .. versionhistory::
+            :0.3.0: Added
+*/
+unsafe extern "C" fn update_size(l: &lua_State) -> i32 {
+    let e = unsafe { ui::lua::checkelement(l, 1) };
+    let win = unsafe { checkwindow(l, &e) };
+
+    let mut inner = win.win.lock().unwrap();
+
+    inner.update_size();
+
+    return 0;
 }
 
 /*** RST

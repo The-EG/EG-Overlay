@@ -395,6 +395,20 @@ impl WindowInner {
         true
     }
 
+    fn update_size(&mut self) {
+        if !self.resizable && self.child.is_some() {
+            let child_width = self.child.as_ref().unwrap().get_preferred_width();
+            let child_height = self.child.as_ref().unwrap().get_preferred_height();
+
+            self.width = child_width + 4;
+            if self.show_titlebar {
+                self.height = child_height + self.titlebar_height + 3;
+            } else {
+                self.height = child_height + 4;
+            }
+        }
+    }
+
     pub fn draw(
         &mut self,
         offset_x: i64,
