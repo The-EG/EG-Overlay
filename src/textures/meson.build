@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: MIT
 
 configure_file(
-    input: 'eg-overlay-32x32.png',
-    output: 'eg-overlay-32x32.png',
+    input: 'eg-overlay-256x256.png',
+    output: 'eg-overlay-256x256.png',
     copy: true
 )

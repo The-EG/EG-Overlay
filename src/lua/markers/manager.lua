@@ -478,7 +478,7 @@ function M.addcategorymarkers(category)
 
             if not texdata then
                 overlay.logerror(string.format("Missing marker image: %s", texturename))
-                local default = io.open('textures/eg-overlay-32x32.png', 'rb')
+                local default = io.open('textures/eg-overlay-256x256.png', 'rb')
                 texdata = default:read('a')
                 default:close()
             end
