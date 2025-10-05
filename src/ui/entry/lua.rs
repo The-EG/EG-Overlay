@@ -48,6 +48,7 @@ const ENTRY_FUNCS: &[luaL_Reg] = luaL_Reg_list!{
     c"addeventhandler"   , add_event_handler,
     c"removeeventhandler", remove_event_handler,
     c"readonly"          , read_only,
+    c"sendevent"         , send_event,
 };
 
 pub fn register_module_functions(l: &lua_State) {
@@ -307,6 +308,33 @@ unsafe extern "C" fn read_only(l: &lua_State) -> i32 {
     let val = lua::toboolean(l, 2);
 
     entry.inner.lock().unwrap().readonly = val;
+
+    return 0;
+}
+
+/*** RST
+    .. lua:method:: sendevent(event)
+
+        Send an event to event handlers of this entry.
+
+        .. note::
+
+            This is only intended to be used when sub-classing an entry.
+
+        :param string event:
+
+        .. versionhistory::
+            :0.3.0: Added
+*/
+unsafe extern "C" fn send_event(l: &lua_State) -> i32 {
+    lua::checkargstring!(l, 2);
+
+    let ele = unsafe { ui::lua::checkelement(l, 1) };
+    let entry = unsafe { checkentry(l, &ele) };
+
+    let event = lua::tostring(l, 2).unwrap();
+
+    entry.inner.lock().unwrap().queue_events(&event);
 
     return 0;
 }
