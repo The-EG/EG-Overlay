@@ -478,4 +478,119 @@ function M.FileDialog:oncancel()
     self.win:hide()
 end
 
+--[[ RST
+.. lua:class:: MessageDialog
+
+    A simple dialog that displays a message and optional icon with an 'OK' button.
+
+    .. seealso::
+
+        See the :lua:meth:`new` method for creating a new :lua:class:`MessageDialog`
+
+    .. code-block:: lua
+        :caption: Example
+
+        local dialogs = require 'dialogs'
+
+        local d = dialogs.MessageDialog.new('Test Dialog','This is a test!','feedback')
+
+        d:show()
+]]--
+M.MessageDialog = {}
+M.MessageDialog.__index = M.MessageDialog
+
+--[[ RST
+    .. lua:method:: new(title, message[, icon])
+
+        :param string title: The dialog title.
+        :param string message: A message to display. This can include newline
+            (``'\n'``) characters to display multiple lines of text.
+        :param string icon: (Optional) An icon name. If absent, no icon is displayed.
+        :rtype: MessageDialog
+
+        .. versionhistory::
+            :0.3.0: Added
+]]--
+function M.MessageDialog.new(title, message, icon)
+    local d = {}
+
+    d.window = ui.window(title)
+    d.box = ui.box('vertical')
+    d.grid = ui.grid(2, 2)
+
+    d.window:child(d.box)
+    d.box:pushback(d.grid, 'fill', false)
+    d.box:paddingleft(10)
+    d.box:paddingright(10)
+    d.box:paddingbottom(5)
+    d.box:paddingtop(5)
+
+    d.grid:colspacing(10)
+    d.grid:rowspacing(5)
+
+    if icon then
+        local iconcp = ui.iconcodepoint(icon)
+        if iconcp then
+            d.icon = ui.text(iconcp, ui.color('text'), ui.fonts.icon:tosizeperc(2.5))
+            d.grid:attach(d.icon, 1, 1, 1, 1, 'middle', 'middle')
+        end
+    end
+
+    d.message = ui.text(message, ui.color('text'), ui.fonts.regular)
+    d.grid:attach(d.message, 1, 2, 1, 1, 'start', 'middle')
+
+    d.okbtn = ui.button()
+    local box = ui.box('vertical')
+    d.okbtn:child(box)
+    box:paddingleft(10)
+    box:paddingright(10)
+    box:paddingtop(5)
+    box:paddingbottom(5)
+
+    box:pushback(ui.text('Ok', ui.color('text'), ui.fonts.regular), 'middle', false)
+
+    d.grid:attach(d.okbtn, 2, 1, 1, 2, 'middle', 'middle')
+
+    setmetatable(d, M.MessageDialog)
+
+    d.okbtn:addeventhandler(function() d:onok() end, 'click-left')
+
+    return d
+end
+
+function M.MessageDialog:onok()
+    self._okclicked = true
+    self.window:hide()
+end
+
+--[[ RST
+    .. lua:method:: show([wait])
+
+        :param boolean wait: (Optional) If ``true``, this method will not return
+            until the OK button is pressed and the dialog is closed.
+
+        .. versionhistory::
+            :0.3.0: Added
+]]--
+function M.MessageDialog:show(wait)
+    self.window:updatesize()
+
+    local win_width = self.window:width()
+    local win_height = self.window:height()
+
+    local ow, oh = ui.overlaysize()
+
+    local wx = math.floor((ow / 2.0) - (win_width / 2.0))
+    local wy = math.floor((oh / 2.0) - (win_height / 2.0))
+
+    self.window:position(wx, wy)
+
+    self._okclicked = false
+    self.window:show()
+
+    if wait then
+        while not self._okclicked do coroutine.yield() end
+    end
+end
+
 return M
