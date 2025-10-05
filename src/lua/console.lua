@@ -102,16 +102,17 @@ The following settings for the Lua Console are stored in ``settings/console.lua.
 ]]--
 local ui = require 'ui'
 local overlay = require 'overlay'
+local dialogs = require 'dialogs'
 
 local overlay_menu = require 'overlay-menu'
 
-local function winclosebutton()
+local function iconbutton(icon)
     local btn = ui.button()
-    local icon = ui.text(ui.iconcodepoint('close'), ui.color('text'), ui.fonts.icon)
+    local icon = ui.text(ui.iconcodepoint(icon), ui.color('text'), ui.fonts.icon)
 
     btn:child(icon)
     btn:bgcolor(0x00000000)
-
+    btn:borderwidth(0)
 
     return btn
 end
@@ -124,7 +125,8 @@ function win.new()
         settings = overlay.settings('console.lua'),
 
         win = ui.window('Lua Console'),
-        close_btn = winclosebutton(),
+        close_btn = iconbutton('close'),
+        about_btn = iconbutton('info_i'),
         sv = ui.scrollview(),
         outerbox = ui.box('vertical'),
         msgbox = ui.box('vertical'),
@@ -183,6 +185,7 @@ function win.new()
     w.win:resizable(true)
     w.win:settings(w.settings, 'window')
 
+    w.win:titlebarbox():pushback(w.about_btn, 'middle', false)
     w.win:titlebarbox():pushback(w.close_btn, 'middle', false)
 
     w.sv:child(w.msgbox)
@@ -198,6 +201,7 @@ function win.new()
         w.win:show()
     end
 
+    w.about_btn:addeventhandler(function() w:showabout() end, 'click-left')
     w.close_btn:addeventhandler(function(event) w:hide() end, 'click-left')
 
     return w
@@ -211,6 +215,19 @@ end
 function win:hide()
     self.win:hide()
     self.settings:set('window.visible', false)
+end
+
+function win:showabout()
+    local aboutmsg = table.concat({
+        "Lua Console",
+        "\u{A9} 2025 Taylor Talkington (TheEG.5873)",
+        "",
+        "This module is bundled with EG-Overlay,",
+        "see the EG-Overlay documentation for more information."
+    }, "\n")
+
+    local d = dialogs.MessageDialog.new("About Lua Console", aboutmsg, 'info')
+    d:show()
 end
 
 function win:clipboardpaste()
