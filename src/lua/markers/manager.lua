@@ -437,7 +437,7 @@ function M.addcategorymarkers(category)
                 goto nextmarker
             elseif m.behavior == 3 and md.guidactive(m.guid, 'permanent') then
                 goto nextmarker
-            elseif m.behavior == 6 and md.guidactive(m.guid, 'permanent', b6id) then
+            elseif m.behavior == 6 and md.guidactive(m.guid, 'day', b6id) then
                 goto nextmarker
             elseif m.behavior == 7 and md.guidactive(m.guid, 'day', ml.identity.name()) then
                 goto nextmarker
