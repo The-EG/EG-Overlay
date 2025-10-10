@@ -66,6 +66,8 @@ pub struct EgOverlay {
     start_time: time::Instant,
 
     restart: atomic::AtomicBool,
+
+    do_resize: atomic::AtomicBool,
 }
 
 /// The state for various internal (Rust) modules.
@@ -182,6 +184,7 @@ pub fn init() {
         }),
 
         restart: atomic::AtomicBool::new(false),
+        do_resize: atomic::AtomicBool::new(false),
     };
 
     *OVERLAY.lock().unwrap() = Some(Arc::new(overlay));
@@ -521,10 +524,6 @@ impl EgOverlay {
         return self.settings.clone();
     }
 
-    pub fn have_dx(&self) -> bool {
-        self.mods.lock().unwrap().dx.is_some()
-    }
-
     pub fn dx(&self) -> Arc<dx::Dx> {
         self.mods.lock().unwrap().dx.as_ref().unwrap().clone()
     }
@@ -629,7 +628,6 @@ unsafe extern "system" fn overlay_wnd_proc(
 ) -> Foundation::LRESULT {
     match msg {
         WindowsAndMessaging::WM_CLOSE => unsafe {
-            warn!("Window closed");
             WindowsAndMessaging::DestroyWindow(hwnd).unwrap();
         },
         WindowsAndMessaging::WM_DESTROY => unsafe {
@@ -641,9 +639,7 @@ unsafe extern "system" fn overlay_wnd_proc(
 
             let o = overlay.as_ref().unwrap();
 
-            if o.have_dx() {
-                o.dx().resize_swapchain(hwnd);
-            }
+            o.do_resize.store(true, atomic::Ordering::Relaxed);
         },
         WM_SYSTRAYEVENT => {
             if (lparam.0 & 0xffff) as u32 == WindowsAndMessaging::WM_CONTEXTMENU {
@@ -726,25 +722,32 @@ fn render_thread(overlay: Arc<EgOverlay>) {
     dx::lua::init(&odx, &overlay.ml(), &ui);
 
     while overlay.running.load(atomic::Ordering::Relaxed) {
-        let frame_begin = overlay.uptime().as_secs_f64();
-
         if overlay.visible.load(atomic::Ordering::Relaxed) {
+            if overlay.do_resize.load(atomic::Ordering::Relaxed) {
+                odx.resize_swapchain(overlay.hwnd());
+                overlay.do_resize.store(false, atomic::Ordering::Relaxed);
+            }
+
+            let frame_begin = overlay.uptime().as_secs_f64();
+
             if let Some(mut frame) = odx.start_frame() {
                 dx::lua::render(&mut frame);
                 ui.draw(&mut frame);
                 frame.end_frame();
+
+                overlay.frame_count.fetch_add(1, atomic::Ordering::Relaxed);
             }
-        }
 
-        overlay.frame_count.fetch_add(1, atomic::Ordering::Relaxed);
+            let frame_end = overlay.uptime().as_secs_f64();
+            let frame_time = (frame_end - frame_begin) * 1000.0;
+            let sleep_time = frame_target - frame_time;
 
-        let frame_end = overlay.uptime().as_secs_f64();
-        let frame_time = (frame_end - frame_begin) * 1000.0;
-        let sleep_time = frame_target - frame_time;
-
-        // if we have extra time, sleep
-        if sleep_time > 0.0 {
-            std::thread::sleep(std::time::Duration::from_secs_f64(sleep_time / 1000.0));
+            // if we have extra time, sleep
+            if sleep_time > 0.0 {
+                std::thread::sleep(std::time::Duration::from_secs_f64(sleep_time / 1000.0));
+            }
+        } else {
+            std::thread::sleep(std::time::Duration::from_millis(25));
         }
     }
 

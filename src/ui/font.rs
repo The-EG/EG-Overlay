@@ -422,7 +422,7 @@ impl Font {
     /// `swapchain` should be obtained from [Dx::start_frame](crate::dx::Dx::start_frame).
     pub fn render_text(
         &self,
-        swapchain: &dx::SwapChainLock,
+        swapchain: &mut dx::SwapChainLock,
         x: i64,
         y: i64,
         text: &str,
@@ -452,6 +452,7 @@ impl Font {
 
             if g.is_none() {
                 drop(data); // unlock the mutex to render_glyph can lock it
+                swapchain.flush_all();
                 self.render_glyph(c);
                 data = self.data.lock().unwrap(); // lock is again
                 g = data.glyphs.get(&codepoint);
@@ -537,7 +538,14 @@ impl Font {
             let codepoint = c as u32;
             if !data.glyphs.contains_key(&codepoint) {
                 drop(data); // unlock the mutex so render_glyph can lock it
+
+                // render the new glyph between frames
+                let dx = crate::overlay::dx();
+                let mut swapchain = dx.swapchain();
+                swapchain.flush_all();
                 self.render_glyph(c);
+                drop(swapchain);
+
                 data = self.data.lock().unwrap(); // relock it again
             }
 

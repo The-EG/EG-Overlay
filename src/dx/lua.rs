@@ -272,7 +272,7 @@ pub fn render(frame: &mut dx::SwapChainLock) {
             }
             frame.set_root_constant_bool(tl_inner.is_map, 0, 39);
 
-            frame.set_vertex_buffers(0, Some(&[tl_inner.vert_buffer_view]));
+            frame.set_vertex_buffer(0, &tl_inner.vert_buffer_view, tl_inner.vert_buffer.as_ref().unwrap());
 
             let mut first = 0;
             for i in 0..tl_inner.texture_names.len() {
@@ -1277,7 +1277,7 @@ impl SpriteListInner {
 
         frame.set_root_constant_bool (self.is_map   , 0, 35);
 
-        frame.set_vertex_buffers(0, Some(&[self.vert_buffer_view]));
+        frame.set_vertex_buffer(0, &self.vert_buffer_view, self.vert_buffer.as_ref().unwrap());
 
         let mut inst: u32 = 0;
         for i in 0..self.texture_names.len() {

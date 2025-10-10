@@ -151,6 +151,9 @@ impl Dx {
         if !swapchain.backbuffer_ready() { return None; }
 
         swapchain.frameind = unsafe { swapchain.swapchain.GetCurrentBackBufferIndex() };
+        swapchain.flush_commands();
+        swapchain.clear_backbuffer_resources();
+        swapchain.clear_backbuffer_psos();
 
         let clear_color: [f32;4] = [0.0, 0.0, 0.0, 0.0];
 
@@ -188,6 +191,13 @@ impl Dx {
         }
 
         return Some(swapchain);
+    }
+
+    /// Lock the swapchain without starting a frame.
+    ///
+    /// This is used to perform actions on the GPU between frames.
+    pub fn swapchain(&self) -> SwapChainLock<'_> {
+        self.swapchain.lock().unwrap()
     }
 
     /// Resizes the swapchain resources for the given window.
@@ -553,6 +563,9 @@ pub struct SwapChain {
 
     scissors: VecDeque<Foundation::RECT>,
     viewports: VecDeque<Direct3D12::D3D12_VIEWPORT>,
+
+    backbuffer_resources: Vec<Vec<Direct3D12::ID3D12Resource>>,
+    backbuffer_psos: Vec<Vec<Direct3D12::ID3D12PipelineState>>,
 }
 
 impl SwapChain {
@@ -676,23 +689,32 @@ impl SwapChain {
 
             swapchain.Present(0, Dxgi::DXGI_PRESENT_ALLOW_TEARING).unwrap();
         }
+    }
 
-        self.flush_commands();
+    pub fn flush_backbuffer_commands(&mut self, backbufferind: usize) {
+        let cur_val: u64 = self.fence_values[backbufferind];
+
+        unsafe { self.cmd_queue.Signal(&self.fence, cur_val).expect("Couldn't signal command queue."); }
+
+        if unsafe { self.fence.GetCompletedValue() } < cur_val {
+            unsafe { self.fence.SetEventOnCompletion(cur_val, Foundation::HANDLE::default()) }
+                .expect("SetEventOnCompletion failed.");
+        }
+
+        self.fence_values[backbufferind] += 1;
+    }
+
+    pub fn flush_all(&mut self) {
+        for f in 0..DX_FRAMES as usize {
+            self.flush_backbuffer_commands(f);
+            self.backbuffer_resources[f].clear();
+            self.backbuffer_psos[f].clear();
+        }
     }
 
     /// Waits for all commands in the command queue to finish.
     pub fn flush_commands(&mut self) {
-        let cur_val: u64 = self.fence_values[self.frameind as usize];
-
-        unsafe {
-            self.cmd_queue.Signal(&self.fence, cur_val).expect("Couldn't signal command queue.");
-            if self.fence.GetCompletedValue() < cur_val {
-                self.fence.SetEventOnCompletion(cur_val, Foundation::HANDLE::default())
-                    .expect("SetEventOnCompletion failed.");
-            }
-        }
-
-        self.fence_values[self.frameind as usize] += 1;
+        self.flush_backbuffer_commands(self.frameind as usize);
     }
 
     /// Resizes the swapchain resources for the given window.
@@ -752,8 +774,9 @@ impl SwapChain {
     /// Sets the current pipeline state.
     ///
     /// All rendering commands added after this call will use the given state.
-    pub fn set_pipeline_state(&self, pso: &Direct3D12::ID3D12PipelineState) {
+    pub fn set_pipeline_state(&mut self, pso: &Direct3D12::ID3D12PipelineState) {
         unsafe { self.cmd_list.SetPipelineState(pso); }
+        self.add_backbuffer_pso(pso);
     }
 
     /// Sets a float value within the shader root signature.
@@ -861,16 +884,42 @@ impl SwapChain {
     }
 
     /// Sets the static texture within the root signature.
-    pub fn set_texture(&self, index: u32, texture: &Texture) {
+    pub fn set_texture(&mut self, index: u32, texture: &Texture) {
+        self.add_backbuffer_resources(&texture.texture);
         unsafe {
             self.cmd_list.SetGraphicsRootDescriptorTable(index + 1, texture.gpu_descriptor_handle);
         }
     }
 
-    pub fn set_vertex_buffers(&mut self, slot: u32, views: Option<&[Direct3D12::D3D12_VERTEX_BUFFER_VIEW]>) {
+    pub fn set_vertex_buffer(&mut self, slot: u32, view: &Direct3D12::D3D12_VERTEX_BUFFER_VIEW, vb: &Direct3D12::ID3D12Resource) {
+        self.add_backbuffer_resources(vb);
         unsafe {
-            self.cmd_list.IASetVertexBuffers(slot, views)
+            self.cmd_list.IASetVertexBuffers(slot, Some(&[*view]));
         }
+    }
+
+    fn clear_backbuffer_psos(&mut self) {
+        self.backbuffer_psos[self.frameind as usize].clear();
+    }
+
+    fn add_backbuffer_pso(&mut self, pso: &Direct3D12::ID3D12PipelineState) {
+        for p in &self.backbuffer_psos[self.frameind as usize] {
+            if p == pso { return; }
+        }
+
+        self.backbuffer_psos[self.frameind as usize].push(pso.clone());
+    }
+
+    fn clear_backbuffer_resources(&mut self) {
+        self.backbuffer_resources[self.frameind as usize].clear();
+    }
+
+    fn add_backbuffer_resources(&mut self, resource: &Direct3D12::ID3D12Resource) {
+        for r in &self.backbuffer_resources[self.frameind as usize] {
+            if r == resource { return; }
+        }
+
+        self.backbuffer_resources[self.frameind as usize].push(resource.clone());
     }
 
     pub fn current_scissor(&self) -> Foundation::RECT {
@@ -941,6 +990,12 @@ impl SwapChain {
 
 impl Drop for SwapChain {
     fn drop(&mut self) {
+        // finish all rendering
+        for f in 0..DX_FRAMES {
+            self.frameind = f;
+            self.flush_commands();
+        }
+
         // Drop our manually held DirectComposition objects
         unsafe {
             drop(DirectComposition::IDCompositionDevice::from_raw(self.comp_dev_ptr    as *mut std::ffi::c_void));
@@ -1369,7 +1424,15 @@ fn create_swapchain(device: &Direct3D12::ID3D12Device, hwnd: Foundation::HWND) -
 
         scissors: VecDeque::new(),
         viewports: VecDeque::new(),
+
+        backbuffer_resources: Vec::new(),
+        backbuffer_psos: Vec::new(),
     };
+
+    for _ in 0..DX_FRAMES as usize {
+        swapchain.backbuffer_resources.push(Vec::new());
+        swapchain.backbuffer_psos.push(Vec::new());
+    }
 
     swapchain.update_rtvs();
     swapchain.create_dsbuffer();

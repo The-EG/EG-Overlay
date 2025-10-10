@@ -71,7 +71,7 @@ impl Rect {
         }
     }
 
-    pub fn draw(&self, frame: &dx::SwapChainLock, x: i64, y: i64, width: i64, height: i64, color: ui::Color) {
+    pub fn draw(&self, frame: &mut dx::SwapChainLock, x: i64, y: i64, width: i64, height: i64, color: ui::Color) {
         frame.set_pipeline_state(&self.pso);
 
         let left   = x as f32;
