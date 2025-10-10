@@ -5,6 +5,7 @@ pub mod lua;
 
 use std::sync::Arc;
 use std::sync::Mutex;
+use std::sync::Weak;
 
 //#[allow(unused_imports)]
 //use crate::logging::{debug, info, warn, error};
@@ -46,6 +47,9 @@ struct BoxInner {
     spacing: i64,
 
     //events: bool,
+
+    bgcolor: ui::Color,
+    ui: Weak<ui::Ui>,
 }
 
 impl Box {
@@ -71,6 +75,9 @@ impl Box {
                 spacing: 0,
 
                 //events: false,
+
+                bgcolor: ui::Color::from(0x00000000u32),
+                ui: Arc::downgrade(&crate::overlay::ui()),
             }),
         }))
     }
@@ -125,8 +132,13 @@ impl Box {
         self.inner.lock().unwrap().height = height;
     }
 
-    pub fn get_bg_color(&self) -> ui::Color { ui::Color::from(0x00000000u32) }
-    pub fn set_bg_color(&self, _: ui::Color) {}
+    pub fn get_bg_color(&self) -> ui::Color {
+        self.inner.lock().unwrap().bgcolor
+    }
+
+    pub fn set_bg_color(&self, color: ui::Color) {
+        self.inner.lock().unwrap().bgcolor = color;
+    }
 
     pub fn get_preferred_width(&self) -> i64 {
         self.inner.lock().unwrap().get_preferred_width()
@@ -234,13 +246,17 @@ impl BoxInner {
         let scissor_top = offset_y + self.y + self.padding_top;
         let scissor_bottom = offset_y + self.y + self.height - self.padding_bottom;
         if frame.push_scissor(scissor_left, scissor_top, scissor_right, scissor_bottom) {
+            let r = &self.ui.upgrade().unwrap().rect;
+
+            r.draw(frame, offset_x + self.x, offset_y + self.y, self.width, self.height, self.bgcolor);
+
             match self.orientation {
             ui::ElementOrientation::Vertical => {
                 let mut y = match self.alignment {
                     ui::ElementAlignment::Start |
                     ui::ElementAlignment::Fill   => offset_y + self.y + self.padding_top,
-                    ui::ElementAlignment::Middle => offset_y + self.y + (self.height / 2) - ((pref_height + extra_room) / 2),
-                    ui::ElementAlignment::End    => offset_y + self.y - self.padding_bottom - pref_height,
+                    ui::ElementAlignment::Middle => offset_y + self.y + self.padding_top + (self.height / 2) - ((pref_height + extra_room) / 2),
+                    ui::ElementAlignment::End    => offset_y + self.y + self.height + self.padding_top - pref_height - extra_room,
                 };
 
                 for item in &self.items {
@@ -280,7 +296,7 @@ impl BoxInner {
                     ui::ElementAlignment::Start |
                     ui::ElementAlignment::Fill    => offset_x + self.x + self.padding_left,
                     ui::ElementAlignment::Middle  => offset_x + self.x + self.padding_left + ((self.width - self.padding_left - self.padding_right) / 2) - ((pref_width - self.padding_left - self.padding_right) / 2),
-                    ui::ElementAlignment::End     => offset_x + self.x + self.width - self.padding_right - pref_width,
+                    ui::ElementAlignment::End     => offset_x + self.x + self.width - self.padding_right - pref_width - extra_room,
                 };
 
                 for item in &self.items {
@@ -324,6 +340,7 @@ impl BoxInner {
             ui::ElementOrientation::Horizontal => {
                 for item in &self.items {
                     w += item.element.get_preferred_width();
+
                     if !std::ptr::eq(item, self.items.back().unwrap()) {
                         w += self.spacing;
                     }
