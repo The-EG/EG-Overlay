@@ -172,4 +172,47 @@ function M.intentry(font)
     return e
 end
 
+local ToggleMenuItem = {}
+
+function ToggleMenuItem:__index(key)
+    if ToggleMenuItem[key] then return ToggleMenuItem[key] end
+
+    return ToggleMenuItem.__super_metatable[key]
+end
+
+function ToggleMenuItem:__gc()
+    ToggleMenuItem.__super_metatable.__gc(self)
+end
+
+function ToggleMenuItem:state(value)
+    if value then
+        self:icon(ui.iconcodepoint('check'))
+    else
+        self:icon('')
+    end
+end
+
+function M.togglemenuitem(text, color, font)
+    local mi = ui.textmenuitem(text, color, font)
+
+    if not ToggleMenuItem.__super_metatable then
+        local orig_mt = debug.getmetatable(mi)
+        ToggleMenuItem.__super_metatable = orig_mt
+    end
+
+    debug.setmetatable(mi, ToggleMenuItem)
+
+    mi:addeventhandler(function()
+        if not mi:icon() then
+            mi:icon(ui.iconcodepoint('check'))
+            mi:sendevent('toggle-on')
+        else
+            mi:icon('')
+            mi:sendevent('toggle-off')
+        end
+    end, 'click-left')
+
+    return mi
+end
+
 return M

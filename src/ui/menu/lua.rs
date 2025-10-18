@@ -506,6 +506,7 @@ const MENUITEM_FUNCS: &[luaL_Reg] = luaL_Reg_list!{
     c"submenu"           , menuitem_submenu,
     c"addeventhandler"   , menuitem_add_event_handler,
     c"removeeventhandler", menuitem_remove_event_handler,
+    c"sendevent"         , menuitem_send_event,
 };
 
 unsafe fn checkmenuitem<'a>(l: &lua_State, element: &'a ManuallyDrop<Arc<ui::Element>>) -> &'a MenuItem {
@@ -714,6 +715,33 @@ unsafe extern "C" fn menuitem_remove_event_handler(l: &lua_State) -> i32 {
     }
 
     lua::L::unref(l, lua::LUA_REGISTRYINDEX, ehref);
+
+    return 0;
+}
+
+/*** RST
+    .. lua:method:: sendevent(event)
+
+        Send an event to event handlers of this menu item.
+
+        .. note::
+
+            This is only intended to be used when sub-classing a menu item.
+
+        :param string event:
+
+        .. versionhistory::
+            :0.3.0: Added
+*/
+unsafe extern "C" fn menuitem_send_event(l: &lua_State) -> i32 {
+    lua::checkargstring!(l, 2);
+
+    let mi_e = unsafe { ui::lua::checkelement(l, 1) };
+    let mi = unsafe { checkmenuitem(l, &mi_e) };
+
+    let event = lua::tostring(l, 2).unwrap();
+
+    mi.inner.lock().unwrap().queue_events(&event);
 
     return 0;
 }
