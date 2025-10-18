@@ -442,18 +442,26 @@ unsafe extern "C" fn show(l: &lua_State) -> i32 {
         x = unsafe { lua::L::checkinteger(l, 2) };
         y = unsafe { lua::L::checkinteger(l, 3) };
     } else if lua::gettop(l) == 1 {
-        // x,y = require('ui').mouseposition()
-        lua::getglobal(l,"require");
-        lua::pushstring(l, "ui");
-        lua::call(l, 1, 1);
+        let ui = crate::overlay::ui();
 
-        lua::getfield(l, -1, "mouseposition");
-        lua::call(l, 0, 2);
+        let mx = ui.get_last_mouse_x();
+        let my = ui.get_last_mouse_y();
+        let (w, h) = ui.get_last_ui_size();
 
-        x = lua::tointeger(l, -2);
-        y = lua::tointeger(l, -1);
+        let menu_w = menu.get_preferred_width();
+        let menu_h = menu.get_preferred_height();
 
-        lua::pop(l, 3);
+        if mx + menu_w < w as i64 {
+            x = mx;
+        } else {
+            x = mx - menu_w;
+        }
+
+        if my + menu_h < h as i64 {
+            y = my;
+        } else {
+            y = my - menu_h;
+        }
     } else {
         lua::pushstring(l, "menu:show takes either 0 or 2 arguments.");
         return unsafe { lua::error(l) };
@@ -510,18 +518,6 @@ unsafe fn checkmenuitem<'a>(l: &lua_State, element: &'a ManuallyDrop<Arc<ui::Ele
     }
 }
 
-
-unsafe extern "C" fn menuitem_element(l: &lua_State) -> i32 {
-    let mi_e = unsafe { ui::lua::checkelement(l, 1) };
-    let mi = unsafe { checkmenuitem(l, &mi_e) };
-
-    let e = unsafe { ui::lua::checkelement(l, 2) };
-
-    mi.inner.lock().unwrap().element = Some((*e).clone());
-
-    return 0;
-}
-
 /*** RST
 .. lua:class:: uimenuitem
 
@@ -566,11 +562,35 @@ unsafe extern "C" fn menuitem_enabled(l: &lua_State) -> i32 {
 }
 
 /*** RST
-    .. lua:method:: icon(codepoint)
+    .. lua:method:: element(element)
 
-        Set the icon to be shown on this menu item.
+        Set the UI Element to be displayed in this menu item.
 
-        :param string codepoint: codepoint/string value of the icon
+        :param uielement element:
+
+        .. versionhistory::
+            :0.3.0: Added
+*/
+unsafe extern "C" fn menuitem_element(l: &lua_State) -> i32 {
+    let mi_e = unsafe { ui::lua::checkelement(l, 1) };
+    let mi = unsafe { checkmenuitem(l, &mi_e) };
+
+    let e = unsafe { ui::lua::checkelement(l, 2) };
+
+    mi.inner.lock().unwrap().element = Some((*e).clone());
+
+    return 0;
+}
+
+/*** RST
+    .. lua:method:: icon([codepoint])
+
+        Get or set the icon to be shown on this menu item.
+
+        If ``codepoint`` is not supplied, the current icon string is returned.
+
+        :param string codepoint: (Optional) codepoint/string value of the icon
+        :rtype: string
 
         .. seealso::
 
@@ -583,15 +603,30 @@ unsafe extern "C" fn menuitem_icon(l: &lua_State) -> i32 {
     let mi_e = unsafe { ui::lua::checkelement(l, 1) };
     let mi = unsafe { checkmenuitem(l, &mi_e) };
 
-    let icon = unsafe { lua::L::checkstring(l, 2) };
+    if lua::gettop(l) >= 2 {
+        if let Some(icon) = lua::tostring(l, 2) {
+            mi.inner.lock().unwrap().icon_text = icon;
+        } else {
+            luaerror!(l, "codepoint must be a string");
+        }
 
-    mi.inner.lock().unwrap().icon_text = String::from(icon);
+        return 0;
+    }
 
-    return 0;
+    let inner = mi.inner.lock().unwrap();
+    if inner.icon_text.len() > 0 {
+        lua::pushstring(l, &inner.icon_text);
+    } else {
+        lua::pushnil(l);
+    }
+
+    return 1;
 }
 
 /*** RST
     .. lua:method:: submenu(menu)
+
+        Set a sub-menu to be shown when this menu item is hovered.
 
         :param uimenu menu:
 

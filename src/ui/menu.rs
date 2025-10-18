@@ -114,11 +114,11 @@ impl Menu {
     }
 
     pub fn get_preferred_width(&self) -> i64 {
-        todo!();
+        self.inner.lock().unwrap().itembox.get_preferred_width() + 2
     }
 
     pub fn get_preferred_height(&self) -> i64 {
-        todo!();
+        self.inner.lock().unwrap().itembox.get_preferred_height() + 2
     }
 
     pub fn get_x(&self) -> i64 {
@@ -382,7 +382,7 @@ impl MenuItem {
 
         if let Some(ele) = inner.element.as_ref() {
             let eh = ele.get_preferred_height() + 4;
-            if eh > inner.icon_size || inner.icon_text.len() == 0 {
+            if eh > inner.icon_size || (inner.element.is_some() && inner.element.as_ref().unwrap().as_separator().is_some()) {
                 return eh;
             } else {
                 return inner.icon_size + 4;
