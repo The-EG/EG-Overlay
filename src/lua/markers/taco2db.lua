@@ -239,6 +239,11 @@ function M.taco2db:createtrail(cat, props)
 
     local trail_file = self.taco:content(props.traildata)
 
+    if not trail_file then
+        overlay.logerror(string.format('traildata %s does not exist.', props.traildata))
+        return
+    end
+
     local trail_file_len = #trail_file
 
     local trailver, map_id = string.unpack('<I4I4', trail_file)
