@@ -204,6 +204,7 @@ pub fn init() {
     lua_manager::init();
 
     crate::lua_shell::init();
+    crate::lua_path::init();
 
     // don't keep mods locked, Ui::new needs dx, etc.
     o.mods.lock().unwrap().dx = Some(dx::Dx::new());

@@ -41,6 +41,7 @@ include_patterns = [
     'docs/**',
     'src/**/lua.rs',
     'src/lua_sqlite3.rs',
+    'src/lua_path.rs',
     '*.rst',
     'src/**/*.rst',
 
