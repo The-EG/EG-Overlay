@@ -122,7 +122,7 @@ impl ZipFile {
         while cd_read_size < self.cd_size {
             let cd = self.read_central_directory_header()?;
             cd_read_size += cd.size() as u64;
-            self.central_directory.insert(cd.file_name.to_lowercase(),cd);
+            self.central_directory.insert(cd.file_name.to_lowercase().replace("\\","/"),cd);
         }
 
         Ok(())
