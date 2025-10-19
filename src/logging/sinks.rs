@@ -5,7 +5,7 @@ use std::io::Write;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::MutexGuard;
-use std::fs::File;
+use std::fs::{OpenOptions, File};
 use std::io::BufWriter;
 
 use std::ffi::CString;
@@ -87,7 +87,7 @@ pub struct FileSink {
 
 impl FileSink {
     pub fn new(path: &str) -> FileSink {
-        let f = File::create(path).expect("Couldn't open log file.");
+        let f = OpenOptions::new().append(true).create(true).open(path).expect("Couldn't open log file.");
         let w = BufWriter::new(f);
 
         return FileSink {
