@@ -546,7 +546,7 @@ function M.addcategorytrails(category)
         local texturename = trail.texture
 
         local color = ((trail.color or 0xFFFFFF) << 8) | 0xFF
-        local alpha = math.tointeger((trail.alpha or 1.0) * 255)
+        local alpha = math.tointeger((trail.alpha or 1.0) * 255.0) or 255
         color = (color & 0xFFFFFF00) | alpha
 
         if not M.textures:has(texturename) then
@@ -608,6 +608,16 @@ end
 
 function M.loadmarkerpack(path)
     M.markerpacks[path] = mp.markerpack:new(path)
+    M.behaviormgr.mapguids = {}
+    M.reloadcategories(true)
+    overlay.queueevent('markers-packs-updated')
+end
+
+function M.unloadmarkerpack(path)
+    M.markerpacks[path] = nil
+    M.behaviormgr.mapguids = {}
+    M.reloadcategories(true)
+    overlay.queueevent('markers-packs-updated')
 end
 
 function M.showcategory(category)

@@ -5,6 +5,8 @@
 local settings = require 'markers.settings'
 local ui = require 'ui'
 local uiextra = require 'ui-extra'
+local dialogs = require 'dialogs'
+local overlay = require 'overlay'
 
 local M = {}
 
@@ -223,19 +225,56 @@ function SettingsWindow.new()
         w:hide()
     end, 'click-left')
 
+    w.packslbl.btn:addeventhandler(function() w:onaddpackclicked() end, 'click-left')
+
     setmetatable(w, SettingsWindow)
     return w
 end
 
-function SettingsWindow:show()
+function SettingsWindow:removepack(path)
+    local packs = settings:get('markerpacks')
+    local newpacks = {}
+    for i,p in ipairs(packs) do
+        if p~=path then table.insert(newpacks, p) end
+    end
+    settings:set('markerpacks', newpacks)
+
+    require('markers.manager').unloadmarkerpack(path)
+    self:updatepacks()
+end
+
+function SettingsWindow:addpack(path)
+    local packs = settings:get('markerpacks')
+
+    for i,p in ipairs(packs) do
+        if p==path then
+            overlay.logwarn(string.format("Can't load duplicate pack: %s", path))
+            local d = dialogs.MessageDialog('Duplicate Pack', string.format('%s is already loaded', path))
+            d:show()
+            return
+        end
+    end
+
+    table.insert(packs, path)
+    settings:set('markerpacks', packs)
+
+    require('markers.manager').loadmarkerpack(path)
+    self:updatepacks()
+end
+
+function SettingsWindow:onaddpackclicked()
+    local d = dialogs.FileDialog.new('open-file')
+    d.filefilters = {'.db'}
+    d.confirmcallback = function(path) self:addpack(path) end
+
+    d:show()
+end
+
+function SettingsWindow:updatepacks()
     if self.packsgrid then
         self.outerbox:removeitem(self.packsgrid)
         self.packsgrid = nil
     end
-
-    settings:set('settingsWindow.visible', true)
-
-    self.win:show()
 
     local packpaths = settings:get('markerpacks')
 
@@ -251,7 +290,17 @@ function SettingsWindow:show()
 
         self.packsgrid:attach(lbl, i, 1, 1, 1, 'start', 'middle')
         self.packsgrid:attach(btn, i, 2, 1, 1, 'middle', 'middle')
+
+        btn:addeventhandler(function() self:removepack(path) end, 'click-left')
     end
+end
+
+function SettingsWindow:show()
+    settings:set('settingsWindow.visible', true)
+
+    self:updatepacks()
+
+    self.win:show()
 end
 
 function SettingsWindow:hide()

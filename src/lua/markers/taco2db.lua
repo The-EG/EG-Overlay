@@ -3,6 +3,9 @@
 -- SPDX-License-Identifier: MIT
 local overlay = require 'overlay'
 local markerspackage = require 'markers.package'
+local ui = require 'ui'
+local dialogs = require 'dialogs'
+local path = require 'path'
 
 local M = {}
 
@@ -207,7 +210,7 @@ function M.taco2db:createcategory(typeid, props)
 
     if props.texture then
         if not self:createdatafile(props.texture) then
-            overlay.logwarn(string.format('texture %s does not exist.', props.texdata))
+            overlay.logwarn(string.format('texture %s does not exist.', props.texture))
         end
     end
 end
@@ -269,6 +272,42 @@ function M.taco2db:createtrail(cat, props)
     end
 end
 
+-- cleanup bad xml, mostly those that have bare & instead of &amp;
+local function cleanxml(xmldata, xmlname)
+    local outlines = {}
+
+    local linechars = {}
+    for c = 1, xmldata:len() do
+        local ch = xmldata:sub(c,c)
+        table.insert(linechars, ch)
+
+        if ch=='\n' then
+            table.insert(outlines, table.concat(linechars,''))
+            linechars = {}
+        elseif ch=='&' then
+            for lookahead = c + 1, xmldata:len() do
+                local lach = xmldata:sub(lookahead,lookahead)
+
+                if lach==';' then break end
+
+                if lach and not lach:match('[%a%d:%.%-]') then
+                    overlay.logwarn(string.format('%s:%d: invalid entity: %s', xmlname, #outlines + 1, xmldata:sub(c, lookahead)))
+
+                    -- assume this is a raw ampersand and escape it
+                    table.insert(linechars, 'amp;')
+                    break
+                end
+            end
+        end
+    end
+
+    if #linechars > 0 then
+        table.insert(outlines, table.concat(linechars, ''))
+    end
+
+    return table.concat(outlines, '')
+end
+
 function M.taco2db:run()
     local start = overlay.time()
 
@@ -292,10 +331,10 @@ function M.taco2db:run()
     for i,f in ipairs(files) do
         overlay.loginfo(string.format('  %s', f))
 
-        local xml = self.taco:content(f)
+        local xml = cleanxml(self.taco:content(f), f)
 
         overlay.parsexml(xml, function(event, data) self:xmlevent(event, data) end)
-        coroutine.yield()
+        coroutine.yield('Parsing XML:',i, #files)
     end
 
     local typeids = {}
@@ -316,7 +355,7 @@ function M.taco2db:run()
 
         self:createcategory(typeid, props)
 
-        coroutine.yield()
+        coroutine.yield('Creating categories:', i, #self.categories_ins)
     end
 
     overlay.loginfo('Creating POIs...')
@@ -332,7 +371,7 @@ function M.taco2db:run()
         else
             overlay.logwarn(string.format('POI with no typeid, ignoring...'))
         end
-        coroutine.yield()
+        coroutine.yield('Creating POIs:', i, #self.pois)
     end
 
     overlay.loginfo('Creating Trails...')
@@ -351,19 +390,19 @@ function M.taco2db:run()
         else
             overlay.logwarn("Trail with no typeid, ignoring...")
         end
-        coroutine.yield()
+        coroutine.yield('Creating trails:', i, #self.trails)
     end
 
     self.mp.db:execute('COMMIT')
 
     overlay.loginfo('Done, optimizing database...')
     self.mp.db:execute('PRAGMA optimize')
-    coroutine.yield()
+    coroutine.yield('Optimizing Database...')
     self.mp.db:execute('VACUUM')
 
     local finish = overlay.time()
 
-    coroutine.yield()
+    coroutine.yield('Done.')
 
     local duration = finish - start
     local durstr = require('utils').durationtostring(duration * 1000.0)
@@ -457,6 +496,212 @@ function M.taco2db:processtrail(data)
     end
 
     table.insert(self.trails, trail)
+end
+
+M.wizard = {}
+M.wizard.__index = M.wizard
+
+local function txtbutton(text)
+    local btn = ui.button()
+    local box = ui.box('vertical')
+    local txt = ui.text(text, ui.color('text'), ui.fonts.regular)
+
+    btn:child(box)
+    box:paddingleft(10)
+    box:paddingright(10)
+    box:paddingtop(5)
+    box:paddingbottom(5)
+    box:pushback(txt, 'middle', false)
+
+    return btn
+end
+
+function M.wizard.start()
+    local w = {}
+
+    setmetatable(w, M.wizard)
+
+    w.win = ui.window('Import TacO Pack')
+    w.box = ui.box('vertical')
+    w.msg = ui.text(table.concat({
+        'This utility will convert a TacO/zip marker pack into the EG-Overlay',
+        'marker package format.',
+        '',
+        "Select the TacO and destination marker package paths below, and then",
+        "press Convert."
+    }, '\n'), ui.color('text'), ui.fonts.regular)
+
+    w.win:child(w.box)
+    w.box:paddingleft(5)
+    w.box:paddingright(5)
+    w.box:paddingtop(5)
+    w.box:paddingbottom(5)
+    w.box:spacing(5)
+
+    w.box:pushback(w.msg, 'start', false)
+
+    w.box:pushback(ui.separator('horizontal'), 'fill', false)
+
+    w.box:pushback(ui.text('Input TacO Marker Pack:', ui.color('text'), ui.fonts.regular), 'start', false)
+
+    w.tacotxt = ui.text('', ui.color('text'), ui.fonts.regular)
+    w.box:pushback(w.tacotxt, 'start', false)
+
+    w.tacobtn = txtbutton('Select TacO Pack')
+    w.box:pushback(w.tacobtn, 'fill', false)
+
+    w.box:pushback(ui.separator('horizontal'), 'fill', false)
+
+    w.box:pushback(ui.text('Output Marker Package:', ui.color('text'), ui.fonts.regular), 'start', false)
+
+    w.dbtxt = ui.text('', ui.color('text'), ui.fonts.regular)
+    w.box:pushback(w.dbtxt, 'start', false)
+
+    w.dbbtn = txtbutton('Select Marker Package')
+    w.box:pushback(w.dbbtn, 'fill', false)
+
+    w.box:pushback(ui.separator('horizontal'), 'fill', false)
+
+    w.convertbtn = txtbutton('Convert')
+    w.box:pushback(w.convertbtn, 'fill', false)
+
+    w.cancelbtn = txtbutton('Cancel')
+    w.box:pushback(w.cancelbtn, 'fill', false)
+
+    w.tacobtn:addeventhandler(function() w:onselecttaco() end, 'click-left')
+    w.dbbtn:addeventhandler(function() w:onselectdb() end, 'click-left')
+    w.convertbtn:addeventhandler(function() w:onconvert() end, 'click-left')
+    w.cancelbtn:addeventhandler(function() w:oncancel() end, 'click-left')
+
+    w.win:position(50, 50)
+    w.win:show()
+
+    return w
+end
+
+function M.wizard:oncancel()
+    self.win:hide()
+end
+
+function M.wizard:onselecttaco()
+    local d = dialogs.FileDialog.new('open-file')
+    d.confirmcallback = function(path) self:ontacoselected(path) end
+    d.filefilters = {'.taco','.zip'}
+
+    if self.tacopath then
+        d:gotopath(path.parent(self.tacopath))
+    end
+
+    d:show()
+end
+
+function M.wizard:ontacoselected(tacopath)
+    self.tacopath = tacopath
+    self.tacotxt:text(tacopath)
+
+    self.dbpath = path.withextension(self.tacopath, 'db')
+    self.dbtxt:text(self.dbpath)
+end
+
+function M.wizard:onselectdb()
+    local d = dialogs.FileDialog.new('save-file')
+    d.confirmcallback = function(path) self:ondbselected(path) end
+    d.filefilters = { '.db' }
+
+    if self.dbpath then
+        d.selectedtxt:text(path.filename(self.dbpath))
+        d:gotopath(path.parent(self.dbpath))
+    end
+
+    d:show()
+end
+
+function M.wizard:ondbselected(dbpath)
+    self.dbpath = path.withextension(dbpath, 'db')
+    self.dbtxt:text(self.dbpath)
+end
+
+function M.wizard:onconvert()
+    self.win:hide()
+
+    local win = ui.window('Converting TacO...')
+    local box = ui.box('vertical')
+
+    box:paddingleft(10)
+    box:paddingtop(10)
+    box:paddingright(10)
+    box:paddingbottom(10)
+    box:spacing(5)
+
+    local msgbox = ui.box('horizontal')
+    msgbox:spacing(10)
+
+    msgbox:pushback(ui.text(ui.iconcodepoint('hourglass'), ui.color('text'), ui.fonts.icon:tosizeperc(2.5)), 'middle', false)
+    box:pushback(msgbox, 'start', false)
+
+    local msg = ui.text(table.concat({
+        'The TacO pack is being converted, this may take a while...',
+        '',
+        'Progress is shown below, any warnings or errors will be',
+        'recorded to the EG-Overlay log.',
+    }, '\n'), ui.color('text'), ui.fonts.regular)
+    msgbox:pushback(msg, 'middle', false)
+
+    box:pushback(ui.separator('horizontal'), 'fill', false)
+
+    win:child(box)
+
+    win:position(100,100)
+    win:show()
+
+    box:pushback(ui.text(string.format("Starting conversion of %s...", self.tacopath), ui.color('text'), ui.fonts.regular),'start', false)
+
+    local c = M.taco2db.new(self.tacopath, self.dbpath)
+
+    local thread = coroutine.create(function() c:run() end)
+    local last_stage = 'start'
+    local last_txt = nil
+
+    while coroutine.status(thread) ~= 'dead' do
+        local r, stage, n, t = coroutine.resume(thread)
+
+        if not r then
+            overlay.logerror(string.format("Error during TacO conversion: %s", stage))
+            local errtxt = ui.text(string.format("Error occured: %s", stage), ui.color('text'), ui.fonts.regular)
+            box:pushback(errtxt, 'start', false)
+            break
+        end
+
+        if not stage then break end
+
+        if last_stage ~= stage then
+            last_txt = ui.text(stage, ui.color('text'), ui.fonts.regular)
+            box:pushback(last_txt, 'start', false)
+            last_stage = stage
+        end
+
+        if stage and n and t then
+            last_txt:text(string.format('%s %0.1f%% (%d/%d)', stage, (n/t)*100.0, n, t))
+        end
+        coroutine.yield()
+    end
+
+    box:pushback(ui.separator('horizontal'), 'fill', false)
+
+    local btn = ui.button()
+    local bbox = ui.box('vertical')
+    local btxt = ui.text('OK', ui.color('text'), ui.fonts.regular)
+
+    bbox:paddingleft(10)
+    bbox:paddingright(10)
+    bbox:paddingtop(5)
+    bbox:paddingbottom(5)
+    bbox:pushback(btxt, 'middle', false)
+    btn:child(bbox)
+
+    box:pushback(btn, 'fill', false)
+
+    btn:addeventhandler(function() win:hide() end, 'click-left')
 end
 
 return M

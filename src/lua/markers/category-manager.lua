@@ -51,16 +51,34 @@ local function childrenbutton()
     return btn
 end
 
+local function menubutton()
+    local icon = ui.text(ui.iconcodepoint('menu'), ui.color('text'), ui.fonts.icon)
+    local box = ui.box('vertical')
+    local btn = ui.button()
+
+    btn:child(box)
+
+    box:paddingleft(10)
+    box:paddingright(10)
+    box:paddingtop(5)
+    box:paddingbottom(5)
+
+    box:pushback(icon, 'middle', false)
+
+    return btn
+end
+
 local function textbutton(text)
     --local osettings = overlay.overlaysettings()
     local txt = ui.text(text, ui.color('text'), ui.fonts.regular)
 
     local box = ui.box('vertical')
+    box:alignment('middle')
     box:paddingleft(5)
     box:paddingright(5)
     box:paddingtop(5)
     box:paddingbottom(5)
-    box:pushback(txt, 'middle', false)
+    box:pushback(txt, 'start', false)
 
     local btn = ui.button()
     btn:child(box)
@@ -112,7 +130,6 @@ function BreadCrumbBox.new()
 
     setmetatable(b, BreadCrumbBox)
 
-    --b.home.box:paddingleft(3)
     b.home.box:spacing(5)
     b.home.box:pushback(b.home.check, 'middle', false)
     b.home.box:pushback(b.home.btn  , 'middle', false)
@@ -285,31 +302,47 @@ function CategoryManager:setupwin()
     self.outerbox:pushback(self.categoryscroll, 'fill', true)
     self.outerbox:pushback(ui.separator('horizontal'), 'fill', false)
 
-    self.inmapcheck = checkbox()
-    self.inmapcheck:checkstate(settings:get('categoryManager.onlyShowCategoriesInMap'))
-    self.inmapcheck:addeventhandler(function(event) self:showinmaptoggle(event) end,'toggle-on', 'toggle-off')
-
-    self.inmapbox = ui.box('horizontal')
-    self.inmapbox:spacing(5)
-    self.inmapbox:pushback(self.inmapcheck, 'middle', false)
-    self.inmapbox:pushback(ui.text('Only show categories in map', ui.color('text'), ui.fonts.regular), 'middle', false)
-    self.outerbox:pushback(self.inmapbox, 'fill', false)
-
-    self.outerbox:pushback(ui.separator('horizontal'), 'fill', false)
-
     self.buttonbox = ui.box('horizontal')
     self.buttonbox:spacing(2)
     self.buttonbox:alignment('end')
     self.outerbox:pushback(self.buttonbox, 'fill', false)
 
-    self.reloadbtn = textbutton('Reload')
-    self.buttonbox:pushback(self.reloadbtn, 'fill', false)
+    self.menubtnbox = ui.box('vertical')
+    self.buttonbox:pushback(self.menubtnbox, 'fill', true)
+
+    self.menubtn = menubutton()
+    self.menubtnbox:pushback(self.menubtn, 'start', false)
 
     self.closebtn = textbutton('Close')
     self.buttonbox:pushback(self.closebtn, 'fill', false)
 
-    self.reloadbtn:addeventhandler(function() self:update() end, 'click-left')
     self.closebtn:addeventhandler(function() self:oncloseclick() end, 'click-left')
+
+    self.menu = ui.menu()
+    self.inmapmi = require('ui-extra').togglemenuitem('Only show categories in map', ui.color('text'), ui.fonts.regular)
+    self.inmapmi:state(settings:get('categoryManager.onlyShowCategoriesInMap'))
+    self.settingsmi = ui.textmenuitem('Settings', ui.color('text'), ui.fonts.regular)
+    self.importtacomi = ui.textmenuitem('Import TacO Pack', ui.color('text'), ui.fonts.regular)
+
+    self.inmapmi:addeventhandler(function(event) self:showinmaptoggle(event) end, 'toggle-on', 'toggle-off')
+
+    self.importtacomi:addeventhandler(function()
+        self.menu:hide()
+        require('markers.taco2db').wizard.start()
+    end, 'click-left')
+
+    self.menu:pushback(self.inmapmi)
+    self.menu:pushback(ui.separatormenuitem('horizontal'))
+    self.menu:pushback(self.settingsmi)
+    self.menu:pushback(ui.separatormenuitem('horizontal'))
+    self.menu:pushback(self.importtacomi)
+
+    self.menubtn:addeventhandler(function() self.menu:show() end, 'click-left')
+
+    self.settingsmi:addeventhandler(function()
+        self.menu:hide()
+        require('markers.settings-win').show()
+    end, 'click-left')
 end
 
 function CategoryManager:showinmaptoggle(event)
@@ -433,6 +466,8 @@ end
 
 overlay.addeventhandler('startup', function()
     M._cm = CategoryManager.new()
+
+    overlay.addeventhandler('markers-packs-updated', function() M._cm:update() end)
 end)
 
 overlay.addeventhandler('mumble-link-map-changed', function(event) M._cm:onmapchanged() end)
