@@ -345,7 +345,7 @@ function M.FileDialog:gotoitem(newitem)
         self.pathtxt:text(newitem:displayname())
     end
 
-    self.selectedtxt:text('')
+    if self.mode == 'open-file' then self.selectedtxt:text('') end
     self._selected = nil
     self.itembox:clear()
     self.itemscroll:scrolly(0.0)
@@ -447,7 +447,7 @@ end
 ]]--
 function M.FileDialog:show()
     self._selected = nil
-    self.selectedtxt:text('')
+    if self.mode == 'open-file' then self.selectedtxt:text('') end
     self.win:show()
 end
 
