@@ -34,7 +34,12 @@ class ModuleDirective(Directive):
             env.ref_context.pop('overlay:module', None)
         else:
             env.ref_context['overlay:module'] = modname
-        return []
+
+        target_node = nodes.target('', '', ids=['overlay-module-'+modname], ismod=True)
+        objs = env.domaindata['overlay']['objects']
+        objs.append((f'overlay.module-{modname}',modname,'module', env.docname, f'overlay-module-{modname}', 0))
+
+        return [target_node]
 
 class ModuleSettingDirective(ConfigurationValue):
     has_content = True
@@ -208,6 +213,7 @@ class OverlayDomain(Domain):
         'event': XRefRole(),
         'dbtable': XRefRole(),
         'modsetting': XRefRole(),
+        'module': XRefRole(),
     }
 
     indices = {

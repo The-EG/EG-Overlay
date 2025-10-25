@@ -6,6 +6,7 @@
 Overlay Menu
 ============
 
+.. overlay:module:: overlay-menu
 
 ]]--
 local overlay = require 'overlay'
