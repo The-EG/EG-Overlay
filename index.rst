@@ -17,10 +17,12 @@ User Guide
     :caption: User Guide
     :hidden:
 
+    docs/faq
     docs/install
     docs/running
     docs/configuration
 
+- :doc:`docs/faq`
 - :doc:`docs/install`
 - :doc:`docs/running`
 - :doc:`docs/configuration`
