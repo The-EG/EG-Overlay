@@ -324,7 +324,7 @@ pub fn run() {
     nid.hIcon = unsafe {
         WindowsAndMessaging::LoadIconA(
             Some(LibraryLoader::GetModuleHandleA(None).unwrap().into()),
-            windows::core::PCSTR( std::mem::transmute(ICON_16X16) )
+            windows::core::PCSTR(ICON_16X16 as *const u8)
         ).unwrap()
     };
     let overlay_tip = c"EG-Overlay";
