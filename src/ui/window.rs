@@ -68,6 +68,8 @@ struct WindowInner {
     // needed for adding this window as a mouse capture element
     last_scissor: Foundation::RECT,
 
+    events: bool,
+
     ui: Weak<ui::Ui>,
 }
 
@@ -120,6 +122,8 @@ impl Window {
             settings_path: None,
 
             last_scissor: Foundation::RECT::default(),
+
+            events: true,
 
             ui: Arc::downgrade(&overlay::ui()),
         });
@@ -462,7 +466,9 @@ impl WindowInner {
 
 
         self.last_scissor = frame.current_scissor();
-        self.ui.upgrade().unwrap().add_input_element(element, offset_x, offset_y, self.last_scissor.clone());
+        if self.events {
+            self.ui.upgrade().unwrap().add_input_element(element, offset_x, offset_y, self.last_scissor.clone());
+        }
 
         self.draw_decorations(offset_x, offset_y, frame);
 

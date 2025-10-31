@@ -56,6 +56,8 @@ const WIN_FUNCS: &[luaL_Reg] = luaL_Reg_list!{
     c"titlebar"   , titlebar,
     c"titlebarbox", titlebar_box,
     c"updatesize" , update_size,
+    c"ignoremouse", ignore_mouse,
+    c"bordercolor", border_color,
 };
 
 unsafe fn checkwindow<'a>(l: &lua_State, element: &'a ManuallyDrop<Arc<ui::Element>>) -> &'a Window {
@@ -391,6 +393,61 @@ unsafe extern "C" fn update_size(l: &lua_State) -> i32 {
     let mut inner = win.win.lock().unwrap();
 
     inner.update_size();
+
+    return 0;
+}
+
+/*** RST
+    .. lua:method:: ignoremouse(value)
+
+        Set if this window should ignore all mouse input.
+
+        :param boolean value:
+
+        .. note::
+
+            While the window itself may ignore mouse input, child elements may
+            not.
+
+        .. warning::
+
+            If the window ignores all mouse input, it will not be possible to
+            move or resize it.
+
+        .. versionhistory::
+            :0.3.0: Added
+*/
+unsafe extern "C" fn ignore_mouse(l: &lua_State) -> i32 {
+    lua::checkarg!(l, 2);
+    let e = unsafe { ui::lua::checkelement(l, 1) };
+    let win = unsafe { checkwindow(l, &e) };
+
+    let val = lua::toboolean(l, 2);
+
+    win.win.lock().unwrap().events = !val;
+
+    return 0;
+}
+
+/*** RST
+    .. lua:method:: bordercolor(color)
+
+        Set the color used to draw window borders.
+
+        :param integer color:
+
+        .. versionhistory::
+            :0.3.0: Added
+*/
+unsafe extern "C" fn border_color(l: &lua_State) -> i32 {
+    lua::checkarginteger!(l, 2);
+
+    let e = unsafe { ui::lua::checkelement(l, 1) };
+    let win = unsafe { checkwindow(l, &e) };
+
+    let color = ui::Color::from(lua::tointeger(l, 2));
+
+    win.win.lock().unwrap().border_color = color;
 
     return 0;
 }

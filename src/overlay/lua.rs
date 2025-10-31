@@ -92,6 +92,8 @@ const OVERLAY_FUNCS: &[luaL_Reg] = luaL_Reg_list!{
     c"openzip"             , open_zip,
 
     c"parsexml"            , parse_xml,
+
+    c"splitstring"         , split_string,
 };
 
 pub unsafe extern "C" fn open_module(l: &lua_State) -> i32 {
@@ -1263,6 +1265,37 @@ unsafe extern "C" fn parse_xml(l: &lua_State) -> i32 {
     }
 
     lua::pushboolean(l, true);
+    return 1;
+}
+
+/*** RST
+.. lua:function:: splitstring(str, pat)
+
+    Return a sequence of substrings of ``str`` separated by ``pat``.
+
+    :param string str:
+    :param string pat:
+
+    :rtype: sequence
+
+    .. versionhistory::
+        :0.3.0: Added
+*/
+unsafe extern "C" fn split_string(l: &lua_State) -> i32 {
+    lua::checkargstring!(l, 1);
+    lua::checkargstring!(l, 2);
+
+    let st = lua::tostring(l, 1).unwrap();
+    let pat = lua::tostring(l, 2).unwrap();
+
+    lua::newtable(l);
+    let mut ti = 1;
+    for t in st.split(&pat) {
+        lua::pushstring(l, &t);
+        lua::seti(l, -2, ti);
+        ti += 1;
+    }
+
     return 1;
 }
 

@@ -99,6 +99,56 @@ end
 
 M.activatewin:setupwin()
 
+M.infowin = {}
+
+function M.infowin:setup()
+    self.win = ui.window('Marker Info')
+    self.box = ui.box('vertical')
+
+    self.win:child(self.box)
+    self.win:titlebar(false)
+    self.win:ignoremouse(true)
+    self.win:bgcolor(0x0)
+    self.win:bordercolor(0x0)
+
+    self.visible = false
+end
+
+function M.infowin:show(text)
+    self.box:clear()
+
+    for i,msg in ipairs(overlay.splitstring(text, '&#xA;')) do
+        if msg == '' then msg = ' ' end
+        local txt = ui.text(msg, ui.color('accentText'), ui.fonts.regular:tosizeperc(1.5))
+        self.box:pushback(txt, 'middle', false)
+    end
+
+    self.win:updatesize()
+
+    local w,h = ui.overlaysize()
+
+    local x = math.floor(w / 2.0 - (self.win:width() / 2.0))
+    local y = math.floor(h / 2.0 - self.win:height() - (h / 5))
+
+    if y < 0 then y = 20 end
+
+    self.win:position(x, y)
+
+    if not self.visible then
+        self.win:show()
+        self.visible = true
+    end
+end
+
+function M.infowin:hide()
+    if self.visible then
+        self.visible = false
+        self.win:hide()
+    end
+end
+
+M.infowin:setup()
+
 -- a centralized place to handle marker behaviors/activations
 M.behaviormgr = {
     -- cached marker info (location, behavior type, info to display, etc.)
@@ -111,11 +161,31 @@ M.behaviormgr = {
     -- makers that have been activated in this map
     -- and should be shown again on map change
     mapguids = {},
+
+    infoguid = nil,
+    copyguid = nil,
 }
 
 function M.behaviormgr:clear()
     self.markercache = {}
+
+    -- We use a spatial index to speed up checking which markers are near the
+    -- player. This index consists of 'cells' that are 10 meters across. We use
+    -- meters since that's what MumbleLink is giving us and that's what we
+    -- expect the markers to be using too; no need to convert.
+    --
+    -- The cells are stored in Lua tables, the first level X, second Y, and third Z
+    -- A cell can be indexed for any position by doing the following:
+    -- x_ind = math.tointeger(math.floor(x / 10))
+    -- y_ind = math.tointeger(math.floor(y / 10))
+    -- z_ind = math.tointeger(math.floor(z / 10))
+    -- cell = self.spatialindex[x_ind][y_ind][z_ind]
+    --
+    -- note: cells are only created if markers exist in those cells
     self.spatialindex = {}
+
+    self.infoguid = nil
+    self.copyguid = nil
 end
 
 function M.behaviormgr:addmarker(marker)
@@ -127,22 +197,46 @@ function M.behaviormgr:addmarker(marker)
         info = marker.info,
         inforange = marker.inforange or 2,
         behavior = marker.behavior or 0,
+        displayname = marker.displayname,
         triggerrange = marker.triggerrange or 2,
         typeid = marker.typeid,
+        autotrigger = (marker.autotrigger or 0) == 1,
+        copy = marker.copy,
+        copymessage = marker['copy-message'],
     }
 
-    if not m.info and m.behavior==0 then return end
+    if not m.info and not m.copy and m.behavior==0 then return end
 
-    local x_ind = math.tointeger(math.floor(m.x / 10))
-    local y_ind = math.tointeger(math.floor(m.y / 10))
-    local z_ind = math.tointeger(math.floor(m.z / 10))
+    local range = m.triggerrange
 
-    if not self.spatialindex[x_ind] then self.spatialindex[x_ind] = {} end
-    if not self.spatialindex[x_ind][y_ind] then self.spatialindex[x_ind][y_ind] = {} end
-    if not self.spatialindex[x_ind][y_ind][z_ind] then self.spatialindex[x_ind][y_ind][z_ind] = {} end
+    if m.inforange > range then range = m.inforange end
+
+    -- add a marker to each index cell that the marker's range covers
+    -- this technically covers too many cells, in a cube shape, instead of
+    -- a spherical shape, but this is much simpler to calculate
+
+    local min_x_ind = math.tointeger(math.floor((m.x - range) / 10))
+    local max_x_ind = math.tointeger(math.floor((m.x + range) / 10))
+
+    local min_y_ind = math.tointeger(math.floor((m.y - range) / 10))
+    local max_y_ind = math.tointeger(math.floor((m.y + range) / 10))
+
+    local min_z_ind = math.tointeger(math.floor((m.z - range) / 10))
+    local max_z_ind = math.tointeger(math.floor((m.z + range) / 10))
+
+    for x_ind = min_x_ind,max_x_ind do
+        for y_ind = min_y_ind,max_y_ind do
+            for z_ind = min_z_ind,max_z_ind do
+                if not self.spatialindex[x_ind] then self.spatialindex[x_ind] = {} end
+                if not self.spatialindex[x_ind][y_ind] then self.spatialindex[x_ind][y_ind] = {} end
+                if not self.spatialindex[x_ind][y_ind][z_ind] then self.spatialindex[x_ind][y_ind][z_ind] = {} end
+
+                table.insert(self.spatialindex[x_ind][y_ind][z_ind], m.guid)
+            end
+        end
+    end
 
     self.markercache[m.guid] = m
-    table.insert(self.spatialindex[x_ind][y_ind][z_ind], m.guid)
 end
 
 function M.behaviormgr:removecategory(typeid)
@@ -171,44 +265,27 @@ function M.behaviormgr:update()
     local py_ind = math.tointeger(math.floor(py / 10))
     local pz_ind = math.tointeger(math.floor(pz / 10))
 
-    -- find all the valid guids in the spatial index that are close to the player
-    -- we look at the index cell we are in plus the adjacent ones in case we
-    -- are near an edge
-    -- This does limit the range at which a marker will be found...
-    local guids = {}
-    for xi=-1,1,1 do
-        if self.spatialindex[px_ind + xi] then
-            for yi=-1,1,1 do
-                if self.spatialindex[px_ind + xi][py_ind + yi] then
-                    for zi=-1,1,1 do
-                        if self.spatialindex[px_ind + xi][py_ind + yi][pz_ind + zi] then
-                            for i, guid in ipairs(self.spatialindex[px_ind + xi][py_ind + yi][pz_ind + zi]) do
-                                table.insert(guids, guid)
-                            end
-                        end
-                    end
-                end
-            end
-        end
-    end
-
     local closestguid = nil
     local closestdsqr = nil
 
-    -- now go through all the markers we found above and find the closest
-    for i,guid in ipairs(guids) do
-        local m = self.markercache[guid]
+    -- first check to see if our spatial index contains any markers in the same
+    -- cell as the player
+    if self.spatialindex[px_ind] and self.spatialindex[px_ind][py_ind] and self.spatialindex[px_ind][py_ind][pz_ind] then
+        -- and then check each marker in that cell to see which is the closest
+        for i, guid in ipairs(self.spatialindex[px_ind][py_ind][pz_ind]) do
+            local m = self.markercache[guid]
 
-        if not m then goto skipguid end
+            if not m then goto skipguid end
 
-        local dsqr = (m.x - px)^2 + (m.y - py)^2 + (m.z - pz)^2
+            local dsqr = (m.x - px)^2 + (m.y - py)^2 + (m.z - pz)^2
 
-        if closestguid==nil or (dsqr < closestdsqr) then
-            closestguid = guid
-            closestdsqr = dsqr
+            if closestguid==nil or (dsqr < closestdsqr) then
+                closestguid = guid
+                closestdsqr = dsqr
+            end
+
+            ::skipguid::
         end
-
-        ::skipguid::
     end
 
     self.closestguid = closestguid
@@ -217,16 +294,36 @@ function M.behaviormgr:update()
         self.closestdist = math.sqrt(closestdsqr)
     else
         self.closestdist = nil
+        self.infoguid = nil
+        self.copyguid = nil
+        M.infowin:hide()
         return
     end
 
     local m = self.markercache[closestguid]
 
-    if m.behavior == 0 then return end
+    if m.behavior == 0 and not m.info and not m.copy then return end
 
     if self.closestdist <= m.triggerrange then
-        M.activatewin:show()
-        self.doactivate = true
+        if not m.autotrigger and (m.behavior~=0 or m.copy) then
+            M.activatewin:show()
+            self.doactivate = true
+        elseif m.autotrigger then
+            self.doactivate = true
+            self:activatemarker()
+        end
+    else
+        self.copyguid = nil
+    end
+
+    if self.closestdist <= m.inforange and m.info then
+        if self.infoguid ~= self.closestguid then
+            M.infowin:show(m.info)
+            self.infoguid = self.closestguid
+        end
+    else
+        self.infoguid = nil
+        M.infowin:hide()
     end
 end
 
@@ -236,7 +333,9 @@ function M.behaviormgr:activatemarker()
 
     local m = self.markercache[self.closestguid]
 
-    if not m or m.behavior==0 then return end
+    if not m then return end
+
+    if m.behavior==0 then return end
 
     if m.behavior == 1 then
         table.insert(self.mapguids, m.guid)
@@ -271,7 +370,11 @@ M.tooltipwin.fields = {
     {'guid'       , 'GUID'    },
     {'behavior'   , 'Behvaior'},
     {'info'       , 'Info'    },
+    {'inforange'  , 'InfoRange'},
     {'triggerrange', 'TriggerRange'},
+    {'copy'       , 'Copy' },
+    {'copy-message', 'Copy-Message'},
+    {'autotrigger', 'AutoTrigger'},
 }
 M.tooltipwin.cache = {}
 M.tooltipwin.visible = false
