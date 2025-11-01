@@ -209,9 +209,10 @@ pub(crate) use luaerror;
         :0.3.0: Added
 */
 unsafe extern "C" fn log_debug(l: &lua_State) -> i32 {
+    lua::checkargstring!(l, 1);
     use crate::logging;
 
-    let msg = unsafe { lua::L::checkstring(l, 1) };
+    let msg = lua::tostring(l,1).unwrap();
     let name = get_module_name(l);
 
     logging::log(&name, logging::LoggingLevel::Debug, &msg);
@@ -235,9 +236,10 @@ unsafe extern "C" fn log_debug(l: &lua_State) -> i32 {
 
 */
 unsafe extern "C" fn log_info(l: &lua_State) -> i32 {
+    lua::checkargstring!(l, 1);
     use crate::logging;
 
-    let msg = unsafe { lua::L::checkstring(l, 1) };
+    let msg = lua::tostring(l, 1).unwrap();
     let name = get_module_name(l);
 
     logging::log(&name, logging::LoggingLevel::Info, &msg);
@@ -261,9 +263,10 @@ unsafe extern "C" fn log_info(l: &lua_State) -> i32 {
 
 */
 unsafe extern "C" fn log_warn(l: &lua_State) -> i32 {
+    lua::checkargstring!(l, 1);
     use crate::logging;
 
-    let msg = unsafe { lua::L::checkstring(l, 1) };
+    let msg = lua::tostring(l, 1).unwrap();
     let name = get_module_name(l);
 
     logging::log(&name, logging::LoggingLevel::Warning, &msg);
@@ -287,9 +290,10 @@ unsafe extern "C" fn log_warn(l: &lua_State) -> i32 {
 
 */
 unsafe extern "C" fn log_error(l: &lua_State) -> i32 {
+    lua::checkargstring!(l, 1);
     use crate::logging;
 
-    let msg = unsafe { lua::L::checkstring(l, 1) };
+    let msg = lua::tostring(l, 1).unwrap();
     let name = get_module_name(l);
 
     logging::log(&name, logging::LoggingLevel::Error, &msg);
@@ -330,13 +334,11 @@ unsafe extern "C" fn log_error(l: &lua_State) -> i32 {
         :0.3.0: Added
 */
 unsafe extern "C" fn add_event_handler(l: &lua_State) -> i32 {
-    let event = unsafe { lua::L::checkstring(l, 1) };
+    lua::checkargstring!(l, 1);
+    lua::checkargtype!(l, 2, lua::LuaType::LUA_TFUNCTION);
+    let event = lua::tostring(l, 1).unwrap();
 
-    if lua::luatype(l,2)!=lua::LuaType::LUA_TFUNCTION {
-        lua::pushstring(l, "overlay.addeventhandler: argument #2 must be a function");
-        return unsafe { lua::error(l) };
-    }
-
+    lua::pushvalue(l, -1);
     let cbi = lua::L::ref_(l, lua::LUA_REGISTRYINDEX);
 
     lua_manager::add_lua_event_handler(&event, cbi);
@@ -363,8 +365,10 @@ unsafe extern "C" fn add_event_handler(l: &lua_State) -> i32 {
         :0.3.0: Added
 */
 unsafe extern "C" fn remove_event_handler(l: &lua_State) -> i32 {
-    let event = unsafe { lua::L::checkstring(l, 2) };
-    let cbi = unsafe { lua::L::checkinteger(l, 2) };
+    lua::checkargstring!(l, 1);
+    lua::checkarginteger!(l, 2);
+    let event = lua::tostring(l, 1).unwrap();
+    let cbi = lua::tointeger(l, 2);
 
     lua_manager::remove_lua_event_handler(&event, cbi);
 
@@ -420,13 +424,11 @@ unsafe extern "C" fn remove_event_handler(l: &lua_State) -> i32 {
         :0.3.0: Added
 */
 unsafe extern "C" fn add_keybind_handler(l: &lua_State) -> i32 {
-    let keyname = unsafe { lua::L::checkstring(l, 1) };
+    lua::checkargstring!(l, 1);
+    lua::checkargtype!(l, 2, lua::LuaType::LUA_TFUNCTION);
+    let keyname = lua::tostring(l, 1).unwrap();
 
-    if lua::luatype(l,2)!=lua::LuaType::LUA_TFUNCTION {
-        lua::pushstring(l, "overlay.addkeybindhandler: argument #2 must be a function");
-        return unsafe { lua::error(l) };
-    }
-
+    lua::pushvalue(l, -1);
     let cbi = lua::L::ref_(l, lua::LUA_REGISTRYINDEX);
 
     lua_manager::add_lua_keybind_handler(&keyname, cbi);
@@ -449,8 +451,10 @@ unsafe extern "C" fn add_keybind_handler(l: &lua_State) -> i32 {
         :0.3.0: Added
 */
 unsafe extern "C" fn remove_keybind_handler(l: &lua_State) -> i32 {
-    let keyname = unsafe { lua::L::checkstring(l, 2) };
-    let cbi = unsafe { lua::L::checkinteger(l, 2) };
+    lua::checkargstring!(l, 1);
+    lua::checkarginteger!(l, 2);
+    let keyname = lua::tostring(l, 1).unwrap();
+    let cbi = lua::tointeger(l, 2);
 
     lua_manager::remove_lua_keybind_handler(&keyname, cbi);
 
@@ -475,7 +479,8 @@ unsafe extern "C" fn remove_keybind_handler(l: &lua_State) -> i32 {
         :0.3.0: Added
 */
 unsafe extern "C" fn settings(l: &lua_State) -> i32 {
-    let name = unsafe { lua::L::checkstring(l, 1) };
+    lua::checkargstring!(l, 1);
+    let name = lua::tostring(l, 1).unwrap();
 
     let settings = crate::settings::SettingsStore::new(&name);
 
@@ -715,7 +720,8 @@ unsafe extern "C" fn process_time(l: &lua_State) -> i32 {
         :0.3.0: Added
 */
 unsafe extern "C" fn queue_event(l: &lua_State) -> i32 {
-    let event = unsafe { lua::L::checkstring(l, 1) };
+    lua::checkargstring!(l, 1);
+    let event = lua::tostring(l, 1).unwrap();
 
     if lua::gettop(l)==1 {
         lua_manager::queue_event(&event, None);
@@ -751,7 +757,8 @@ unsafe extern "C" fn queue_event(l: &lua_State) -> i32 {
         :0.3.0: Added
 */
 unsafe extern "C" fn data_folder(l: &lua_State) -> i32 {
-    let name = unsafe { lua::L::checkstring(l, 1) };
+    lua::checkargstring!(l, 1);
+    let name = lua::tostring(l, 1).unwrap();
 
     let mut path = std::env::current_exe().unwrap();
 
@@ -851,8 +858,11 @@ unsafe extern "C" fn version_string(l: &lua_State) -> i32 {
 */
 unsafe extern "C" fn clipboard_text(l: &lua_State) -> i32 {
     if lua::gettop(l) >= 1 {
-        let text = unsafe { lua::L::checkstring(l, 1) };
-        crate::utils::set_clipboard_text(&text);
+        if let Some(text) = lua::tostring(l, 1) {
+            crate::utils::set_clipboard_text(&text);
+        } else {
+            luaerror!(l, "clipboardtext argument #1 must be a string.");
+        }
         return 0;
     } else {
         if let Some(text) = crate::utils::get_clipboard_text() {
@@ -946,27 +956,12 @@ unsafe extern "C" fn sqlite3_open(l: &lua_State) -> i32 {
         :0.3.0: Added
 */
 unsafe extern "C" fn web_request(l: &lua_State) -> i32 {
-    if lua::gettop(l) != 4 {
-        lua::pushstring(l, "webrequest requires 4 arguments.");
-        return unsafe { lua::error(l) };
-    }
+    lua::checkargstring!(l, 1);
+    lua::checkargtype!(l, 2, lua::LuaType::LUA_TTABLE);
+    lua::checkargtype!(l, 3, lua::LuaType::LUA_TTABLE);
+    lua::checkargtype!(l, 4, lua::LuaType::LUA_TFUNCTION);
 
-    if lua::luatype(l, 4) != lua::LuaType::LUA_TFUNCTION {
-        lua::pushstring(l, "callback must be a function");
-        return unsafe { lua::error(l) };
-    }
-
-    if lua::luatype(l, 3) != lua::LuaType::LUA_TTABLE {
-        lua::pushstring(l, "query_params must be a table");
-        return unsafe { lua::error(l) };
-    }
-
-    if lua::luatype(l, 2) != lua::LuaType::LUA_TTABLE {
-        lua::pushstring(l, "headers must be a table");
-        return unsafe { lua::error(l) };
-    }
-
-    let url = unsafe { lua::L::checkstring(l, 1) };
+    let url = lua::tostring(l, 1).unwrap();
 
     lua::pushvalue(l, 4);
     let callback = lua::L::ref_(l, lua::LUA_REGISTRYINDEX);
@@ -1047,7 +1042,8 @@ unsafe extern "C" fn web_request(l: &lua_State) -> i32 {
         :0.3.0: Added
 */
 unsafe extern "C" fn parse_json(l: &lua_State) -> i32 {
-    let json_str = unsafe { lua::L::checkstring(l, 1) };
+    lua::checkargstring!(l, 1);
+    let json_str = lua::tostring(l, 1).unwrap();
 
     match &serde_json::from_str(&json_str) {
         Ok(val) => crate::lua_json::pushjson(l, val),
@@ -1078,7 +1074,8 @@ unsafe extern "C" fn parse_json(l: &lua_State) -> i32 {
         :0.3.0: Added
 */
 unsafe extern "C" fn open_zip(l: &lua_State) -> i32 {
-    let path = unsafe { lua::L::checkstring(l, 1) };
+    lua::checkargstring!(l, 1);
+    let path = lua::tostring(l, 1).unwrap();
 
     match crate::zip::open_zip(&path) {
         Ok(zip) => crate::zip::lua::pushzipfile(l, zip),
@@ -1220,12 +1217,9 @@ fn push_stringevent(l: &lua_State, event: &str, data: &str) {
         :0.3.0: Added
 */
 unsafe extern "C" fn parse_xml(l: &lua_State) -> i32 {
-    let xml = unsafe { lua::L::checkstring(l, 1) };
-
-    if lua::luatype(l, 2) != lua::LuaType::LUA_TFUNCTION {
-        lua::pushstring(l, "eventcallback must be a function.");
-        return unsafe { lua::error(l) };
-    }
+    lua::checkargstring!(l, 1);
+    lua::checkargtype!(l, 2, lua::LuaType::LUA_TFUNCTION);
+    let xml = lua::tostring(l, 1).unwrap();
 
     let reader = xml::EventReader::new(xml.as_bytes());
 

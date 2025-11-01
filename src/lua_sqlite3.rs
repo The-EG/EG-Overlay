@@ -60,7 +60,8 @@ const SQLITE3_FUNCS: &[luaL_Reg] = luaL_Reg_list!{
 };
 
 pub unsafe extern "C" fn sqlite3_open(l: &lua_State) -> i32 {
-    let nm = unsafe { lua::L::checkstring(l, 1) };
+    lua::checkargstring!(l, 1);
+    let nm = lua::tostring(l, 1).unwrap();
     let nmstr = CString::new(nm).unwrap();
 
     let mut db: *const api::sqlite3 = std::ptr::null();
@@ -96,8 +97,7 @@ unsafe fn checksqlite3<'a>(l: &'a lua_State, ind: i32) -> &'a api::sqlite3 {
     };
 
     if unsafe { *ptr }.is_null() {
-        lua::pushstring(l, "sqlite3 already finalized.");
-        unsafe { lua::error(l); }
+        luaerror!(l, "sqlite3 already finalized.");
     }
 
     unsafe { &(**ptr) }
@@ -141,8 +141,9 @@ unsafe extern "C" fn sqlite3_close(l: &lua_State) -> i32 {
             :0.3.0: Added
 */
 unsafe extern "C" fn sqlite3_prepare(l: &lua_State) -> i32 {
+    lua::checkargstring!(l, 2);
     let db = unsafe { checksqlite3(l, 1) };
-    let sql = unsafe { lua::L::checkstring(l, 2) };
+    let sql = lua::tostring(l, 2).unwrap();
     let sqlstr = CString::new(sql).unwrap();
 
     let mut stmt: *const api::sqlite3_stmt = std::ptr::null();
@@ -187,8 +188,10 @@ unsafe extern "C" fn sqlite3_prepare(l: &lua_State) -> i32 {
             :0.3.0: Added
 */
 unsafe extern "C" fn sqlite3_execute(l: &lua_State) -> i32 {
+    lua::checkargstring!(l, 2);
     let db = unsafe { checksqlite3(l, 1) };
-    let sql = unsafe { lua::L::checkstring(l, 2) };
+    let sql = lua::tostring(l, 2).unwrap();
+
     let sqlstr = CString::new(sql).unwrap();
 
     let mut stmt: *const api::sqlite3_stmt = std::ptr::null();
@@ -273,8 +276,7 @@ unsafe fn checkstmt<'a>(l: &'a lua_State, ind: i32) -> &'a api::sqlite3_stmt {
     };
 
     if unsafe { *ptr }.is_null() {
-        lua::pushstring(l, "statement has already been finalized.");
-        unsafe { lua::error(l); }
+        luaerror!(l, "statement has already been finalized.");
     }
 
     unsafe { &(**ptr) }
@@ -336,13 +338,13 @@ unsafe extern "C" fn stmt_bind(l: &lua_State) -> i32 {
 
     let c: i32;
     if lua::luatype(l, 2)==lua::LuaType::LUA_TNUMBER {
-        c = unsafe { lua::L::checkinteger(l, 2) } as i32;
+        c = lua::tointeger(l, 2) as i32;
         if c < 1 || c > unsafe { api::sqlite3_bind_parameter_count(stmt) } {
             luaerror!(l, "Invalid parameter number: {}", c);
             return 0;
         }
     } else {
-        let name = unsafe { lua::L::checkstring(l, 2) };
+        let name = lua::tostring(l, 2).unwrap();
         let namestr = CString::new(name.as_str()).unwrap();
 
         c = unsafe { api::sqlite3_bind_parameter_index(stmt, namestr.as_ptr()) };

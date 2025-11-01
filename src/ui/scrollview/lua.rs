@@ -112,7 +112,7 @@ unsafe extern "C" fn scroll_y(l: &lua_State) -> i32 {
     let sv = unsafe { checkscrollview(l, &sve) };
 
     if lua::gettop(l) >= 2 {
-        let mut y = unsafe { lua::L::checknumber(l, 2) };
+        let mut y = lua::tonumber(l, 2);
 
         if y < 0.0 {
             luawarn!(l, "scrolly value must be between 0 and 1.");

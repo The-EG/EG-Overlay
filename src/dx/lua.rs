@@ -918,13 +918,15 @@ unsafe extern "C" fn texturemap_clear(l: &lua_State) -> i32 {
             :0.3.0: Added
 */
 unsafe extern "C" fn texturemap_add(l: &lua_State) -> i32 {
+    lua::checkargstring!(l, 2);
+
     if lua::gettop(l) < 3 {
         lua::pushstring(l, "texturemap:add takes at least 2 arguments");
         unsafe { lua::error(l); }
     }
 
     let tm = unsafe { checktexturemap(l, 1) };
-    let name = unsafe { lua::L::checkstring(l, 2) };
+    let name = lua::tostring(l, 2).unwrap();
     let data: &[u8] = lua::tobytes(l, 3);
 
     let mut mipmaps = true;
@@ -1188,8 +1190,9 @@ unsafe extern "C" fn texturemap_add(l: &lua_State) -> i32 {
             :0.3.0: Added
 */
 unsafe extern "C" fn texturemap_has(l: &lua_State) -> i32 {
+    lua::checkargstring!(l, 2);
     let tm = unsafe { checktexturemap(l, 1) };
-    let name = unsafe { lua::L::checkstring(l, 2) };
+    let name = lua::tostring(l, 2).unwrap();
 
     lua::pushboolean(l, tm.textures.lock().unwrap().contains_key(&name));
 
@@ -1638,13 +1641,11 @@ unsafe extern "C" fn spritelist_gc(l: &lua_State) -> i32 {
             :0.3.0: Added
 */
 unsafe extern "C" fn spritelist_add(l: &lua_State) -> i32 {
-    let sl = unsafe { checkspritelist(l, 1) };
-    let texname = unsafe { lua::L::checkstring(l, 2) };
+    lua::checkargstring!(l, 2);
+    lua::checkargtype!(l, 3, lua::LuaType::LUA_TTABLE);
 
-    if lua::luatype(l, 3) != lua::LuaType::LUA_TTABLE {
-        lua::pushstring(l, "spritelist::add argument #2 must be a Lua table.");
-        unsafe { lua::error(l); }
-    }
+    let sl = unsafe { checkspritelist(l, 1) };
+    let texname = lua::tostring(l, 2).unwrap();
 
     let mut inner = sl.inner.lock().unwrap();
 
@@ -1784,9 +1785,9 @@ fn tags_match(l: &lua_State, target_tags: i32, query_tags: i32) -> bool {
             :0.3.0: Added
 */
 unsafe extern "C" fn spritelist_update(l: &lua_State) -> i32 {
+    lua::checkargtype!(l, 2, lua::LuaType::LUA_TTABLE);
+    lua::checkargtype!(l, 3, lua::LuaType::LUA_TTABLE);
     let sl = unsafe { checkspritelist(l, 1) };
-    unsafe { lua::L::checktype(l, 2, lua::LuaType::LUA_TTABLE); }
-    unsafe { lua::L::checktype(l, 3, lua::LuaType::LUA_TTABLE); }
 
     return sl.inner.lock().unwrap().update_matching(l);
 }
@@ -1808,8 +1809,9 @@ unsafe extern "C" fn spritelist_update(l: &lua_State) -> i32 {
             :0.3.0: Added
 */
 unsafe extern "C" fn spritelist_remove(l: &lua_State) -> i32 {
+    lua::checkargtype!(l, 2, lua::LuaType::LUA_TTABLE);
+
     let sl = unsafe { checkspritelist(l, 1) };
-    unsafe { lua::L::checktype(l, 2, lua::LuaType::LUA_TTABLE); }
 
     return sl.inner.lock().unwrap().remove_matching(l);
 }
@@ -2373,10 +2375,10 @@ unsafe extern "C" fn traillist_draw(l: &lua_State) -> i32 {
             :0.3.0: Added
 */
 unsafe extern "C" fn traillist_add(l: &lua_State) -> i32 {
+    lua::checkargstring!(l, 2);
+    lua::checkargtype!(l, 3, lua::LuaType::LUA_TTABLE);
     let tl = unsafe { checktraillist(l, 1) };
-    let texname = unsafe { lua::L::checkstring(l, 2) };
-
-    unsafe { lua::L::checktype(l, 3, lua::LuaType::LUA_TTABLE); }
+    let texname = lua::tostring(l, 2).unwrap();
 
     if lua::getfield(l, 3, "points")!=lua::LuaType::LUA_TTABLE {
         lua::pop(l, 1);
@@ -2449,8 +2451,8 @@ unsafe extern "C" fn traillist_add(l: &lua_State) -> i32 {
             :0.3.0: Added
 */
 unsafe extern "C" fn traillist_remove(l: &lua_State) -> i32 {
+    lua::checkargtype!(l, 2, lua::LuaType::LUA_TTABLE);
     let tl = unsafe { checktraillist(l, 1) };
-    unsafe { lua::L::checktype(l, 2, lua::LuaType::LUA_TTABLE); }
 
     return tl.inner.lock().unwrap().remove_matching(l);
 }

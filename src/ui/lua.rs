@@ -95,37 +95,41 @@ pub fn pushelement(l: &lua_State, element: &Arc<ui::Element>, name: &str, funcs:
     lua::setmetatable(l, -2);
 }
 
-pub unsafe fn checkcolor(l: &lua_State, ind: i32) -> ui::Color {
-    ui::Color::from(unsafe { lua::L::checkinteger(l, ind) })
+pub fn checkcolor(l: &lua_State, ind: i32) -> ui::Color {
+    ui::Color::from(lua::tointeger(l, ind))
 }
 
-pub unsafe fn checkalign(l: &lua_State, ind: i32) -> ui::ElementAlignment {
-    let nm = unsafe { lua::L::checkstring(l, ind) };
-
-    match nm.as_str() {
-        "start"  => ui::ElementAlignment::Start,
-        "middle" => ui::ElementAlignment::Middle,
-        "end"    => ui::ElementAlignment::End,
-        "fill"   => ui::ElementAlignment::Fill,
-        _        => {
-            lua::pushstring(l, format!("Unknown alignment: {}", nm).as_str());
-            unsafe { let _ = lua::error(l); }
-            panic!("unknown alignment");
+pub fn checkalign(l: &lua_State, ind: i32) -> ui::ElementAlignment {
+    if let Some(nm) = lua::tostring(l, ind) {
+        return match nm.as_str() {
+            "start"  => ui::ElementAlignment::Start,
+            "middle" => ui::ElementAlignment::Middle,
+            "end"    => ui::ElementAlignment::End,
+            "fill"   => ui::ElementAlignment::Fill,
+            _        => {
+                crate::overlay::lua::luaerror!(l, "Unknown alignment: {}", nm);
+                ui::ElementAlignment::Start
+            }
         }
+    } else {
+        crate::overlay::lua::luaerror!(l, "alignment must be a string.");
+        return ui::ElementAlignment::Start;
     }
 }
 
 pub unsafe fn checkorientation(l: &lua_State, ind: i32) -> ui::ElementOrientation {
-    let nm = unsafe { lua::L::checkstring(l, ind) };
-
-    match nm.as_str() {
-        "horizontal" => ui::ElementOrientation::Horizontal,
-        "vertical"   => ui::ElementOrientation::Vertical,
-        _            => {
-            lua::pushstring(l, format!("Unknown orientation: {}:", nm).as_str());
-            unsafe { let _ = lua::error(l); }
-            panic!("unknown orientation.");
-        },
+    if let Some(nm) = lua::tostring(l, ind) {
+        return match nm.as_str() {
+            "horizontal" => ui::ElementOrientation::Horizontal,
+            "vertical"   => ui::ElementOrientation::Vertical,
+            _            => {
+                crate::overlay::lua::luaerror!(l, "Unknown orientation: {}:", nm);
+                ui::ElementOrientation::Horizontal
+            },
+        }
+    } else {
+        crate::overlay::lua::luaerror!(l, "orientation must be a string.");
+        ui::ElementOrientation::Horizontal
     }
 }
 
@@ -259,7 +263,8 @@ unsafe extern "C" fn mouse_position(l: &lua_State) -> i32 {
 */
 #[doc(hidden)]
 unsafe extern "C" fn icon_codepoint(l: &lua_State) -> i32 {
-    let name = unsafe { lua::L::checkstring(l, 1) };
+    lua::checkargstring!(l, 1);
+    let name = lua::tostring(l, 1).unwrap();
     let ui = get_ui_upvalue(l);
 
     match ui.icon_codepoint(&name) {
@@ -307,7 +312,8 @@ unsafe extern "C" fn icon_codepoint(l: &lua_State) -> i32 {
 */
 #[doc(hidden)]
 unsafe extern "C" fn get_color(l: &lua_State) -> i32 {
-    let name = unsafe { lua::L::checkstring(l, 1) };
+    lua::checkargstring!(l, 1);
+    let name = lua::tostring(l, 1).unwrap();
 
     let o_settings = crate::overlay::settings();
 
@@ -388,7 +394,7 @@ unsafe extern "C" fn element_x(l: &lua_State) -> i32 {
     let e = unsafe { checkelement(l, 1) };
 
     if lua::gettop(l) == 2 {
-        let newval = unsafe { lua::L::checkinteger(l, 2) };
+        let newval = lua::tointeger(l, 2);
 
         e.set_x(newval);
     }
@@ -403,7 +409,7 @@ unsafe extern "C" fn element_y(l: &lua_State) -> i32 {
     let e = unsafe { checkelement(l, 1) };
 
     if lua::gettop(l) == 2 {
-        let newval = unsafe { lua::L::checkinteger(l, 2) };
+        let newval = lua::tointeger(l, 2);
 
         e.set_y(newval);
     }
@@ -419,7 +425,7 @@ unsafe extern "C" fn element_width(l: &lua_State) -> i32 {
     let e = unsafe { checkelement(l, 1) };
 
     if lua::gettop(l) == 2 {
-        let w = unsafe { lua::L::checkinteger(l, 2) };
+        let w = lua::tointeger(l, 2);
         e.set_width(w);
         return 0;
     }
@@ -434,7 +440,7 @@ unsafe extern "C" fn element_height(l: &lua_State) -> i32 {
     let e = unsafe { checkelement(l, 1) };
 
     if lua::gettop(l) == 2 {
-        let h = unsafe { lua::L::checkinteger(l, 2) };
+        let h = lua::tointeger(l, 2);
         e.set_height(h);
 
         return 0;
@@ -450,7 +456,7 @@ unsafe extern "C" fn element_bg_color(l: &lua_State) -> i32 {
     let e = unsafe { checkelement(l, 1) };
 
     if lua::gettop(l) == 2 {
-        let color = unsafe { checkcolor(l, 2) };
+        let color = checkcolor(l, 2);
         e.set_bg_color(color);
     }
 

@@ -126,9 +126,10 @@ unsafe extern "C" fn entries(l: &lua_State) -> i32 {
             :0.3.0: Added
 */
 unsafe extern "C" fn content(l: &lua_State) -> i32 {
+    lua::checkargstring!(l, 2);
     let mut zipref = unsafe { checkzipfile(l, 1) };
     let zip: &mut ZipFile = Rc::get_mut(zipref.deref_mut()).unwrap();
-    let path = unsafe { lua::L::checkstring(l, 2) };
+    let path = lua::tostring(l, 2).unwrap();
 
     match zip.file_content(&path) {
         Ok(data) => {

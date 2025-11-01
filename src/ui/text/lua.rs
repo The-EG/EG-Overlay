@@ -104,15 +104,18 @@ unsafe extern "C" fn text(l: &lua_State) -> i32 {
     let text = unsafe { checktext(l, &e) };
 
     if lua::gettop(l) >= 2 {
-        let newtext = unsafe { lua::L::checkstring(l, 2) };
+        if let Some(newtext) = lua::tostring(l, 2) {
+            let mut t = text.text.lock().unwrap();
+            t.text = newtext.clone();
+            t.update_text_size();
 
-        let mut t = text.text.lock().unwrap();
-        t.text = newtext.clone();
-        t.update_text_size();
+            lua::pushstring(l, &newtext);
 
-        lua::pushstring(l, &newtext);
-
-        return 1;
+            return 1;
+        } else {
+            crate::overlay::lua::luaerror!(l, "text argument #1 must be a string.");
+            return 0;
+        }
     } else {
         lua::pushstring(l, &text.text.lock().unwrap().text);
 

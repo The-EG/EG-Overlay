@@ -66,8 +66,10 @@ pub fn register_module_functions(l: &lua_State) {
         :0.3.0: Added
 */
 unsafe extern "C" fn new_grid(l: &lua_State) -> i32 {
-    let rows = unsafe { lua::L::checkinteger(l, 1) };
-    let cols = unsafe { lua::L::checkinteger(l, 2) };
+    lua::checkarginteger!(l, 1);
+    lua::checkarginteger!(l, 2);
+    let rows = lua::tointeger(l, 1);
+    let cols = lua::tointeger(l, 2);
 
     if rows < 1 {
         lua::pushstring(l, "rows must be greater than 0.");
@@ -161,19 +163,24 @@ Classes
             :0.3.0: Added
 */
 unsafe extern "C" fn attach(l: &lua_State) -> i32 {
+    lua::checkarginteger!(l, 3);
+    lua::checkarginteger!(l, 4);
+    lua::checkarginteger!(l, 5);
+    lua::checkarginteger!(l, 6);
+
     let grid_e = unsafe { ui::lua::checkelement(l, 1) };
     let grid = unsafe { checkgrid(l, &grid_e) };
 
     let e = unsafe { ui::lua::checkelement(l, 2) };
 
-    let row = unsafe { lua::L::checkinteger(l, 3) };
-    let col = unsafe { lua::L::checkinteger(l, 4) };
+    let row = lua::tointeger(l, 3);
+    let col = lua::tointeger(l, 4);
 
-    let rowspan = unsafe { lua::L::checkinteger(l, 5) };
-    let colspan = unsafe { lua::L::checkinteger(l, 6) };
+    let rowspan = lua::tointeger(l, 5);
+    let colspan = lua::tointeger(l, 6);
 
-    let halign = unsafe { ui::lua::checkalign(l, 7) };
-    let valign = unsafe { ui::lua::checkalign(l, 8) };
+    let halign = ui::lua::checkalign(l, 7);
+    let valign = ui::lua::checkalign(l, 8);
 
     let item = ui::grid::GridItem {
         element: (*e).clone(),
@@ -211,11 +218,13 @@ unsafe extern "C" fn attach(l: &lua_State) -> i32 {
             :0.3.0: Added
 */
 unsafe extern "C" fn detach(l: &lua_State) -> i32 {
+    lua::checkarginteger!(l, 3);
+    lua::checkarginteger!(l, 4);
     let grid_e = unsafe { ui::lua::checkelement(l, 1) };
     let grid = unsafe { checkgrid(l, &grid_e) };
 
-    let row = unsafe { lua::L::checkinteger(l, 3) };
-    let col = unsafe { lua::L::checkinteger(l, 4) };
+    let row = lua::tointeger(l, 3);
+    let col = lua::tointeger(l, 4);
 
     grid.inner.lock().unwrap().set_item(row, col, None);
 
@@ -236,16 +245,17 @@ unsafe extern "C" fn detach(l: &lua_State) -> i32 {
             :0.3.0: Added
 */
 unsafe extern "C" fn rowspacing(l: &lua_State) -> i32 {
+    lua::checkarginteger!(l, 2);
     let grid_e = unsafe { ui::lua::checkelement(l, 1) };
     let grid = unsafe { checkgrid(l, &grid_e) };
 
-    let row = unsafe { lua::L::checkinteger(l, 2) };
+    let row = lua::tointeger(l, 2);
 
     if lua::gettop(l) == 2 {
         // no row, first arg is spacing, set all rows to this
         if row < 0 {
-            lua::pushstring(l, "spacing must be 0 or greater.");
-            return unsafe { lua::error(l) };
+            crate::overlay::lua::luaerror!(l, "spacing must be 0 or greater.");
+            return 0;
         }
 
         let mut g = grid.inner.lock().unwrap();
@@ -259,16 +269,16 @@ unsafe extern "C" fn rowspacing(l: &lua_State) -> i32 {
 
     let rows = grid.inner.lock().unwrap().rows;
 
-    let spacing = unsafe { lua::L::checkinteger(l, 3) };
+    let spacing = lua::tointeger(l, 3);
 
     if row < 1  || row >= rows {
-        lua::pushstring(l, "row out of range.");
-        return unsafe { lua::error(l) };
+        crate::overlay::lua::luaerror!(l, "row out of range.");
+        return 0;
     }
 
     if spacing < 0 {
-        lua::pushstring(l, "spacing must be 0 or greater.");
-        return unsafe { lua::error(l) };
+        crate::overlay::lua::luaerror!(l, "spacing must be 0 or greater.");
+        return 0;
     }
 
     grid.inner.lock().unwrap().rowspacing[(row-1) as usize] = spacing;
@@ -291,16 +301,17 @@ unsafe extern "C" fn rowspacing(l: &lua_State) -> i32 {
             :0.3.0: Added
 */
 unsafe extern "C" fn colspacing(l: &lua_State) -> i32 {
+    lua::checkarginteger!(l, 2);
     let grid_e = unsafe { ui::lua::checkelement(l, 1) };
     let grid = unsafe { checkgrid(l, &grid_e) };
 
-    let col = unsafe { lua::L::checkinteger(l, 2) };
+    let col = lua::tointeger(l, 2);
 
     if lua::gettop(l) == 2 {
         // no col, first arg is spacing, set all cols to this
         if col < 0 {
-            lua::pushstring(l, "spacing must be 0 or greater.");
-            return unsafe { lua::error(l) };
+            crate::overlay::lua::luaerror!(l, "spacing must be 0 or greater.");
+            return 0;
         }
 
         let mut g = grid.inner.lock().unwrap();
@@ -314,16 +325,16 @@ unsafe extern "C" fn colspacing(l: &lua_State) -> i32 {
 
     let cols = grid.inner.lock().unwrap().cols;
 
-    let spacing = unsafe { lua::L::checkinteger(l, 3) };
+    let spacing = lua::tointeger(l, 3);
 
     if col < 1 || col >= cols {
-        lua::pushstring(l, "col out of range.");
-        return unsafe { lua::error(l) };
+        crate::overlay::lua::luaerror!(l, "col out of range.");
+        return 0;
     }
 
     if spacing < 0 {
-        lua::pushstring(l, "spacing must be 0 or greater.");
-        return unsafe { lua::error(l) };
+        crate::overlay::lua::luaerror!(l, "spacing must be 0 or greater.");
+        return 0;
     }
 
     grid.inner.lock().unwrap().colspacing[(col-1) as usize] = spacing;

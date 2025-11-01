@@ -168,11 +168,12 @@ Classes
             :0.3.0: Added
 */
 unsafe extern "C" fn push_front(l: &lua_State) -> i32 {
+    lua::checkargstring!(l, 3);
     let box_e = unsafe { ui::lua::checkelement(l, 1) };
     let bx = unsafe { checkbox(l, &box_e) };
 
     let item = unsafe { ui::lua::checkelement(l, 2) };
-    let align = unsafe { lua::L::checkstring(l, 3) };
+    let align = lua::tostring(l, 3).unwrap();
     let expand = lua::toboolean(l, 4);
 
     bx.push_front(&item, ui::ElementAlignment::from(align.as_str()), expand);
@@ -193,11 +194,12 @@ unsafe extern "C" fn push_front(l: &lua_State) -> i32 {
             :0.3.0: Added
 */
 unsafe extern "C" fn push_back(l: &lua_State) -> i32 {
+    lua::checkargstring!(l, 3);
     let box_e = unsafe { ui::lua::checkelement(l, 1) };
     let bx = unsafe { checkbox(l, &box_e) };
 
     let item = unsafe { ui::lua::checkelement(l, 2) };
-    let align = unsafe { lua::L::checkstring(l, 3) };
+    let align = lua::tostring(l, 3).unwrap();
     let expand = lua::toboolean(l, 4);
 
     bx.push_back(&item, ui::ElementAlignment::from(align.as_str()), expand);
@@ -222,12 +224,13 @@ unsafe extern "C" fn push_back(l: &lua_State) -> i32 {
             :0.3.0: Added
 */
 unsafe extern "C" fn insert_before(l: &lua_State) -> i32 {
+    lua::checkargstring!(l, 4);
     let box_e = unsafe { ui::lua::checkelement(l, 1) };
     let bx = unsafe { checkbox(l, &box_e) };
 
     let before = unsafe { ui::lua::checkelement(l, 2) };
     let item = unsafe { ui::lua::checkelement(l, 3) };
-    let align = unsafe { lua::L::checkstring(l, 4) };
+    let align = lua::tostring(l, 4).unwrap();
     let expand = lua::toboolean(l, 5);
 
     let r = bx.insert_before(&before, &item, ui::ElementAlignment::from(align.as_str()), expand);
@@ -254,12 +257,13 @@ unsafe extern "C" fn insert_before(l: &lua_State) -> i32 {
             :0.3.0: Added
 */
 unsafe extern "C" fn insert_after(l: &lua_State) -> i32 {
+    lua::checkargstring!(l, 4);
     let box_e = unsafe { ui::lua::checkelement(l, 1) };
     let bx = unsafe { checkbox(l, &box_e) };
 
     let after = unsafe { ui::lua::checkelement(l, 2) };
     let item = unsafe { ui::lua::checkelement(l, 3) };
-    let align = unsafe { lua::L::checkstring(l, 4) };
+    let align = lua::tostring(l, 4).unwrap();
     let expand = lua::toboolean(l, 5);
 
     let r = bx.insert_after(&after, &item, ui::ElementAlignment::from(align.as_str()), expand);
@@ -375,10 +379,11 @@ unsafe extern "C" fn len(l: &lua_State) -> i32 {
             :0.3.0: Added
 */
 unsafe extern "C" fn padding_left(l: &lua_State) -> i32 {
+    lua::checkarginteger!(l, 2);
     let box_e = unsafe { ui::lua::checkelement(l, 1) };
     let bx = unsafe { checkbox(l, &box_e) };
 
-    let p = unsafe { lua::L::checkinteger(l, 2) };
+    let p = lua::tointeger(l, 2);
 
     bx.inner.lock().unwrap().padding_left = p;
 
@@ -397,10 +402,11 @@ unsafe extern "C" fn padding_left(l: &lua_State) -> i32 {
             :0.3.0: Added
 */
 unsafe extern "C" fn padding_right(l: &lua_State) -> i32 {
+    lua::checkarginteger!(l, 2);
     let box_e = unsafe { ui::lua::checkelement(l, 1) };
     let bx = unsafe { checkbox(l, &box_e) };
 
-    let p = unsafe { lua::L::checkinteger(l, 2) };
+    let p = lua::tointeger(l, 2);
 
     bx.inner.lock().unwrap().padding_right = p;
 
@@ -419,10 +425,11 @@ unsafe extern "C" fn padding_right(l: &lua_State) -> i32 {
             :0.3.0: Added
 */
 unsafe extern "C" fn padding_top(l: &lua_State) -> i32 {
+    lua::checkarginteger!(l, 2);
     let box_e = unsafe { ui::lua::checkelement(l, 1) };
     let bx = unsafe { checkbox(l, &box_e) };
 
-    let p = unsafe { lua::L::checkinteger(l, 2) };
+    let p = lua::tointeger(l, 2);
 
     bx.inner.lock().unwrap().padding_top = p;
 
@@ -441,10 +448,11 @@ unsafe extern "C" fn padding_top(l: &lua_State) -> i32 {
             :0.3.0: Added
 */
 unsafe extern "C" fn padding_bottom(l: &lua_State) -> i32 {
+    lua::checkarginteger!(l, 2);
     let box_e = unsafe { ui::lua::checkelement(l, 1) };
     let bx = unsafe { checkbox(l, &box_e) };
 
-    let p = unsafe { lua::L::checkinteger(l, 2) };
+    let p = lua::tointeger(l, 2);
 
     bx.inner.lock().unwrap().padding_bottom = p;
 
@@ -462,10 +470,11 @@ unsafe extern "C" fn padding_bottom(l: &lua_State) -> i32 {
             :0.3.0: Added
 */
 unsafe extern "C" fn spacing(l: &lua_State) -> i32 {
+    lua::checkarginteger!(l, 2);
     let box_e = unsafe { ui::lua::checkelement(l, 1) };
     let bx = unsafe { checkbox(l, &box_e) };
 
-    let s = unsafe { lua::L::checkinteger(l, 2) };
+    let s = lua::tointeger(l, 2);
 
     bx.inner.lock().unwrap().spacing = s;
 
@@ -479,10 +488,11 @@ unsafe extern "C" fn spacing(l: &lua_State) -> i32 {
             :0.3.0: Added
 */
 unsafe extern "C" fn alignment(l: &lua_State) -> i32 {
+    lua::checkargstring!(l, 2);
     let box_e = unsafe { ui::lua::checkelement(l, 1) };
     let bx = unsafe { checkbox(l, &box_e) };
 
-    let align = unsafe { lua::L::checkstring(l, 2) };
+    let align = lua::tostring(l, 2).unwrap();
 
     bx.inner.lock().unwrap().alignment = ui::ElementAlignment::from(align.as_str());
 

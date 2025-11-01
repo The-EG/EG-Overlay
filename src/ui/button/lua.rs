@@ -106,7 +106,8 @@ unsafe extern "C" fn new_button(l: &lua_State) -> i32 {
         :0.3.0: Added
 */
 unsafe extern "C" fn new_checkbox(l: &lua_State) -> i32 {
-    let size = unsafe { lua::L::checkinteger(l, 1) };
+    lua::checkarginteger!(l, 1);
+    let size = lua::tointeger(l, 1);
 
     let btn = button::Button::new();
 
@@ -210,9 +211,10 @@ unsafe extern "C" fn add_event_handler(l: &lua_State) -> i32 {
             :0.3.0: Added
 */
 unsafe extern "C" fn remove_event_handler(l: &lua_State) -> i32 {
+    lua::checkarginteger!(l, 2);
     let btne = unsafe { ui::lua::checkelement(l, 1) };
     let btn = unsafe { checkbutton(l, &btne) };
-    let ehref = unsafe { lua::L::checkinteger(l, 2) };
+    let ehref = lua::tointeger(l, 2);
 
     if btn.inner.lock().unwrap().event_handlers.remove(&ehref).is_none() {
         warn!("Button didn't have event handler {}", ehref);
@@ -234,9 +236,10 @@ unsafe extern "C" fn remove_event_handler(l: &lua_State) -> i32 {
             :0.3.0: Added
 */
 unsafe extern "C" fn background_hover(l: &lua_State) -> i32 {
+    lua::checkarginteger!(l, 2);
     let btne = unsafe { ui::lua::checkelement(l, 1) };
     let btn = unsafe { checkbutton(l, &btne) };
-    let color = ui::Color::from(unsafe { lua::L::checkinteger(l, 2) });
+    let color = ui::Color::from(lua::tointeger(l, 2));
 
     btn.inner.lock().unwrap().bg_hover = color;
 
@@ -254,9 +257,10 @@ unsafe extern "C" fn background_hover(l: &lua_State) -> i32 {
             :0.3.0: Added
 */
 unsafe extern "C" fn background_highlight(l: &lua_State) -> i32 {
+    lua::checkarginteger!(l, 2);
     let btne = unsafe { ui::lua::checkelement(l, 1) };
     let btn = unsafe { checkbutton(l, &btne) };
-    let color = ui::Color::from(unsafe { lua::L::checkinteger(l, 2) });
+    let color = ui::Color::from(lua::tointeger(l, 2));
 
     btn.inner.lock().unwrap().bg_highlight = color;
 
@@ -274,9 +278,10 @@ unsafe extern "C" fn background_highlight(l: &lua_State) -> i32 {
             :0.3.0: Added
 */
 unsafe extern "C" fn border(l: &lua_State) -> i32 {
+    lua::checkarginteger!(l, 2);
     let btne = unsafe { ui::lua::checkelement(l, 1) };
     let btn = unsafe { checkbutton(l, &btne) };
-    let color = ui::Color::from(unsafe { lua::L::checkinteger(l, 2) });
+    let color = ui::Color::from(lua::tointeger(l, 2));
 
     btn.inner.lock().unwrap().border = color;
 
@@ -294,10 +299,11 @@ unsafe extern "C" fn border(l: &lua_State) -> i32 {
             :0.3.0: Added
 */
 unsafe extern "C" fn border_width(l: &lua_State) -> i32 {
+    lua::checkarginteger!(l, 2);
     let btne = unsafe { ui::lua::checkelement(l, 1) };
     let btn = unsafe { checkbutton(l, &btne) };
 
-    let pixels = unsafe { lua::L::checkinteger(l, 2) };
+    let pixels = lua::tointeger(l, 2);
 
     btn.inner.lock().unwrap().border_width = pixels;
 

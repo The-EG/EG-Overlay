@@ -107,11 +107,13 @@ unsafe extern "C" fn text(l: &lua_State) -> i32 {
     let entry = unsafe { checkentry(l, &ele) };
 
     if lua::gettop(l) >= 2 {
-        let t = unsafe { lua::L::checkstring(l, 2) };
-
-        let mut inner = entry.inner.lock().unwrap();
-        inner.text = String::from(t);
-        inner.update_caret_x();
+        if let Some(t) = lua::tostring(l, 2) {
+            let mut inner = entry.inner.lock().unwrap();
+            inner.text = String::from(t);
+            inner.update_caret_x();
+        } else {
+            crate::overlay::lua::luaerror!(l, "text argument #1 must be a string.");
+        }
 
         return 0;
     } else {
@@ -135,10 +137,11 @@ unsafe extern "C" fn text(l: &lua_State) -> i32 {
             :0.3.0: Added
 */
 unsafe extern "C" fn hint(l: &lua_State) -> i32 {
+    lua::checkargstring!(l, 2);
     let ele = unsafe { ui::lua::checkelement(l, 1) };
     let entry = unsafe { checkentry(l, &ele) };
 
-    let hint = unsafe { lua::L::checkstring(l, 2) };
+    let hint = lua::tostring(l, 2).unwrap();
 
     entry.inner.lock().unwrap().hint = Some(String::from(hint));
 
@@ -156,9 +159,10 @@ unsafe extern "C" fn hint(l: &lua_State) -> i32 {
             :0.3.0: Added
 */
 unsafe extern "C" fn pref_width(l: &lua_State) -> i32 {
+    lua::checkarginteger!(l, 2);
     let ele = unsafe { ui::lua::checkelement(l, 1) };
     let entry = unsafe { checkentry(l, &ele) };
-    let w = unsafe { lua::L::checkinteger(l, 2) };
+    let w = lua::tointeger(l, 2);
 
     entry.inner.lock().unwrap().pref_width = w;
 
@@ -276,9 +280,10 @@ unsafe extern "C" fn add_event_handler(l: &lua_State) -> i32 {
             :0.3.0: Added
 */
 unsafe extern "C" fn remove_event_handler(l: &lua_State) -> i32 {
+    lua::checkarginteger!(l, 2);
     let ele = unsafe { ui::lua::checkelement(l, 1) };
     let entry = unsafe { checkentry(l, &ele) };
-    let ehref = unsafe { lua::L::checkinteger(l, 2) };
+    let ehref = lua::tointeger(l, 2);
 
     if entry.inner.lock().unwrap().event_handlers.remove(&ehref).is_none() {
         luawarn!(l, "Entry didn't have event handler {}", ehref);

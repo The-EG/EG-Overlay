@@ -685,25 +685,34 @@ macro_rules! checkarg {
     ($lua:ident, $ind:literal) => {{
         if crate::lua::gettop($lua) < $ind {
             lua::pushstring($lua, format!("missing argument #{} to function {}", $ind, $crate::lua::dbg_name($lua)).as_str());
-            unsafe { lua::error($lua) };
+            unsafe { $crate::lua::error($lua) };
         }
     }}
 }
 pub(crate) use checkarg;
 
-macro_rules! checkargstring {
-    ($lua:ident, $ind:literal) => {{
+macro_rules! checkargtype {
+    ($lua:ident, $ind:literal, $typ:expr) => {{
         $crate::lua::checkarg!($lua, $ind);
 
-        if $crate::lua::luatype($lua, $ind) != $crate::lua::LuaType::LUA_TSTRING {
-            lua::pushstring($lua, format!("expecting string for argument #{} to function {}, found {}",
+        if $crate::lua::luatype($lua, $ind) != $typ {
+            lua::pushstring($lua, format!("expecting {} for argument #{} to function {}, found {}",
+                    $typ.as_str(),
                     $ind,
                     $crate::lua::dbg_name($lua),
                     $crate::lua::luatype($lua, $ind).as_str()
                 ).as_str()
             );
-            unsafe { lua::error($lua) };
+            unsafe { $crate::lua::error($lua) };
         }
+    }}
+}
+pub(crate) use checkargtype;
+
+macro_rules! checkargstring {
+    ($lua:ident, $ind:literal) => {{
+        $crate::lua::checkarg!($lua, $ind);
+        $crate::lua::checkargtype!($lua, $ind, $crate::lua::LuaType::LUA_TSTRING);
     }}
 }
 pub(crate) use checkargstring;
@@ -711,16 +720,7 @@ pub(crate) use checkargstring;
 macro_rules! checkargnumber {
     ($lua:ident, $ind:literal) => {{
         $crate::lua::checkarg!($lua, $ind);
-
-        if $crate::lua::luatype($lua, $ind) != $crate::lua::LuaType::LUA_TNUMBER {
-            lua::pushstring($lua, format!("expecting number for argument #{} to function {}, found {}",
-                    $ind,
-                    $crate::lua::dbg_name($lua),
-                    $crate::lua::luatype($lua, $ind).as_str()
-                ).as_str()
-            );
-            unsafe { lua::error($lua) };
-        }
+        $crate::lua::checkargtype!($lua, $ind, $crate::lua::LuaType::LUA_TNUMBER);
     }}
 }
 pub(crate) use checkargnumber;
@@ -736,7 +736,7 @@ macro_rules! checkarginteger {
                     $crate::lua::dbg_name($lua)
                 ).as_str()
             );
-            unsafe { lua::error($lua) };
+            unsafe { $crate::lua::error($lua) };
         }
     }}
 }
@@ -763,11 +763,7 @@ pub(crate) use luaL_Reg_list as luaL_Reg_list;
 /// Lua auxiliary library API
 pub mod L {
     use crate::lua::lua_State;
-    use std::ffi::{CStr, CString};
-
-    pub unsafe fn checktype(state: &lua_State, ind: i32, type_: crate::lua::LuaType) {
-        unsafe { api::luaL_checktype(state, ind, type_ as i32); }
-    }
+    use std::ffi::CString;
 
     /// Creates a new Lua state.
     ///
@@ -791,26 +787,6 @@ pub mod L {
         unsafe { api::luaL_openlibs(state) };
     }
 
-    /// Checks whether the function argument `arg` is a string and returns this string.
-    ///
-    /// This function uses lua_tolstring to get its result, so all conversions and
-    /// caveats of that function apply here.
-    pub unsafe fn checkstring(state: &lua_State, ind: i32) -> String {
-        let cstr = unsafe { api::luaL_checklstring(state, ind, 0 as *mut usize) };
-
-        unsafe { CStr::from_ptr(cstr).to_string_lossy().into_owned() }
-    }
-
-    /// Checks whether the function argument `arg` is an integer (or can be
-    /// converted to an integer) and returns this integer.
-    pub unsafe fn checkinteger(state: &lua_State, ind: i32) -> i64 {
-        unsafe { api::luaL_checkinteger(state, ind) }
-    }
-
-    pub unsafe fn checknumber(state: &lua_State, ind: i32) -> f64 {
-        unsafe { api::luaL_checknumber(state, ind) }
-    }
-
     /// Returns the "length" of the value at the given index as a number.
     ///
     /// This is equivalent to the '#' operator in Lua. Raises an error if the
@@ -819,17 +795,6 @@ pub mod L {
     pub fn len(state: &lua_State, ind: i32) -> usize {
         unsafe {
             return api::luaL_len(state, ind);
-        }
-    }
-
-    /// Grows the stack size to top + `sz` elements.
-    ///
-    /// This raises an error if the stack cannot grow to that size. `msg` is an
-    /// additional text to go into the error message.
-    pub unsafe fn checkstack(state: &lua_State, sz: i32, msg: &str) {
-        let cmsg = CString::new(msg).unwrap();
-        unsafe {
-            api::luaL_checkstack(state, sz, cmsg.as_ptr());
         }
     }
 

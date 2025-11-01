@@ -94,7 +94,8 @@ unsafe fn checkwindow<'a>(l: &lua_State, element: &'a ManuallyDrop<Arc<ui::Eleme
         :0.3.0: Added
 */
 unsafe extern "C" fn new_window(l: &lua_State) -> i32 {
-    let caption = unsafe { lua::L::checkstring(l,1) };
+    lua::checkargstring!(l, 1);
+    let caption = lua::tostring(l, 1).unwrap();
 
     let win = Window::new(&caption);
 
@@ -128,9 +129,11 @@ unsafe extern "C" fn caption(l: &lua_State) -> i32 {
     let win = unsafe { checkwindow(l, &e) };
 
     if lua::gettop(l) >= 2 {
-        let newcaption = unsafe { lua::L::checkstring(l, 2) };
-
-        win.win.lock().unwrap().caption = String::from(newcaption);
+        if let Some(newcaption) = lua::tostring(l, 2) {
+            win.win.lock().unwrap().caption = String::from(newcaption);
+        } else {
+            crate::overlay::lua::luaerror!(l, "caption argument #1 must be a string.");
+        }
     }
 
     lua::pushstring(l, &*win.win.lock().unwrap().caption);
@@ -260,11 +263,12 @@ unsafe extern "C" fn hide(l: &lua_State) -> i32 {
             :0.3.0: Added
 */
 unsafe extern "C" fn settings(l: &lua_State) -> i32 {
+    lua::checkargstring!(l, 3);
     let e = unsafe { ui::lua::checkelement(l, 1) };
     let win = unsafe { checkwindow(l, &e) };
 
     let s = unsafe { crate::settings::lua::checksettings(l, 2) };
-    let path = unsafe { lua::L::checkstring(l, 3) };
+    let path = lua::tostring(l, 3).unwrap();
 
     let mut data = win.win.lock().unwrap();
     data.settings = Some((*s).clone());
@@ -314,11 +318,13 @@ unsafe extern "C" fn resizable(l: &lua_State) -> i32 {
             :0.3.0: Added
 */
 unsafe extern "C" fn position(l: &lua_State) -> i32 {
+    lua::checkarginteger!(l, 2);
+    lua::checkarginteger!(l, 3);
     let e = unsafe { ui::lua::checkelement(l, 1) };
     let win = unsafe { checkwindow(l, &e) };
 
-    let x = unsafe { lua::L::checkinteger(l, 2) };
-    let y = unsafe { lua::L::checkinteger(l, 3) };
+    let x = lua::tointeger(l, 2);
+    let y = lua::tointeger(l, 3);
 
     let mut w = win.win.lock().unwrap();
     w.x = x;

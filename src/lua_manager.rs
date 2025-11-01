@@ -66,7 +66,8 @@ struct TargetedLuaEvent {
 
 /// Searches for an internal module opener and returns pushes it to the stack if found
 unsafe extern "C" fn embedded_module_searcher(l: &lua::lua_State) -> i32 {
-    let name = unsafe { lua::L::checkstring(l, 1) };
+    lua::checkargstring!(l, 1);
+    let name = lua::tostring(l, 1).unwrap();
 
     let luaman_lock = LUA_MANAGER.lock().unwrap();
     let luaman = luaman_lock.as_ref().unwrap();

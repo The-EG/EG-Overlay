@@ -87,8 +87,9 @@ unsafe extern "C" fn __gc(l: &lua_State) -> i32 {
             :0.3.0: Added
 */
 unsafe extern "C" fn set_default(l: &lua_State) -> i32 {
+    lua::checkargstring!(l, 2);
     let s = unsafe { checksettings(l, 1) };
-    let key = unsafe { lua::L::checkstring(l, 2) };
+    let key = lua::tostring(l, 2).unwrap();
 
     let val = lua_json::tojson(l, 3);
 
@@ -106,8 +107,9 @@ unsafe extern "C" fn set_default(l: &lua_State) -> i32 {
             :0.3.0: Added
 */
 unsafe extern "C" fn get(l: &lua_State) -> i32 {
+    lua::checkargstring!(l, 2);
     let s = unsafe { checksettings(l, 1) };
-    let key = unsafe { lua::L::checkstring(l, 2) };
+    let key = lua::tostring(l, 2).unwrap();
 
     if let Some(val) = s.get(&key) {
         lua_json::pushjson(l, &val);
@@ -125,8 +127,9 @@ unsafe extern "C" fn get(l: &lua_State) -> i32 {
             :0.3.0: Added
 */
 unsafe extern "C" fn set(l: &lua_State) -> i32 {
+    lua::checkargstring!(l, 2);
     let s = unsafe { checksettings(l, 1) };
-    let key = unsafe { lua::L::checkstring(l, 2) };
+    let key = lua::tostring(l, 2).unwrap();
 
     let val = lua_json::tojson(l, 3);
 

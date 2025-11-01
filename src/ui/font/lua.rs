@@ -168,13 +168,16 @@ pub fn register_module_functions(l: &lua_State) {
         :0.3.0: Added
 */
 unsafe extern "C" fn get_font(l: &lua_State) -> i32 {
-    let path = unsafe { lua::L::checkstring(l, 1) };
-    let size: u32 = unsafe { lua::L::checkinteger(l, 2) as u32 };
+    lua::checkargstring!(l, 1);
+    lua::checkarginteger!(l, 2);
 
     if lua::gettop(l)>=3 && lua::luatype(l,3) != lua::LuaType::LUA_TTABLE {
         lua::pushstring(l, "get_font argument #3 must be a table of font variable values.");
         unsafe { lua::error(l); }
     }
+
+    let path = lua::tostring(l, 1).unwrap();
+    let size: u32 = lua::tointeger(l, 2) as u32;
 
     let mut vars: Vec<(String, i32)> = Vec::new();
 
@@ -256,8 +259,9 @@ unsafe extern "C" fn __gc(l: &lua_State) -> i32 {
             :0.3.0: Added
 */
 unsafe extern "C" fn to_size(l: &lua_State) -> i32 {
+    lua::checkarginteger!(l, 2);
     let f = unsafe { checkfont(l, 1) };
-    let size = unsafe { lua::L::checkinteger(l, 2) };
+    let size = lua::tointeger(l, 2);
 
     let ui = crate::overlay::ui();
 
@@ -283,8 +287,9 @@ unsafe extern "C" fn to_size(l: &lua_State) -> i32 {
             :0.3.0: Added
 */
 unsafe extern "C" fn to_size_perc(l: &lua_State) -> i32 {
+    lua::checkargnumber!(l, 2);
     let f = unsafe { checkfont(l, 1) };
-    let sp = unsafe { lua::L::checknumber(l, 2) };
+    let sp = lua::tonumber(l, 2);
 
     let ui = crate::overlay::ui();
 

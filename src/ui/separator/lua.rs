@@ -84,10 +84,11 @@ Classes
             :0.3.0: Added
 */
 unsafe extern "C" fn thickness(l: &lua_State) -> i32 {
+    lua::checkarginteger!(l, 2);
     let sep_e = unsafe { ui::lua::checkelement(l, 1) };
     let sep = unsafe { checkseparator(l, &sep_e) };
 
-    let thickness = unsafe { lua::L::checkinteger(l, 2) };
+    let thickness = lua::tointeger(l, 2);
 
     sep.inner.lock().unwrap().thickness = thickness;
 

@@ -130,10 +130,8 @@ unsafe extern "C" fn new_menu_item(l: &lua_State) -> i32 {
         :0.3.0: Added
 */
 unsafe extern "C" fn new_text_menu_item(l: &lua_State) -> i32 {
-    // check args first, if the error occurs in the call below it will cause a
-    // panic instead of an error
-    unsafe { lua::L::checkstring(l, 1); }
-    unsafe { lua::L::checkinteger(l, 2); }
+    lua::checkargstring!(l, 1);
+    lua::checkarginteger!(l, 2);
     unsafe { ui::font::lua::checkfont(l, 3); }
 
     // local ui = require 'ui'
@@ -185,7 +183,7 @@ unsafe extern "C" fn new_text_menu_item(l: &lua_State) -> i32 {
 */
 unsafe extern "C" fn new_sep_menu_item(l: &lua_State) -> i32 {
     // as above, check args first
-    unsafe { lua::L::checkstring(l, 1); }
+    lua::checkargstring!(l, 1);
 
     // local ui = require 'ui'
     lua::getglobal(l, "require");
@@ -439,8 +437,8 @@ unsafe extern "C" fn show(l: &lua_State) -> i32 {
     let y: i64;
 
     if lua::gettop(l) == 3 {
-        x = unsafe { lua::L::checkinteger(l, 2) };
-        y = unsafe { lua::L::checkinteger(l, 3) };
+        x = lua::tointeger(l, 2);
+        y = lua::tointeger(l, 3);
     } else if lua::gettop(l) == 1 {
         let ui = crate::overlay::ui();
 
@@ -463,8 +461,8 @@ unsafe extern "C" fn show(l: &lua_State) -> i32 {
             y = my - menu_h;
         }
     } else {
-        lua::pushstring(l, "menu:show takes either 0 or 2 arguments.");
-        return unsafe { lua::error(l) };
+        crate::overlay::lua::luaerror!(l, "menu:show takes either 0 or 2 arguments.");
+        return 0;
     }
 
     menu.show(x, y, &menu_e);
@@ -706,9 +704,10 @@ unsafe extern "C" fn menuitem_add_event_handler(l: &lua_State) -> i32 {
             :0.3.0: Added
 */
 unsafe extern "C" fn menuitem_remove_event_handler(l: &lua_State) -> i32 {
+    lua::checkarginteger!(l, 2);
     let mi_e = unsafe { ui::lua::checkelement(l, 1) };
     let mi = unsafe { checkmenuitem(l, &mi_e) };
-    let ehref = unsafe { lua::L::checkinteger(l, 2) };
+    let ehref = lua::tointeger(l, 2);
 
     if mi.inner.lock().unwrap().event_handlers.remove(&ehref).is_none() {
         luawarn!(l, "menuitem didn't have event handler {}", ehref);
