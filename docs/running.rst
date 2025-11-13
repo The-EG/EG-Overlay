@@ -13,6 +13,13 @@ Most users won't need to do anything additional.
 Command Line Options
 --------------------
 
+.. option:: --debug
+
+    Enable debug logging.
+
+    .. versionhistory::
+        :0.3.0: Added
+
 .. option:: --target-win-class <window class name>
 
     Set the window class that is used to determine the target window. This is
