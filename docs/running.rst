@@ -29,4 +29,17 @@ Command Line Options
     .. versionhistory::
         :0.3.0: Added
 
+.. option:: --script <script path>
+
+    Run a Lua script instead of starting the overlay.
+
+    .. versionhistory::
+        :0.3.0: Added
+
+.. option:: --lua-path <path>
+
+    Add the given directory to the Lua module search paths.
+
+    .. versionhistory::
+        :0.3.0: Added
 

@@ -47,7 +47,7 @@ if ($args[0]) {
         "no-hooks" { $extra_args = @("--no-input-hooks") }
         "terminal-no-hooks" { $extra_args = @("--target-win-class", $terminal_cls, "--no-input-hooks") }
         "notepad-no-hooks" { $extra_args = @("--target-win-class", "Notepad", "--no-input-hooks") }
-        "script" { $extra_args = @("--lua-script", $args[1]) }
+        "script" { $extra_args = @("--script", $args[1]) }
         Default {
             Write-Error ("Unknown debug target '" +$args[0] + "'. Valid targets: terminal, no-hooks, terminal-no-hooks")
             return

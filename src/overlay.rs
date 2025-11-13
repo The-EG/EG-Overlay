@@ -68,6 +68,8 @@ pub struct EgOverlay {
     restart: atomic::AtomicBool,
 
     do_resize: atomic::AtomicBool,
+
+    script: Option<String>,
 }
 
 /// The state for various internal (Rust) modules.
@@ -134,6 +136,10 @@ pub fn init() {
 
     let mut args = std::env::args();
 
+    let mut script = None;
+
+    let mut add_lua_paths: Vec<String> = Vec::new();
+
     let _ = args.next(); // skip program path
     while let Some(a) = args.next() {
         match a.as_str() {
@@ -150,6 +156,21 @@ pub fn init() {
                     panic!("--target-win-class requires a string argument.");
                 }
             },
+            "--script" => {
+                if let Some(sc) = args.next() {
+                    warn!("Running Lua Script: {}", sc);
+                    script = Some(sc.clone());
+                } else {
+                    panic!("--script requires a string argument.");
+                }
+            },
+            "--lua-path" => {
+                if let Some(p) = args.next() {
+                    add_lua_paths.push(p);
+                } else {
+                    panic!("--lua-path requires a path argument.");
+                }
+            }
             _ => error!("Unrecognized command line argument: {}", a),
         }
     }
@@ -185,6 +206,8 @@ pub fn init() {
 
         restart: atomic::AtomicBool::new(false),
         do_resize: atomic::AtomicBool::new(false),
+
+        script: script,
     };
 
     *OVERLAY.lock().unwrap() = Some(Arc::new(overlay));
@@ -195,16 +218,22 @@ pub fn init() {
 
     crate::lua_sqlite3::init();
 
-    register_win_class();
-    create_window();
-    create_tray_menu();
-
     // Lua has to be brought up before nearly everything else, so that modules
     // can register openers, etc.
     lua_manager::init();
 
+    if add_lua_paths.len() > 0 { lua_manager::add_paths(&add_lua_paths); }
+
     crate::lua_shell::init();
     crate::lua_path::init();
+    crate::web_request::init();
+
+    if o.script.is_some() { return; }
+
+    register_win_class();
+    create_window();
+    create_tray_menu();
+
 
     // don't keep mods locked, Ui::new needs dx, etc.
     o.mods.lock().unwrap().dx = Some(dx::Dx::new());
@@ -213,8 +242,6 @@ pub fn init() {
 
     // input needs a reference to UI now that it's up
     input::set_ui(&ui());
-
-    crate::web_request::init();
 }
 
 fn register_win_class() {
@@ -312,6 +339,13 @@ fn show_tray_menu(x: i32, y: i32) -> i32 {
 }
 
 pub fn run() {
+    lua_manager::add_module_opener("overlay", Some(crate::overlay::lua::open_module));
+
+    if let Some(script) = &overlay().script {
+        lua_manager::run_file(&script);
+        return;
+    }
+
     let overlay = crate::overlay::overlay();
 
     let mut nid = Shell::NOTIFYICONDATAA::default();
@@ -337,8 +371,6 @@ pub fn run() {
         Shell::Shell_NotifyIconA(Shell::NIM_ADD, &nid).expect("Failed to set shell tray icon.");
         Shell::Shell_NotifyIconA(Shell::NIM_SETVERSION, &nid).expect("Failed to set shell icon version.");
     }
-
-    lua_manager::add_module_opener("overlay", Some(crate::overlay::lua::open_module));
 
     overlay.running.store(true, atomic::Ordering::Relaxed);
 
@@ -570,14 +602,15 @@ pub fn cleanup() {
     lua_manager::cleanup();
 
     let do_restart = OVERLAY.lock().unwrap().as_ref().unwrap().restart.load(atomic::Ordering::SeqCst);
+    let is_script = OVERLAY.lock().unwrap().as_ref().unwrap().script.is_some();
 
     *OVERLAY.lock().unwrap() = None;
 
-    if unsafe { Debug::IsDebuggerPresent().into() } {
+    if unsafe { Debug::IsDebuggerPresent().into() } && !is_script {
         dx::report_live_objects();
     }
 
-    unregister_win_class();
+    if !is_script { unregister_win_class(); }
 
     crate::lua_sqlite3::cleanup();
 

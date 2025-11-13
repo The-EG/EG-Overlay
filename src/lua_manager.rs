@@ -158,6 +158,25 @@ pub fn init() {
     *LUA_STATE.lock().unwrap() = Some(l);
 }
 
+pub fn add_paths(paths: &Vec<String>) {
+    let state_lock = LUA_STATE.lock().unwrap();
+    let l = state_lock.as_ref().unwrap();
+
+    lua::getglobal(l, "package");
+    lua::getfield(l, -1, "path");
+
+    let mut luapaths = lua::tostring(l, -1).unwrap();
+
+    for path in paths {
+        luapaths += &format!(";{}\\?.lua;{}\\?\\init.lua", path, path);
+    }
+
+    lua::pushstring(l, &luapaths);
+    lua::setfield(l, -3, "path");
+
+    lua::pop(l, 2);
+}
+
 /// Shuts down and cleans up the Lua state.
 pub fn cleanup() {
     let mut state = LUA_STATE.lock().unwrap();
@@ -212,10 +231,7 @@ pub fn run_file(path: &str) {
         let err_msg = lua::tostring(thread, -1).unwrap();
         lua::L::traceback(l, thread, Some(&err_msg), 0);
         let traceback = lua::tostring(l, -1).unwrap();
-        error!("Error occured during lua run file: {}", traceback);
-
-        lua::pop(l, 1);
-        lua::pop(thread, 1);
+        panic!("Error occured during lua run file: {}", traceback);
     }
 
     lua::closethread(thread, None);
