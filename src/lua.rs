@@ -676,6 +676,8 @@ pub fn dbg_name(l: &lua_State) -> String {
     getstack(l, 0, &mut dbg).unwrap();
     getinfo(l, "n", &mut dbg).unwrap();
 
+    if dbg.name.is_null() { return String::from("(none)"); }
+
     let name = unsafe { std::ffi::CStr::from_ptr(dbg.name).to_str().unwrap() };
 
     String::from(name)
