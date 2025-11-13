@@ -4,7 +4,6 @@
 
 //! Overlay Lua Management
 
-#[allow(unused_imports)]
 use crate::logging::{debug, info, warn, error};
 
 use crate::lua;
@@ -87,6 +86,30 @@ unsafe extern "C" fn embedded_module_searcher(l: &lua::lua_State) -> i32 {
     return 1;
 }
 
+unsafe extern "C" fn lua_print(l: &lua::lua_State) -> i32 {
+    let mut msg_parts: Vec<String> = Vec::new();
+
+    for i in 1..(lua::gettop(l) + 1) {
+        match lua::luatype(l, i) {
+            lua::LuaType::LUA_TNUMBER => msg_parts.push(format!("{}", lua::tonumber(l, i))),
+            lua::LuaType::LUA_TBOOLEAN => msg_parts.push(format!("{}", lua::toboolean(l, i))),
+            lua::LuaType::LUA_TSTRING => msg_parts.push(lua::tostring(l, i).unwrap()),
+            lua::LuaType::LUA_TTABLE => msg_parts.push(String::from("<table>")),
+            lua::LuaType::LUA_TFUNCTION => msg_parts.push(String::from("<function>")),
+            lua::LuaType::LUA_TUSERDATA => msg_parts.push(String::from("<userdata>")),
+            lua::LuaType::LUA_TTHREAD => msg_parts.push(String::from("<thread>")),
+            lua::LuaType::LUA_TLIGHTUSERDATA => msg_parts.push(String::from("<lightuserdata>")),
+            _ => continue,
+        }
+    }
+
+    let msg = msg_parts.join(" ");
+
+    crate::logging::log("lua", crate::logging::LoggingLevel::Info, &msg);
+
+    return 0;
+}
+
 /// Initializes the Lua state.
 pub fn init() {
     info!("Initializing Lua...");
@@ -110,6 +133,10 @@ pub fn init() {
     // add it to the end of the table 'searchers'
     lua::seti(l, -2, (lua::L::len(l, -2) + 1) as i64);
     lua::pop(l, 2); // pop searchers and package
+
+    // set a custom print function that outputs to the log
+    lua::pushcfunction(l, Some(lua_print));
+    lua::setglobal(l, "print");
 
     let luaman = LuaManager {
         module_openers: HashMap::new(),

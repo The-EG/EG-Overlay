@@ -291,17 +291,6 @@ end
 
 local console = win.new()
 
--- redefine print so that it prints on the console. kind of hacky...but eh?
-function print(...)
-    local strs = {}
-
-    for i,p in ipairs({...}) do
-        table.insert(strs, tostring(p))
-    end
-    console:addmessage(table.concat(strs, ' '), 0xFFFFFFFF)
-end
-
-
 overlay.addeventhandler('log-message', function(event, message) console:onlogmessage(message) end)
 
 overlay_menu.additem('Lua Console', 'terminal', function()
