@@ -488,7 +488,7 @@ pub fn run() {
                 overlay.target_hwnd.store(0, atomic::Ordering::Relaxed);
                 overlay.input.remove_hooks();
                 overlay.visible.store(false, atomic::Ordering::Relaxed);
-            } /*else if fg_win == target_hwnd {
+            } else if fg_win == target_hwnd {
                 let mut target_rect = Foundation::RECT::default();
                 unsafe { WindowsAndMessaging::GetClientRect(target_hwnd, &mut target_rect).unwrap() };
 
@@ -520,7 +520,7 @@ pub fn run() {
                             WindowsAndMessaging::SWP_NOACTIVATE
                         ).unwrap();
                 }
-            }*/
+            }
 
             last_win = fg_win;
 
