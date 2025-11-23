@@ -211,11 +211,10 @@ pub fn render(frame: &mut dx::SwapChainLock) {
 
     let map_view = map_view_translate * map_view_rotate;
 
-    let mouse_ray = calc_mouse_ray(mouse_x, mouse_y, rtv_width, rtv_height, &world_proj, &world_view);
+    let mut mouse_ray: Option<lamath::Vec3F> = None;
 
     let mouse_map_x: f32;
     let mouse_map_y: f32;
-
 
     let mouse_in_map = mapfullscreen || (
         mouse_x >= minimapleft as i64 &&
@@ -232,6 +231,7 @@ pub fn render(frame: &mut dx::SwapChainLock) {
     } else {
         mouse_map_x = 0.0;
         mouse_map_y = 0.0;
+        mouse_ray = calc_mouse_ray(mouse_x, mouse_y, rtv_width, rtv_height, &world_proj, &world_view);
     }
 
     let trail_lists = dx_lua.trail_lists.lock().unwrap();
@@ -1317,6 +1317,14 @@ impl SpriteListInner {
                 let sprite = &self.sprite_data[i][s];
 
                 if !self.is_map && !mouse_in_map {
+                    let distsq = (sprite.x - camera.x).powi(2) + (sprite.y - camera.y).powi(2) + (sprite.z - camera.z).powi(2);
+
+                    // ray_points_at is fairly resource intensive, so don't do
+                    // it if the sprite is more than 50,000 inches away.
+                    // At that distance, the sprite probably isn't much larger
+                    // than a single pixel anyway.
+                    if distsq >= 2500000000.0 { continue; }
+
                     if ray_points_at(sprite.x, sprite.y, sprite.z, sprite.size / 2.0, camera, mouse_ray.as_ref().unwrap()) {
                         self.mouse_hover_tags.push(tags);
                     }
