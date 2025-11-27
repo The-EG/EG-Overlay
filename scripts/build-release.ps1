@@ -33,6 +33,6 @@ Copy-Item -Path "builddir\subprojects\libpng-1.6.40\png16-16.dll" -Destination "
 
 Copy-Item -Path "builddir\subprojects\freetype-2.13.2\freetype-6.dll" -Destination "EG-Overlay" -Force
 
-Copy-Item -Path "..\data\gw2" -Destination "EG-Overlay\datagw2" -Recurse -Force
+Copy-Item -Path "..\data\gw2" -Destination "EG-Overlay\data\gw2" -Recurse -Force
 
 Pop-Location
