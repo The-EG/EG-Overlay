@@ -192,6 +192,9 @@ M.coordinateconverter.__index = M.coordinateconverter
         If ``mapid`` is omitted or nil, the new converter will be created for
         the current map, based on mumble-link.
 
+        If ``mapid`` is not found within :lua:mod:`gw2.data`, ``nil`` is
+        returned instead.
+
         :rtype: coordinateconverter
 
         .. versionhistory::
@@ -205,6 +208,11 @@ function M.coordinateconverter.new(mapid)
     end
 
     local map = require('gw2.data').map(mapid)
+
+    if not map then
+        overlay.logerror(string.format('mapid %d not found in gw2.data.', mapid))
+        return nil
+    end
 
     local cc = {
         mapid = mapid,

@@ -783,6 +783,11 @@ function M.reloadcategories(clear)
         end
     end
 
+    if M.coordconv==nil then
+        overlay.logerror("Invalid coordinate converter for this map, can't display markers.")
+        return
+    end
+
     for packpath, pack in pairs(M.markerpacks) do
         for cat in pack:categoriesinmapiter(ml.context.mapid()) do
             if md.iscategoryactive(cat, true) then
@@ -794,12 +799,7 @@ function M.reloadcategories(clear)
 end
 
 function M.onstartup(event, data)
-    local packpaths = ms:get('markerpacks')
-
-    if not packpaths then
-        overlay.logwarn('No marker packs in settings...')
-        return
-    end
+    local packpaths = ms:get('markerpacks') or {}
 
     overlay.loginfo('Loading marker packs...')
 
