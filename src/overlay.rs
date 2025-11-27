@@ -505,20 +505,20 @@ pub fn run() {
                 let h = target_rect.bottom - target_rect.top;
 
                 unsafe {
-                    WindowsAndMessaging::SetWindowPos(
-                            overlay.hwnd(),
-                            Some(WindowsAndMessaging::HWND_TOPMOST),
-                            0, 0,
-                            0, 0,
-                            WindowsAndMessaging::SWP_NOACTIVATE | WindowsAndMessaging::SWP_NOMOVE | WindowsAndMessaging::SWP_NOSIZE
-                        ).unwrap();
-                        WindowsAndMessaging::SetWindowPos(
-                            overlay.hwnd(),
-                            Some(WindowsAndMessaging::HWND_NOTOPMOST),
-                            x,y,
-                            w,h,
-                            WindowsAndMessaging::SWP_NOACTIVATE
-                        ).unwrap();
+                    let _ = WindowsAndMessaging::SetWindowPos(
+                        overlay.hwnd(),
+                        Some(WindowsAndMessaging::HWND_TOPMOST),
+                        0, 0,
+                        0, 0,
+                        WindowsAndMessaging::SWP_NOACTIVATE | WindowsAndMessaging::SWP_NOMOVE | WindowsAndMessaging::SWP_NOSIZE
+                    );
+                    let _ = WindowsAndMessaging::SetWindowPos(
+                        overlay.hwnd(),
+                        Some(WindowsAndMessaging::HWND_NOTOPMOST),
+                        x,y,
+                        w,h,
+                        WindowsAndMessaging::SWP_NOACTIVATE
+                    );
                 }
             }
 
