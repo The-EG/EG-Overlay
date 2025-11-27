@@ -104,7 +104,7 @@ end
 -- The path of the categories displayed. This is a category typeid, of which
 -- all child categories are displayed.
 settings:setdefault('categoryManager.path', '')
-settings:setdefault('categoryManager.onlyShowCategoriesInMap', false)
+settings:setdefault('categoryManager.onlyShowCategoriesInMap', true)
 
 settings:setdefault('categoryManager.window.x', 200)
 settings:setdefault('categoryManager.window.y', 50)
