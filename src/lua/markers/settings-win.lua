@@ -246,6 +246,8 @@ end
 function SettingsWindow:addpack(path)
     local packs = settings:get('markerpacks')
 
+    if not packs then packs = {} end
+
     for i,p in ipairs(packs) do
         if p==path then
             overlay.logwarn(string.format("Can't load duplicate pack: %s", path))
