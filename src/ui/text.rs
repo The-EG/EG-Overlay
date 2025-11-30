@@ -5,9 +5,12 @@ pub mod lua;
 
 use std::sync::Arc;
 use std::sync::Mutex;
+use std::sync::Weak;
 
 #[allow(unused_imports)]
 use crate::logging::{debug, info, warn, error};
+
+use std::collections::{HashMap, HashSet};
 
 use crate::ui;
 use crate::input;
@@ -30,6 +33,12 @@ struct TextInner {
 
     fg_color: ui::Color,
     bg_color: ui::Color,
+
+    events: bool,
+
+    event_handlers: HashMap<i64, HashSet<String>>,
+
+    ui: Weak<ui::Ui>,
 }
 
 impl Text {
@@ -48,6 +57,12 @@ impl Text {
 
             fg_color: color,
             bg_color: ui::Color::from(0x00000000u32),
+
+            events: false,
+
+            event_handlers: HashMap::new(),
+
+            ui: Arc::downgrade(&crate::overlay::ui()),
         };
 
         t.update_text_size();
@@ -67,12 +82,12 @@ impl Text {
 
     pub fn process_mouse_event(
         &self,
-        _offset_x: i64,
-        _offset_y: i64,
-        _event: &input::MouseEvent,
-        _element: &Arc<ui::Element>
+        offset_x: i64,
+        offset_y: i64,
+        event: &input::MouseEvent,
+        element: &Arc<ui::Element>
     ) -> bool {
-        false
+        self.text.lock().unwrap().process_mouse_event(offset_x, offset_y, event, element)
     }
 
     pub fn process_keyboard_event(&self, _event: &input::KeyboardEvent) -> bool {
@@ -151,7 +166,7 @@ impl TextInner {
         offset_x: i64,
         offset_y: i64,
         frame: &mut crate::dx::SwapChainLock,
-        _element: &Arc<ui::Element>
+        element: &Arc<ui::Element>
     ) {
         let x = self.x + offset_x;
         let mut y = self.y + offset_y;
@@ -163,7 +178,57 @@ impl TextInner {
                 self.font.render_text(frame, x, y, line, self.fg_color);
                 y += line_height;
             }
+
+            if self.events {
+                let ui = self.ui.upgrade().unwrap();
+                ui.add_input_element(element, offset_x, offset_y, frame.current_scissor().clone());
+            }
+
             frame.pop_scissor();
+        }
+    }
+
+    pub fn process_mouse_event(
+        &self,
+        offset_x: i64,
+        offset_y: i64,
+        event: &input::MouseEvent,
+        _element: &Arc<ui::Element>
+    ) -> bool {
+        match event {
+            input::MouseEvent::Enter(_) => self.queue_events("enter"),
+            input::MouseEvent::Leave(_) => self.queue_events("leave"),
+            input::MouseEvent::Button(btn) => {
+                if !btn.down {
+                    let txt_x = offset_x + self.x;
+                    let txt_y = offset_y + self.y;
+                    if btn.x >= txt_x && btn.x <= txt_x + self.width &&
+                       btn.y >= txt_y && btn.y <= txt_y + self.height
+                    {
+                        let btnnm: &str = match btn.button {
+                            input::MouseButtonEventButton::Left    => "left",
+                            input::MouseButtonEventButton::Right   => "right",
+                            input::MouseButtonEventButton::Middle  => "middle",
+                            input::MouseButtonEventButton::X1      => "x1",
+                            input::MouseButtonEventButton::X2      => "x2",
+                            input::MouseButtonEventButton::Unknown => "unk",
+                        };
+
+                        self.queue_events(format!("click-{}", btnnm).as_str());
+                    }
+                }
+            },
+            _ => return false,
+        }
+
+        true
+    }
+
+    pub fn queue_events(&self, event: &str) {
+        for (target, events) in &self.event_handlers {
+            if events.contains(event) {
+                crate::lua_manager::queue_targeted_event(*target, Some(Box::new(String::from(event))));
+            }
         }
     }
 }

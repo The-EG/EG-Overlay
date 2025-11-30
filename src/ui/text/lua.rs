@@ -36,6 +36,10 @@ use crate::lua::luaL_Reg_list;
 use crate::ui;
 use crate::ui::text::Text;
 
+use crate::overlay::lua::{luaerror, luawarn};
+
+use std::collections::HashSet;
+
 const TEXT_METATABLE_NAME: &str = "ui::Text";
 
 const UI_MOD_FUNCS: &[luaL_Reg] = luaL_Reg_list!{
@@ -43,7 +47,11 @@ const UI_MOD_FUNCS: &[luaL_Reg] = luaL_Reg_list!{
 };
 
 const TEXT_FUNCS: &[luaL_Reg] = luaL_Reg_list!{
-    c"text", text
+    c"text"              , text,
+    c"events"            , events,
+    c"addeventhandler"   , add_event_handler,
+    c"removeeventhandler", remove_event_handler,
+    c"textcolor"         , text_color,
 };
 
 pub fn register_module_functions(l: &lua_State) {
@@ -124,6 +132,114 @@ unsafe extern "C" fn text(l: &lua_State) -> i32 {
 }
 
 /*** RST
+    .. lua:method:: events(value)
+
+        :param boolean value:
+
+        .. versionhistory::
+            :0.3.0: Added
+*/
+unsafe extern "C" fn events(l: &lua_State) -> i32 {
+    lua::checkarg!(l, 2);
+    let e = unsafe { ui::lua::checkelement(l, 1) };
+    let text = unsafe { checktext(l, &e) };
+
+    let val = lua::toboolean(l, 2);
+
+    text.text.lock().unwrap().events = val;
+
+    return 0;
+}
+
+
+/*** RST
+    .. lua:method:: addeventhandler(handler[, event1, event2, ...])
+
+        :param function handler:
+        :param string events: (Optional) Name of events this handler will receive.
+        :rtype: integer
+
+        .. versionhistory::
+            :0.3.0: Added
+*/
+unsafe extern "C" fn add_event_handler(l: &lua_State) -> i32 {
+    if lua::gettop(l) < 2 || lua::luatype(l, 2) != lua::LuaType::LUA_TFUNCTION {
+        lua::pushstring(l, "button:addeventhandler argument #1 must be a Lua function.");
+        return unsafe { lua::error(l) };
+    }
+
+    let e = unsafe { ui::lua::checkelement(l, 1) };
+    let text = unsafe { checktext(l, &e) };
+
+    lua::pushvalue(l, 2);
+
+    let ehref = lua::L::ref_(l, lua::LUA_REGISTRYINDEX);
+
+    let mut events: HashSet<String> = HashSet::new();
+
+    for i in 3..(lua::gettop(l)+1) {
+        if let Some(e) = lua::tostring(l, i) {
+            events.insert(e);
+        } else {
+            luaerror!(l, "Event names must be a string.");
+        }
+    }
+
+    if events.len() == 0 {
+        luawarn!(l, "No event types sepcified for text event handler, using default.");
+        events.insert(String::from("click-left"));
+    }
+
+    _ = text.text.lock().unwrap().event_handlers.insert(ehref, events);
+
+    lua::pushinteger(l, ehref);
+
+    return 1;
+}
+
+/*** RST
+    .. lua:method:: removeevnthandler(handlerid)
+
+        :param integer handlerid: An event handler ID returned from :lua:meth:`addeventhandler`
+
+        .. versionhistory::
+            :0.3.0: Added
+*/
+unsafe extern "C" fn remove_event_handler(l: &lua_State) -> i32 {
+    lua::checkarginteger!(l, 2);
+    let e = unsafe { ui::lua::checkelement(l, 1) };
+    let text = unsafe { checktext(l, &e) };
+    let ehref = lua::tointeger(l, 2);
+
+    if text.text.lock().unwrap().event_handlers.remove(&ehref).is_none() {
+        warn!("Button didn't have event handler {}", ehref);
+    }
+
+    lua::L::unref(l, lua::LUA_REGISTRYINDEX, ehref);
+
+    return 0;
+}
+
+/***
+    .. lua:method:: textcolor(color)
+
+        :param integer color:
+
+        .. versionhistory::
+            :0.3.0: Added
+*/
+unsafe extern "C" fn text_color(l: &lua_State) -> i32 {
+    lua::checkarginteger!(l, 2);
+    let e = unsafe { ui::lua::checkelement(l, 1) };
+    let text = unsafe { checktext(l, &e) };
+    let color = ui::lua::checkcolor(l, 2);
+
+    text.text.lock().unwrap().fg_color = color;
+
+    return 0;
+}
+
+/*** RST
     .. note::
 
         The following methods are inherited from :lua:class:`uielement`
@@ -139,5 +255,4 @@ unsafe fn checktext<'a>(l: &lua_State, element: &'a ManuallyDrop<Arc<ui::Element
         panic!("element is not a text.");
     }
 }
-
 
