@@ -1309,9 +1309,7 @@ impl SpriteListInner {
             if mouse_ray.is_none() && !self.is_map { continue; }
 
             for s in 0..sprite_data.len() {
-                let mouse_test = self.mouse_test[i][s];
-
-                if !mouse_test { continue; }
+                if !self.mouse_test[i][s] { continue; }
 
                 let tags = self.sprite_tags[i][s];
                 let sprite = &self.sprite_data[i][s];
@@ -1433,8 +1431,9 @@ impl SpriteListInner {
         let mut nremoved = 0;
 
         for ti in 0..self.sprite_data.len() {
-            let sprites = &mut self.sprite_data[ti];
-            let tags    = &mut self.sprite_tags[ti];
+            let sprites    = &mut self.sprite_data[ti];
+            let tags       = &mut self.sprite_tags[ti];
+            let mouse_test = &mut self.mouse_test[ti];
 
             let mut si = 0;
             while si < sprites.len() {
@@ -1453,6 +1452,7 @@ impl SpriteListInner {
 
                     sprites.remove(si);
                     tags.remove(si);
+                    mouse_test.remove(si);
                     nremoved += 1;
                 } else {
                     si += 1;
@@ -1844,6 +1844,7 @@ unsafe extern "C" fn spritelist_clear(l: &lua_State) -> i32 {
     inner.texture_names.clear();
     inner.sprite_data.clear();
     inner.sprite_tags.clear();
+    inner.mouse_test.clear();
 
     return 0;
 }
