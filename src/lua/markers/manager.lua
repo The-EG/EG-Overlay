@@ -764,11 +764,11 @@ function M.reloadcategories(clear)
 
         M.behaviormgr:clear()
 
-        M.textures:clear()
         M.worldsprites:clear()
         M.mapsprites:clear()
         M.worldtrails:clear()
         M.maptrails:clear()
+        M.textures:clear()
     else
         for packpath, typeids in pairs(M.activetypeids) do
             local pack = M.markerpacks[packpath]

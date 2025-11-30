@@ -212,6 +212,64 @@ function BreadCrumbBox:removeeventhandler(id)
     table.remove(self.handlers, id)
 end
 
+local CategoryMenu = {}
+CategoryMenu.__index = CategoryMenu
+
+function CategoryMenu.new()
+    local cm = {}
+    cm.menu = ui.menu()
+
+    cm.headertxt = ui.text('(Category)', ui.color('accentText'), ui.fonts.regular)
+    cm.header = ui.menuitem()
+
+    cm.header:element(cm.headertxt)
+    cm.header:enabled(false)
+
+    --cm.othersoff = ui.textmenuitem('Turn off all other categories', ui.color('text'), ui.fonts.regular)
+
+    --cm.childrenon = ui.textmenuitem('Turn on all children', ui.color('text'), ui.fonts.regular)
+
+    cm.resetacts = ui.textmenuitem('Reset activations', ui.color('text'), ui.fonts.regular)
+    cm.resetacts:addeventhandler(function()
+        cm.menu:hide()
+        cm:resetactivations(cm.category)
+        manager.reloadcategories(true)
+    end, 'click-left')
+
+
+    cm.menu:pushback(cm.header)
+    --cm.menu:pushback(ui.separatormenuitem('horizontal'))
+    --cm.menu:pushback(cm.othersoff)
+    --cm.menu:pushback(ui.separatormenuitem('horizontal'))
+    --cm.menu:pushback(cm.childrenon)
+    cm.menu:pushback(ui.separatormenuitem('horizontal'))
+    cm.menu:pushback(cm.resetacts)
+
+    setmetatable(cm, CategoryMenu)
+
+    return cm
+end
+
+function CategoryMenu:showforcategory(category)
+    self.category = category
+    self.headertxt:text(category.displayname or category.type)
+
+    self.menu:show()
+end
+
+function CategoryMenu:resetactivations(category)
+    for m in category:markersinmapiter(ml.context.mapid()) do
+        if m.guid ~= nil then
+            overlay.logdebug(string.format('Clearing activation for %s, behavior = %d', m.guid, m.behavior))
+            data.clearguidtimes(m.guid)
+        end
+    end
+
+    for i,c in ipairs(category:children()) do
+        self:resetactivations(c)
+    end
+end
+
 -- a category/row within the window
 local Category = {}
 Category.__index = Category
@@ -221,6 +279,13 @@ function Category.new(category)
     c.category = category
     c.label = ui.text(category.displayname or category.type, ui.color('text'), ui.fonts.monospace)
 
+    c.label:events(true)
+    c.label:addeventhandler(function(event)
+        local color = 'text'
+        if event == 'enter' then color = 'accentText' end
+        c.label:textcolor(ui.color(color))
+    end, 'enter', 'leave')
+
     if (category.isseparator or 0) == 0 then
         c.check = checkbox()
 
@@ -228,14 +293,27 @@ function Category.new(category)
             c.check:checkstate(true)
         end
 
-        c.check:addeventhandler(function()
+        local caton = function()
+            data.setcategoryactive(category, true)
+            manager.reloadcategories(false)
+        end
+        local catoff = function()
             data.setcategoryactive(category, false)
             manager.reloadcategories(false)
-        end, 'toggle-off')
-        c.check:addeventhandler(function()
-            data.setcategoryactive(category, true )
-            manager.reloadcategories(false)
-        end, 'toggle-on')
+        end
+        local togglecat = function()
+            if data.iscategoryactive(category) then
+                c.check:checkstate(false)
+                catoff()
+            else
+                c.check:checkstate(true)
+                caton()
+            end
+        end
+
+        c.check:addeventhandler(catoff, 'toggle-off')
+        c.check:addeventhandler(caton, 'toggle-on')
+        c.label:addeventhandler(togglecat, 'click-left')
 
         if category:childcount() > 0 then
             c.btn = childrenbutton()
@@ -245,6 +323,20 @@ function Category.new(category)
     setmetatable(c, Category)
 
     return c
+end
+
+function Category:isseparator()
+    return (self.category.isseparator or 0) == 1
+end
+
+function Category:turnon()
+    data.setcategoryactive(self.category, true)
+    self.check:checkstate(true)
+end
+
+function Category:turnoff()
+    data.setcategoryactive(self.category, false)
+    self.check:checkstate(false)
 end
 
 function Category:attachtogrid(grid, row)
@@ -266,6 +358,8 @@ function CategoryManager.new()
     setmetatable(cm, CategoryManager)
 
     cm:setupwin()
+
+    cm.catmenu = CategoryMenu.new()
 
     if settings:get('categoryManager.window.visible') then
         cm:show()
@@ -323,6 +417,11 @@ function CategoryManager:setupwin()
     self.inmapmi:state(settings:get('categoryManager.onlyShowCategoriesInMap'))
     self.settingsmi = ui.textmenuitem('Settings', ui.color('text'), ui.fonts.regular)
     self.importtacomi = ui.textmenuitem('Import TacO Pack', ui.color('text'), ui.fonts.regular)
+    self.allonmi = ui.textmenuitem('Show all current categories', ui.color('text'), ui.fonts.regular)
+    self.alloffmi = ui.textmenuitem('Hide all current categories', ui.color('text'), ui.fonts.regular)
+
+    self.allonmi:addeventhandler(function() self:allon() end, 'click-left')
+    self.alloffmi:addeventhandler(function() self:alloff() end, 'click-left')
 
     self.inmapmi:addeventhandler(function(event) self:showinmaptoggle(event) end, 'toggle-on', 'toggle-off')
 
@@ -332,6 +431,9 @@ function CategoryManager:setupwin()
     end, 'click-left')
 
     self.menu:pushback(self.inmapmi)
+    self.menu:pushback(ui.separatormenuitem('horizontal'))
+    self.menu:pushback(self.allonmi)
+    self.menu:pushback(self.alloffmi)
     self.menu:pushback(ui.separatormenuitem('horizontal'))
     self.menu:pushback(self.settingsmi)
     self.menu:pushback(ui.separatormenuitem('horizontal'))
@@ -412,6 +514,22 @@ function CategoryManager:getcategoriesforpath(path)
     return cats
 end
 
+function CategoryManager:allon()
+    self.menu:hide()
+    for i,c in ipairs(self.categories) do
+        if not c:isseparator() then c:turnon() end
+    end
+    manager.reloadcategories(false)
+end
+
+function CategoryManager:alloff()
+    self.menu:hide()
+    for i,c in ipairs(self.categories) do
+        if not c:isseparator() then c:turnoff() end
+    end
+    manager.reloadcategories(false)
+end
+
 function CategoryManager:update()
     overlay.logdebug("Updating categories...")
 
@@ -439,6 +557,8 @@ function CategoryManager:update()
     catgrid:colspacing(5)
     catgrid:rowspacing(3)
 
+    self.categories = {}
+
     for i, category in ipairs(cats) do
         local cat = Category.new(category)
 
@@ -450,7 +570,13 @@ function CategoryManager:update()
             end, 'click-left')
         end
 
+        cat.label:addeventhandler(function()
+            self.catmenu:showforcategory(category)
+        end, 'click-right')
+
         cat:attachtogrid(catgrid, i)
+
+        table.insert(self.categories, cat)
     end
 
     self.categoryscroll:child(catgrid)
