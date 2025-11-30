@@ -228,7 +228,11 @@ pub fn init() {
     crate::lua_path::init();
     crate::web_request::init();
 
-    if o.script.is_some() { return; }
+    if o.script.is_some() {
+        // scripts might still want mumble-link
+        o.mods.lock().unwrap().ml = Some(ml::MumbleLink::new());
+        return;
+    }
 
     register_win_class();
     create_window();

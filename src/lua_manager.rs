@@ -215,6 +215,8 @@ pub fn run_file(path: &str) {
         panic!("Couldn't load {}: {}", path, err_msg);
     }
 
+    drop(state_lock);
+
     let mut nres = 0i32;
 
     let mut r: i32;
